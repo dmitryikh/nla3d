@@ -63,63 +63,6 @@ public:
 	double b;
 	void apply(FE_Storage_Interface *storage);
 };
-//struct Bound 
-//{
-//	uint32 node;
-//	uint16 key;
-//	double value;
-//	void display(uint32 bn)
-//	{
-//		string k="UNKNOWN";
-//		switch (key)
-//		{
-//			case D_UX: k = "UX";
-//				break;
-//			case D_UY: k = "UY";
-//				break;
-//			case D_UZ: k = "UZ";
-//				break;
-//		}
-//		echo("B %d: %d\t%s\t%f",bn, node, k.c_str(),value);
-//	}
-//	string toString()
-//	{
-//		string str;
-//		char buff[100];
-//		switch (key)
-//		{
-//			case D_UX: str="UX";
-//				break;
-//			case D_UY: str="UY";
-//				 break;
-//			case D_UZ: str="UZ";
-//				 break;
-//			default:
-//				warning("Bound::toString: unknown bound key %d", key);
-//		}
-//		sprintf_s(buff,100," %d %f",node, value);
-//		str+=buff;
-//		return str;
-//	}
-//	void read_from_stream (istream &file)
-//	{
-//		string str;
-//		file >> str;
-//		if (str=="UX")
-//			key = D_UX;
-//		else if (str=="UY")
-//			key = D_UY;
-//		else if (str=="UZ")
-//			key = D_UZ;
-//		else
-//		{
-//			//TODO: error
-//			warning("Bound::read_from_stream: unknown bound key %d", key);
-//		}
-//		file >> node;
-//		file >> value;
-//	}
-//};
 
 #define ST_INIT 1
 #define ST_LOADED 2
@@ -459,13 +402,7 @@ bool FE_Storage<el_type>::prepare_for_solution ()
 		else
 			dof_array[i].eq_number = next_eq_solve++;
 	}
-	//DEBUG: print dof array
-	//cout << "Dof_array:" << endl;
-	//for (uint32 i=0; i<n_dofs; i++)
-	//{
-	//	cout << i+1 << ": " << dof_array[i].eq_number << ", " << dof_array[i].is_constrained << endl;
-	//}
-	//настраеваем массивы значенийстепеней свободы {qc; qs; lambda}
+
 	vec_q_lambda = new double[n_dofs+n_MPC_eqs];
 	memset(vec_q_lambda, 0, sizeof(double)*(n_dofs+n_MPC_eqs));
 	vec_q = vec_q_lambda;

@@ -105,7 +105,6 @@ void log(const char* logline, ...);
 void error(const char* logline, ...);
 void echo (const char* logline, ...);
 void echolog(const char* logline, ...);
-uint32 tick();
 
 string IntToStr (uint32 dig);
 int32 npow(int16 dig, uint16 power);
@@ -115,6 +114,7 @@ void del_spaces (string &str);
 
 bool read_ans_data (const char *filename, FE_Storage_Interface *storage);
 
+//timer class to perfomance measuring
 class Timer
 {
 public:

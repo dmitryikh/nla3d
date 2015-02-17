@@ -21,6 +21,7 @@ public:
 	~Material()   // TODO: discover the virtual destructor
 	{
 		if (C) delete[] C; 
+
 		C = NULL;
 	}
 	virtual double getK0 () = 0; //initial(linearized) Bulk module

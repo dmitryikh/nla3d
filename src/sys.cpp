@@ -15,7 +15,7 @@ void warning(const char* logline, ...)
 	va_end(argList);
 	if (!file)
 	{
-		cout << "Warning: Can't open log file: " << log_file_name <<endl;
+		cout << "Warning: Can't open log file: " << log_file_name << endl;
 		cout << "Warning: " << buffer <<endl;
 		ReleaseMutex( log_opts.output_lock );
 		return;
@@ -154,11 +154,6 @@ void echolog(const char* logline, ...)
 	file << buffer <<endl;
 	file.close();
 	ReleaseMutex( log_opts.output_lock );
-}
-
-uint32 tick()
-{
-	return (uint32) clock();
 }
 
 string IntToStr (uint32 dig)
