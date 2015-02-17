@@ -5,7 +5,6 @@
 #include "FE_Storage.h"
 #include "vtk_proc.h"
 #include "basic_elements.h"
-//#include "Render.h"
 #include "Solution.h"
 #include <mkl.h>
 #include "math\Sparse_Matrix.h"
