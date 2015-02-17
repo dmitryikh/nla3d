@@ -1,0 +1,4 @@
+Here should be a TODO list - main targets for future improvements:
+1. *
+2. *
+
