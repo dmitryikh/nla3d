@@ -38,14 +38,14 @@ dMat Material::getS(uint16 an_type, const double* C, double p_e)
 
 string Material::toString()
 {
-	string str;
+	/*string str;
 	str << getName() << ": ";
 	for (uint16 i=0; i < getNumC(); i++)
 	{
 		str << "C[" << i+1 << "]=" << C[i]
 	  if (i+1 < numC)
 			str << ", ";
-	}
+	}*/
 	return string();
 }
 

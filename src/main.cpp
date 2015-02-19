@@ -32,30 +32,30 @@ void main ()
 	Solution sol;
 	sol.attach(&storage);
 	sol.setqIterat(15);
-	sol.setqLoadstep(10);
-	double a1 = 130*M_PI/180;
-	double a2 = 50*M_PI/180;
-	ifstream in("LIST.txt");
-	uint32 node;
-	double cx,cz;
-	double fi_sec = 2*M_PI/3;
-	cx = cos(fi_sec+M_PI/2);
-	cz = -sin(fi_sec+M_PI/2);
-	BC_MPC mpc;
-	mpc.b = 0.0;
-	while (in)
-	{	
-		mpc.eq.clear();
-		node = 0;
-		in >> node;
-		if (node)
-		{
-			mpc.eq.push_back(MPC_token(node,0,cx));
-			mpc.eq.push_back(MPC_token(node,2,cz));
-			//storage.add_bounds(mpc);
-		}
-	}
-	in.close();
+	sol.setqLoadstep(20);
+//	double a1 = 130*M_PI/180;
+//	double a2 = 50*M_PI/180;
+//	ifstream in("LIST.txt");
+//	uint32 node;
+//	double cx,cz;
+//	double fi_sec = 2*M_PI/3;
+//	cx = cos(fi_sec+M_PI/2);
+//	cz = -sin(fi_sec+M_PI/2);
+//	BC_MPC mpc;
+//	mpc.b = 0.0;
+//	while (in)
+//	{	
+//		mpc.eq.clear();
+//		node = 0;
+//		in >> node;
+//		if (node)
+//		{
+//			mpc.eq.push_back(MPC_token(node,0,cx));
+//			mpc.eq.push_back(MPC_token(node,2,cz));
+//			//storage.add_bounds(mpc);
+//		}
+//	}
+//	in.close();
 	Reaction_proc proc(&storage);
 	list<BC_dof_constraint> &lst = storage.get_dof_const_BC_list();
 	list<BC_dof_constraint>::iterator bc_dof = lst.begin();

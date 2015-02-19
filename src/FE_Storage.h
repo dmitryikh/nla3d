@@ -166,7 +166,7 @@ public:
 	virtual void add_bounds (BC_MPC &bc) = 0;
 
 	virtual void clearMesh () = 0;
-	virtual void nodes_reassign(uint32 nn) = 0; // dont forget 	nDOFs = nn*Node::nDOF;
+	virtual void nodes_reassign(uint32 nn) = 0; 
 	virtual void elements_reassign(uint32 en) = 0;
 
 	virtual bool prepare_for_solution ()  =0;
@@ -304,7 +304,7 @@ public:
 	void add_bounds (BC_MPC &bc);
 
 	void clearMesh ();
-	void nodes_reassign(uint32 nn); // dont forget 	nDOFs = n_nodes*Node::nDOF;
+	void nodes_reassign(uint32 nn); 
 	void elements_reassign(uint32 en);
 
 	bool prepare_for_solution ();
@@ -760,7 +760,8 @@ void FE_Storage<el_type>::nodes_reassign(uint32 _nn)
 {
 	nodes.clear();
 	n_nodes = _nn;
-	//nDOFs = nn*Node::nDOF();
+  //Node() fires Vec<3> constructor, thus Node coordinates are (0,0,0) by default
+  //TODO: try-catch of memory overflow
 	nodes.assign(_nn, Node()); // TODO: тут бы catch на возможность выделения памяти
 }
 

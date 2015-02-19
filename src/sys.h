@@ -141,3 +141,6 @@ private:
 	clock_t start_time;
 	clock_t end_time;
 };
+
+uint16 str2dof (string dof_name);
+
