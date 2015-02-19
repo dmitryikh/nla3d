@@ -1,6 +1,9 @@
 #include "Material.h"
 
 
+const uint16 Material_Hyper::mat_index[6][2] = {1,1, 2,2, 3,3, 1,2, 2,3, 1,3};
+const uint16 Material_Hyper::pds_index[3] = {0, 1, 3};
+const Mat<3,3> Material_Hyper::matI(1.0,0.0,0.0,  0.0,1.0,0.0,   0.0,0.0,1.0);
 //---------------------------------------------------------
 //----------------MATERIAL ABSTRACT CLASS------------------
 //---------------------------------------------------------
@@ -38,14 +41,15 @@ dMat Material::getS(uint16 an_type, const double* C, double p_e)
 
 string Material::toString()
 {
-	/*string str;
-	str << getName() << ": ";
-	for (uint16 i=0; i < getNumC(); i++)
-	{
-		str << "C[" << i+1 << "]=" << C[i]
-	  if (i+1 < numC)
-			str << ", ";
-	}*/
+	//TODO: сделать
+	//string str;
+	//str << getName() << ": ";
+	//for (uint16 i=0; i < getNumC(); i++)
+	//{
+	//	str << "C[" << i+1 << "]=" << C[i]
+	//	if (i+1 < numC)
+	//		str << ", ";
+	//}
 	return string();
 }
 
@@ -53,7 +57,7 @@ string Material::toString()
 void Material::read_from_stream (istream &str)
 {
 	for (uint16 i=0; i < getNumC(); i++)
-		str >> C[i]; //TODO: check on errors
+		str >> C[i]; //TODO: проверять на ошибки
 }
 
 
@@ -289,3 +293,279 @@ dMat Material_Comp_Neo_Hookean::mat_E_p(uint16 an_type, const double* C)
 	return E_p;
 }
 
+
+
+dMat Material_Hyper::mat_E(uint16 an_type, const double* C, double* par)
+{
+	assert (C);
+	//double J = getJ(an_type, C);
+	//double I1c, I2c;
+	//double I1_, I2_; //изохорические инварианты
+	//Mat<3,3> matC;
+	//double phi1, phi2, phi11, phi12, phi22;
+	//Mat<3,3> matA, matB;
+	dMat dMatE(0,0);
+	double E[21];
+	get_Eijkl (an_type, C, par, E);
+
+	switch (an_type)
+	{
+	case ANALYSIS_2D_PLANE_STRAIN:
+		dMatE.resize(3,3);
+
+		for (uint16 i=0; i < 3; i++)
+			for (uint16 j=0; j < 3; j++)
+			{
+				if (j < i) dMatE[i][j] = dMatE[j][i];
+				else
+					dMatE[i][j] = E[pds_index[i]*6+pds_index[j]];
+			}
+		break;
+	case ANALYSIS_3D:
+		dMatE.resize(6,6);
+
+		for (uint16 i=0; i < 6; i++)
+			for (uint16 j=0; j < 6; j++)
+			{
+				if (j < i) dMatE[i][j] = dMatE[j][i];
+				else
+					dMatE[i][j] = E[i*6+j];
+			}
+		break;
+	default:
+		warning("Material_Comp_Neo_Hookean::mat_E_c analysis type %d not supported", an_type);
+	}
+	return dMatE;
+}
+
+dMat Material_Hyper::mat_Ep(uint16 an_type, const double* C, double* par)
+{
+	assert(C);
+	
+	dMat E_p(0,0);
+	double J = getJ(an_type, C);
+	double inv_J = 1.0/J;
+	Vec<6> Ci;
+
+	switch (an_type)
+	{
+	case ANALYSIS_2D_PLANE_STRAIN:
+		E_p.resize(3,1);
+		E_p[0][0] =  inv_J*C[1];
+		E_p[1][0] =  inv_J*C[0];
+		E_p[2][0] =  -inv_J*C[2];
+		break;
+	case ANALYSIS_3D:
+		E_p.resize(6,1);
+		Ci = Vec<6>(C[1]*C[2]-C[4]*C[4], C[0]*C[2]-C[5]*C[5], C[0]*C[1]-C[3]*C[3],
+				C[5]*C[4]-C[3]*C[2], C[3]*C[5]-C[0]*C[4], C[3]*C[4]-C[1]*C[5]);
+		E_p.cpVec<6>(Ci*inv_J);
+		break;
+	default:
+		warning("Material_Hyper::mat_E_p analysis type %d not supported", an_type);
+	}
+	return E_p;
+}
+
+dMat Material_Hyper::vec_S(uint16 an_type, const double* C, double* par)
+{
+	assert(C);
+	dMat dMatS(0,0);
+
+	double S[6];
+	get_S(an_type, C, par, S);
+
+	switch (an_type)
+	{
+	case ANALYSIS_2D_PLANE_STRAIN:
+		dMatS.resize(3,1);
+		for (uint16 i=0; i < 3; i++)
+				dMatS[i][0] = S[pds_index[i]];
+		break;
+	case ANALYSIS_3D:
+		dMatS.resize(6,1);
+		for (uint16 i=0; i < 6; i++)
+				dMatS[i][0] = S[i];
+		break;
+	default:
+		warning("Material_Hyper::vec_S analysis type %d not supported", an_type);
+	}
+	return dMatS;
+}
+
+
+void Material_Hyper::get_matC(uint16 an_type, const double* C, Mat<3,3> &matC)
+{
+	matC.zero();
+	switch (an_type)
+	{
+	case ANALYSIS_2D_PLANE_STRAIN:
+		matC[0][0] = C[0];
+		matC[0][1] = C[2];
+		matC[1][0] = C[1];
+		matC[2][2] = 1.0;
+		break;
+	case ANALYSIS_3D:
+		matC[0][0] = C[0];
+		matC[0][1] = C[3];
+		matC[0][2] = C[5];
+		matC[1][1] = C[1];
+		matC[1][2] = C[4];
+		matC[2][2] = C[2];
+		matC[1][0] = matC[0][1];
+		matC[2][0] = matC[0][2];
+		matC[2][1] = matC[1][2];
+		break;
+	default:
+		warning("Material_Hyper::get_S analysis type %d not supported", an_type);
+	}
+}
+
+//void Material_Hyper::get_S(uint16 an_type, const double* C, double* par, double *S)
+//{
+//	Mat<3,3> matC;
+//	Mat<3,3> matI;
+//	get_matC(an_type, C, matC);
+//	
+//	double J = matC.det();
+//	//double I1=matC.I1();
+//	//double I2=matC.I2();
+//	double I1, I2; //DEBUG
+//	Mat<3,3> invC = matC.inv(J);
+//	J = sqrt(J);
+//	
+//	double ksi[3];
+//	W_first_derivatives(I1, I2, J, ksi);
+//
+//	for (uint16 i=0; i<6; i++)
+//		S[i] = 2*ksi[0]*matI[mat_index[i][0]][mat_index[i][0]]+
+//				4*ksi[1]*matC[mat_index[i][0]][mat_index[i][0]]+
+//				J*ksi[2]*invC[mat_index[i][0]][mat_index[i][0]];
+//}
+
+
+void Material_Hyper::get_S(uint16 an_type, const double* C, double* par, double *S)
+{
+	Mat<3,3> matC;
+	get_matC(an_type, C, matC);
+	
+	double J = matC.det();
+	Mat<3,3> invC = matC.inv(J);
+	J = sqrt(J);
+	//double I1=matC.I1();
+	//double I2=matC.I2();
+	double I1, I2; //DEBUG
+	double ksi[3];
+	W_first_derivatives(I1, I2, J, ksi);
+	uint16 i,j;
+	for (uint16 ii=0; i<6; i++)
+	{
+		i = mat_index[ii][0]-1;
+		j = mat_index[ii][1]-1;
+		S[ii] = 2*ksi[0]*matI[i][j]+
+				4*ksi[1]*matC[i][j]+
+				J*ksi[2]*invC[i][j];
+	}
+}
+
+void Material_Hyper::get_Eijkl(uint16 an_type, const double* C, double* par, double *E)
+{
+	Mat<3,3> matC;
+	get_matC(an_type, C, matC);
+	
+	double J = matC.det();
+	Mat<3,3> invC = matC.inv(J);
+	J = sqrt(J);
+	//double I1=matC.I1();
+	//double I2=matC.I2();
+	double I1, I2; //DEBUG
+	double ksi[7];
+	W_derivatives(I1, I2, J, ksi);
+	// ksi1, ksi2, ksi11, ksi12, ksi22, ksiJ, ksiJJ
+	//  0      1     2      3      4      5      6
+	uint16 i,j,k,l;
+	for (uint16 ii=0; ii<6; ii++)
+		for (uint16 jj=ii; jj<6; jj++)
+		{
+			i = mat_index[ii][0]-1;
+			j = mat_index[ii][1]-1;
+			k = mat_index[jj][0]-1;
+			l = mat_index[jj][1]-1;
+			E[ii*6+jj]=4*ksi[2]*matI[i][j]*matI[k][l]+8*ksi[3]*(matI[i][j]*matC[k][l]+matC[i][j]*matI[k][l])+
+						16*ksi[4]*matC[i][j]*matC[k][l]+J*(J*ksi[6]+ksi[5])*invC[i][j]*invC[k][l]+
+						2*J*ksi[5]*(-invC[i][k]*invC[j][l]) + 8*ksi[1]*matI[i][k]*matI[j][l];
+		}
+}
+
+void Material_Hyper_Mixed::get_Eijkl (uint16 an_type, const double* C, double* par, double *E)
+{
+	assert (par);
+	Mat<3,3> matC;
+	get_matC(an_type, C, matC);
+	double p = par[0];
+	double J = matC.det();
+	Mat<3,3> invC = matC.inv(J);
+	J = sqrt(J);
+	//double I1=matC.I1();
+	//double I2=matC.I2();
+	double I1, I2; //DEBUG
+	double I1_ = I1*pow(J,-2.0/3.0);
+	double I2_ = I2*pow(J,-4.0/3.0);
+	Mat<3,3> matA = invC*(-1.0/3.0*I1)+matI;
+	Mat<3,3> matB = invC*(-1.0/3.0*I2)+matC;
+	double ksi[5];
+	W_derivatives(I1_, I2_, ksi);
+	// ksi1, ksi2, ksi11, ksi12, ksi22
+	//  0      1     2      3      4   
+
+	double phi11 = pow(J,-4.0/3.0)*ksi[0];
+	double phi12 = 2*pow(J,-2)*ksi[3];
+	double phi22 = 4*pow(J,-8.0/3.0)*ksi[4];
+	double phi1  = pow(J,-2.0/3.0)*ksi[0];
+	double phi2  = 2*pow(J,-4.0/3.0)*ksi[1];
+
+	uint16 i,j,k,l;
+	for (uint16 ii=0; ii<6; ii++)
+		for (uint16 jj=ii; jj<6; jj++)
+		{
+			i = mat_index[ii][0]-1;
+			j = mat_index[ii][1]-1;
+			k = mat_index[jj][0]-1;
+			l = mat_index[jj][1]-1;
+			E[ii*6+jj]=4*phi11*matA[i][j]*matB[k][l]+4*phi12*(matA[i][j]*matB[k][l]+matB[i][j]*matA[k][l])+
+						4*phi22*matB[i][j]*matB[k][l]-4.0/3.0*phi1*(matI[i][j]*invC[k][l]+invC[i][j]*matI[k][l])+
+						4.0/9.0*(phi1*I1+2*phi2*I2)*invC[i][j]*invC[k][l]-4.0/3.0*(phi1*I1+phi2*I2)*(-invC[i][k]*invC[j][l])-
+						8.0/3.0*phi2*(matC[i][j]*invC[k][l]+invC[i][j]*matC[k][l])+4.0*phi2*matI[i][k]*matI[j][l]+
+						p*J*(0.5*invC[i][j]*invC[k][l]-invC[i][k]*invC[j][l]);
+		}
+}
+
+void Material_Hyper_Mixed::get_S (uint16 an_type, const double* C, double* par, double *S)
+{
+	assert (par);
+	Mat<3,3> matC;
+	get_matC(an_type, C, matC);
+	
+	double p = par[0];
+	double J = matC.det();
+	Mat<3,3> invC = matC.inv(J);
+	J = sqrt(J);
+	//double I1=matC.I1();
+	//double I2=matC.I2();
+	double I1, I2; //DEBUG
+
+
+	double ksi[2];
+	W_first_derivatives(I1, I2, J, ksi);
+	double phi1 = ksi[0]*pow(J,-2.0/3.0);
+	double phi2 = 2*ksi[1]*pow(J,-4.0/3.0);
+	uint16 i,j;
+	for (uint16 ii=0; i<6; i++)
+	{
+		i = mat_index[ii][0]-1;
+		j = mat_index[ii][1]-1;
+		S[ii] = 2*phi1*(matI[i][j]-1.0/3.0*I1*invC[i][j])+
+				2*phi2*(matC[i][j]-1.0/3.0*I2*invC[i][j])+
+				p*J*invC[i][j];
+	}
+}
