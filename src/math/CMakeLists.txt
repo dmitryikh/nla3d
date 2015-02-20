@@ -17,7 +17,7 @@ file (GLOB MATH_SOURCES
 #source_group("advanced" FILES ${ADVANCED_FUNCTION_SOURCES})
 
 # Properties->C/C++->General->Additional Include Directories
-include_directories (.)
+#include_directories (.)
 include_directories (../.)
 
 # Set Properties->General->Configuration Type to Dynamic Library(.dll)

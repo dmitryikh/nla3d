@@ -8,6 +8,8 @@
 
 void prepeare_processors (FE_Storage_Interface& storage);
 
+double curves (vector<double>& refCurve, vector<double>& curCurve); 
+vector<double> readRefCurveData (string fileRefCurve); 
 // Here is defaults values for command line options
 // For command line format see usage() below
 uint16 it_num_default = 15;
@@ -79,6 +81,19 @@ int main (int argc, char* argv[])
     usage();
     exit(1);
   }
+  //parse addition option for this test
+  char* tmp = getCmdOption(argv, argv + argc, "-refcurve");
+  string fileRefCurve;
+  if (tmp) {
+    fileRefCurve = tmp;
+  } else {
+    error("For this test you should provide -refcurve options also");
+  }
+  //FOR DEBUG PERPOSE  
+  vector<double> refCurve = readRefCurveData(fileRefCurve);
+  for (uint16 i = 0; i < refCurve.size(); i++) {
+    echolog("refCurve[%d] = %f", i, refCurve[i]);
+  }
 	Timer pre_solve(true);
   //TODO: now the type of the element is hardcoded into a source code.
   //It's very unconvinience for real usage of nla3d
@@ -106,19 +121,8 @@ int main (int argc, char* argv[])
     string jobname(_jobname);
     Vtk_proc* vtk = new Vtk_proc(&storage, jobname);
   }
-  prepeare_processors(storage); 
 
-	echolog("Preprocessor time: %f sec.", pre_solve.stop());
-	sol.run();
-	return 0;
-}
-
-//while performing an analysis we need to process and store some results data
-//here is a mechanism of processors to deal with it
-//but it needs a lot of options to setup it
-//now it's needed to hardcode initialization and setup of a such processors
-void prepeare_processors (FE_Storage_Interface& storage) {
-	Reaction_proc* proc = new Reaction_proc(&storage, "loading_force.txt");
+	Reaction_proc* proc = new Reaction_proc(&storage);
 	list<BC_dof_constraint> &lst = storage.get_dof_const_BC_list();
 
 	list<BC_dof_constraint>::iterator bc_dof = lst.begin();
@@ -131,5 +135,60 @@ void prepeare_processors (FE_Storage_Interface& storage) {
 		}
 		bc_dof++;
 	}
+
+	echolog("Preprocessor time: %f sec.", pre_solve.stop());
+	sol.run();
+
+  vector<double> curCurve = proc->getReactions(); 
+  for (uint16 i = 0; i < curCurve.size(); i++) {
+    curCurve[i] = -curCurve[i];
+    echolog("curCurve[%d] = %f", i, curCurve[i]);
+  }
+  double _error = curves (refCurve, curCurve);
+  echolog("Error between reference loading curve and current is %f", _error);
+  if (_error > 3.0) {
+    //TODO: choose an upper bound for error
+    error("To big error! (upper bound is %f)", 3.0);
+  }
+	return 0;
 }
 
+//while performing an analysis we need to process and store some results data
+//here is a mechanism of processors to deal with it
+//but it needs a lot of options to setup it
+//now it's needed to hardcode initialization and setup of a such processors
+void prepeare_processors (FE_Storage_Interface& storage) {
+}
+
+double curves (vector<double>& refCurve, vector<double>& curCurve) {
+  if (refCurve.size() != curCurve.size()) {
+    error("curves: tabular data size should be the same for reference curve and for current curve. (got refCurve.size() = %d, curCurve.size() = %d", refCurve.size(), curCurve.size());
+  }
+  double _error = 0.0;
+  uint16 lenCurve = curCurve.size(); 
+  for (uint16 i = 0; i < lenCurve; i++) {
+    _error += fabs(refCurve[i]-curCurve[i])/lenCurve;
+  }
+  return _error;
+}
+
+vector<double> readRefCurveData (string fileRefCurve) {
+  ifstream file(fileRefCurve);
+  string dummy;
+  double tmp;
+  double pre_tmp = -1.0;
+  vector<double> res;
+  file >> dummy >> dummy >> dummy;
+  if (dummy.compare("force") != 0) {
+    error("readRefCurveData: Expecting third column to a force column");
+  }
+  while (!file.eof()) {
+    file >> dummy >> dummy >> tmp;
+    if (tmp != pre_tmp) {
+      res.push_back(tmp);
+      pre_tmp = tmp;
+    }
+  }
+  file.close();
+  return res;
+}

@@ -7,9 +7,15 @@ enum mat_model
 {
 	MAT_NOT_DEFINED,
 	MAT_HOOKEAN,
-	MAT_COMP_NEO_HOOKEAN
+	MAT_COMP_NEO_HOOKEAN,
+  LAST_MAT
 };
-const char* const mat_model_labels[]={"UNDEFINED", "Hookean", "Compressible Neo-Hookean"};
+const char* const mat_model_labels[]={
+  "UNDEFINED",
+  "Hookean",
+  "Neo-Hookean"
+};
+
 
 class Material
 {
@@ -132,3 +138,6 @@ inline uint16 Material::getNumC ()
 {
 	return numC;
 }
+
+uint16 matName2matId (string matName); 
+Material* createMaterial (string matName); 

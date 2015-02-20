@@ -1,9 +1,9 @@
 #include "vtk_proc.h"
 
-Vtk_proc::Vtk_proc(FE_Storage_Interface *st) : Post_proc(st)
+Vtk_proc::Vtk_proc(FE_Storage_Interface *st, string _fileName) : Post_proc(st)
 {
-	name="Vtk_processor";
-	file_name = "input";
+	name = "Vtk_processor";
+	file_name = _fileName;
 	comp_codes.push_back(E_1);
 	comp_codes.push_back(E_2);
 	comp_codes.push_back(E_3);

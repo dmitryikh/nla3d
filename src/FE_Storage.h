@@ -963,3 +963,5 @@ double* FE_Storage<el_type>::get_vec_dqs()
 	assert(vec_dq_dlambda);
 	return vec_dqs;
 }
+
+bool read_ans_data (const char *filename, FE_Storage_Interface *storage);

@@ -1,0 +1,54 @@
+!------------------------------
+! Macro to unselect tetrahedral and wedge-shaped elements
+! Assumes use of SOLID164
+!------------------------------
+
+!------------------------------
+! Select currently-selected elements and nodes
+! Put into "components" for later retrieval by user
+!------------------------------
+cm,E_SELECTED,elem
+cm,N_SELECTED,node
+
+!------------------------------
+! Select only SOLID164 elements
+! Create necessary arrays
+!------------------------------
+!esel,r,ename,,164
+*get,AR99,elem,,num,max
+*dim,STI_MASK,array,AR99
+*dim,STI_ELEM,array,AR99,2
+
+!------------------------------
+! Get nodes 3 and 4 of each element
+!------------------------------
+*vget,STI_MASK(1),elem,1,esel
+*vmas,STI_MASK(1)
+*vget,STI_ELEM(1,1),elem,1,node,3
+*vmas,STI_MASK(1)
+*vget,STI_ELEM(1,2),elem,1,node,4
+
+!------------------------------
+! Check if node #3 = node #4 (i.e., tet or wedge)
+!------------------------------
+*stat,STI_MASK(1)
+*vmas,STI_MASK(1)
+*vope,STI_MASK(1),STI_ELEM(1,1),eq,STI_ELEM(1,2)
+*stat,STI_MASK(1)
+
+!------------------------------
+! Unselect tet/wedge
+!------------------------------
+*do,AR98,1,AR99
+  *if,STI_MASK(AR98),eq,1,then
+    esel,u,elem,,AR98
+  *endif
+*enddo
+
+eplot
+
+!------------------------------
+! Clean up
+!------------------------------
+*del,STI_MASK,,nopr
+*del,STI_ELEM,,nopr

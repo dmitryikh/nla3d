@@ -1,0 +1,9 @@
+For now (when this test was created) nla3d doesn't support wedges FE.
+But in a real 3D FE model from Ansys there are ~8 wedges elements. I've
+just deleted them. So far as it's located on the bottom of the damper its don't 
+have any effect to a resulting loading curve.
+
+Material model for this case:
+Compressible Neo-Hookean
+G = mu (ansys symbol) = 10, E = 30
+d= 0.0004, K = 5000, mu = 0.499

@@ -20,6 +20,9 @@ enum Dof_Type
 	HYDRO_PRESSURE,
 	UNKNOWN
 };
+
+// class for Degree of Freedom informations 
+// (is it predefined by BC, its number in equation system, ..)
 class Dof
 {
 public:
@@ -30,7 +33,7 @@ public:
 	bool is_constrained; // is this DOF defined by B.C.
 };
 
-//class Node represents spatial node
+//class Node represents spatial 3D node
 class Node
 {
 public:

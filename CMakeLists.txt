@@ -1,7 +1,5 @@
 cmake_minimum_required (VERSION 2.6)
 
-# Maps to a solution file (Tutorial.sln). The solution will 
-# have all targets (exe, lib, dll) as projects (.vcproj)
 project (NLA3D)
 
 # Turn on the ability to create folders to organize projects (.vcproj)
@@ -17,17 +15,13 @@ project (NLA3D)
 # Useful for displaying errors, warnings, and debugging
 message ("cxx Flags: " ${CMAKE_CXX_FLAGS})
 
-# Sub-directories where more CMakeLists.txt exist
-add_subdirectory (src/math)
-
-# Properties->C/C++->General->Additional Include Directories
-#include_directories ("${PROJECT_SOURCE_DIR}/math")
-include_directories (src)
-
+enable_testing()
 
 #now it's hardcoded because I don't know how to do it more flexible
+#TODO: use findMKL.cmake
 set(MKL_PATH "C:/Documents and Settings/admin/My Documents/10.0.2.019/10.0.2.019")
 include_directories (${MKL_PATH}/include)
+include_directories (src)
 
 #MKL libraries that needed to link with nla3d
 add_library(mkl_intel_c STATIC IMPORTED)
@@ -45,23 +39,30 @@ set_property(TARGET mkl_core PROPERTY IMPORTED_LOCATION ${MKL_PATH}/ia32/lib/mkl
 add_library(mkl_solver STATIC IMPORTED)
 set_property(TARGET mkl_solver PROPERTY IMPORTED_LOCATION ${MKL_PATH}/ia32/lib/mkl_solver.lib)
 
-file (GLOB APP_SOURCES
+
+add_subdirectory (src/math)
+add_subdirectory (test)
+
+
+file (GLOB NLA3D_LIB_SOURCES
 	  "src/*.cpp")
 
+#TODO: this remove_item command doesn't work
+list(REMOVE_ITEM NLA3D_LIB_SOURCES src/main.cpp)
 
-# Set Properties->General->Configuration Type to Application(.exe)
-# Creates nla3d.exe with the listed sources (main.cxx)
-# Adds sources to the Solution Explorer
-add_executable (nla3d ${APP_SOURCES})
+set (NLA3D_APP_SOURCES "src/main.cpp")
 
+#collect all sources except main.cpp into a static link
+#this static link could be conviniently used for tests
+add_library(nla3d_lib STATIC ${NLA3D_LIB_SOURCES})
+target_link_libraries(nla3d_lib math mkl_intel_c mkl_intel_thread libiomp5md mkl_core mkl_solver)
+
+#main executable of the project: nla3d.exe program
+add_executable(nla3d ${NLA3D_APP_SOURCES})
 # Properties->Linker->Input->Additional Dependencies
-target_link_libraries(nla3d math mkl_intel_c mkl_intel_thread libiomp5md mkl_core mkl_solver)
+target_link_libraries(nla3d nla3d_lib)
 
-# Creates a folder "executables" and adds target 
-# project (app.vcproj) under it
-#set_property(TARGET app PROPERTY FOLDER "executables")
-
-# Adds logic to INSTALL.vcproj to copy app.exe to destination directory
+# Add logic to INSTALL.vcproj to copy app.exe to destination directory
 install (TARGETS nla3d
 		 RUNTIME DESTINATION ${PROJECT_BINARY_DIR}/bin)
 

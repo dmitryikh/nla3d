@@ -569,3 +569,30 @@ void Material_Hyper_Mixed::get_S (uint16 an_type, const double* C, double* par, 
 				p*J*invC[i][j];
 	}
 }
+
+uint16 matName2matId (string matName) {
+  for (uint16 i = 0; i < LAST_MAT; i++) {
+    if (matName.compare(mat_model_labels[i]) == 0) {
+      return i;
+    }
+  }
+  return MAT_NOT_DEFINED;
+}
+
+Material* createMaterial (string matName) {
+  uint16 matId = matName2matId(matName);
+  Material* mat;
+  if (matId == MAT_NOT_DEFINED)
+    error("createMaterial: can't find material %s", matName.c_str());
+  switch (matId) {
+    case MAT_HOOKEAN:
+      mat = new Material_Hookean();
+      break;
+    case MAT_COMP_NEO_HOOKEAN:
+      mat = new  Material_Comp_Neo_Hookean();
+      break;
+    default:
+      error("createMaterial: don't have a material with id %d", matId);
+  }
+  return mat;
+}

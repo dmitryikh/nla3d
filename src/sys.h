@@ -11,6 +11,8 @@
 #include <time.h>
 #include <sstream>
 #include <vector>
+#include <algorithm>
+#include <stdlib.h>
 
 using namespace std;
 
@@ -113,8 +115,6 @@ int32 npow(int16 dig, uint16 power);
 vector<string> read_tokens(char *input);
 void del_spaces (string &str);
 
-bool read_ans_data (const char *filename, FE_Storage_Interface *storage);
-
 class Timer
 {
 public:
@@ -143,4 +143,8 @@ private:
 };
 
 uint16 str2dof (string dof_name);
+
+char* getCmdOption(char ** begin, char ** end, const std::string & option);
+bool cmdOptionExists(char** begin, char** end, const std::string& option);
+vector<char*> getCmdManyOptions(char ** begin, char ** end, const std::string & option); 
 

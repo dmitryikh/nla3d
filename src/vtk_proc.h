@@ -6,7 +6,7 @@
 class Vtk_proc : public Post_proc
 {
 public:
-	Vtk_proc(FE_Storage_Interface *st);
+	Vtk_proc(FE_Storage_Interface *st, string _fileName);
 	virtual ~Vtk_proc();
 	virtual void pre (uint16 qLoadstep);
 	virtual void process (uint16 curLoadstep, uint16 qLoadstep);

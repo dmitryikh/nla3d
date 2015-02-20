@@ -1,0 +1,5 @@
+to run test in 2 threads:
+ctest . -C Release -j 2
+
+to build a whole project
+cmake --build . --config Release

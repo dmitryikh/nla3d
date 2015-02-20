@@ -1,0 +1,100 @@
+disp = 120
+
+!BC for bottom_side
+NSEL,S,LOC,Z,0
+D,ALL, ,0, , , ,UY, , , , ,
+
+!MPC for right_side
+!remember that we need to exclude top_side from right_side MPC!
+CMSEL,S,RIGHT_SIDE  
+*GET,ncount,NODE,0,COUNT
+ncur = NDNEXT(0)
+
+*DO,ind1,1,ncount
+	CE,ind1,0.0,ncur,UX,1,ncur,UZ,1
+	ncur = NDNEXT(ncur)
+*ENDDO
+
+
+!BC for left_side
+CMSEL,A,LEFT_SIDE
+D,ALL, ,0.0, , , ,UZ, , , , ,  
+
+!Apply rigid motion for top_side
+CMSEL,S,MNODE.N 
+CMSEL,A,TOP_SIDE
+CERIG,1000000,ALL,ALL, , , ,
+!And BC to master node
+D,1000000, ,0.0, , , ,UX,UZ,ROTX,ROTY,ROTZ,
+
+
+!define material
+TBDE,HYPE,1,,,  
+TB,HYPE,1,1,2,NEO   
+TBTEMP,0
+TBDATA,,10,0.0004,,,,
+
+
+!procedure to export cdb file for nla3d programm
+!after this step ansys database will be not applicable for ansys analysis (because of new BC + renum)
+! first of all - apply displacement on top_side
+CMSEL,S,TOP_SIDE
+D,ALL, ,-disp, , , ,UY, , , , ,
+D,ALL, ,0.0, , , ,UX, , , , ,
+D,ALL, ,0.0, , , ,UZ, , , , ,
+!select everything with etype = 1 and delete 1000000 node (master node) and its element
+ALLSEL,ALL  
+EDELE,7025  
+NDELE,1000000  
+!NSEL,U, , , 1000000 
+!ESEL,S,TYPE,,1 
+!compress numbres..
+NUMCMP,ALL 
+CDWRITE,DB,'3d_damper','cdb',,'','' 
+!here is a strange behaviour of ansys,
+!It writes NBLOCK with more node numbers that it exactly is..
+!I think the problem is in MPC..
+
+
+!preparing for solving
+FINISH  
+/SOL
+OUTRES,ERASE
+OUTRES,RSOL,ALL 
+OUTRES,NSOL,ALL
+OUTRES,BASI,ALL
+DELTIM,5,0.1,5 
+NLGEOM,1
+ALLSEL,ALL
+NROPT,FULL
+
+!solving with a few steps
+*do,ind1,1,10
+	D,1000000, ,-disp*ind1/10, , , ,UY, , , , ,
+	TIME,100/10*ind1
+	SOLVE
+*enddo
+
+D,1000000, ,-disp*9/10, , , ,UY, , , , ,
+TIME,100/10*9
+SOLVE
+
+RSYS,0
+!postprocessing
+*DIM,FREAC,ARRAY,20
+*DIM,time_vec,ARRAY,20
+*DIM,disp_vec,ARRAY,20
+*DO,ind1,1,20
+	time_vec(ind1) = ind1*100/20
+	disp_vec(ind1) = ind1/20*disp
+	SET,,,,,ind1*100/20
+	*GET,res,NODE,1000000,RF,FY
+	FREAC(ind1) = abs(res)
+*ENDDO
+
+*CFOPEN,frez.txt
+*VWRITE,'time', 'disp', 'force'
+(A8,A8,A10)
+*VWRITE,time_vec(1),disp_vec(1), FREAC(1)
+(F8.0,F8.2,F10.2)
+*CFCLOSE
