@@ -26,6 +26,9 @@ public:
 	double& operator[] (uint16 n);
 	const double operator[] (uint16 n) const;
 	void display ();
+	void zeros() {
+		memset(data,0,sizeof(double)*dim);
+	}
 	double lenght ();
 	double qlenght ();
 	Vec operator+ (const Vec<dim> &op);
@@ -35,6 +38,8 @@ public:
 	Vec operator- (const Vec<dim> &op);
 	Vec operator* (const double op);
 	string toString ();
+	bool compare (Vec<dim>& V, double eps = 0.00005);
+	void simple_read(std::istream& st);
 	double operator* (const Vec<dim> &op);
 	friend std::ostream& operator<< <dim>(std::ostream& stream,const Vec<dim>& obj);
 	friend Vec operator* (const double op1, const Vec<dim> &op2);
@@ -151,4 +156,29 @@ template<uint16 dim> string Vec<dim>::toString ()
 template<uint16 dim> double* Vec<dim>::ptr ()
 {
 	return data;
+}
+//-------------------------------------------------------
+template<uint16 dim> bool Vec<dim>::compare (Vec<dim>& V, double eps)
+{
+	double *Dp  = (double*) data;
+	double *Vp = V.ptr();
+	for (uint16 j=0;j<dim;j++)
+	{
+		if (fabs(*Dp-*Vp) > eps) {
+			return false;
+		}
+		Dp++;
+		Vp++;
+	}
+	return true;
+}
+//-------------------------------------------------------
+template<uint16 dim> void Vec<dim>::simple_read(std::istream& st)
+{
+	double *Dp = data;
+	for (uint16 j=0;j<dim;j++)
+	{
+		st >> *Dp;
+		Dp++;
+	}
 }

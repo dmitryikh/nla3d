@@ -545,7 +545,6 @@ void FE_Storage<el_type>::count_nBand ()
 // строка: dofi-тая степень свободы nodei-того узла 
 // столбец: dofj-тая степень свободы nodej-того узла 
 // узлы нумеруются с индекса 1, dofi=[0;Node::nDOF()-1];
-// TODO: CHECK
 template<typename el_type>
 void FE_Storage<el_type>::Kij_add(int32 nodei, uint16 dofi, int32 nodej, uint16 dofj, double value)
 {

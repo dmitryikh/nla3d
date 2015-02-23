@@ -16,18 +16,6 @@ bool compare_double(double d1, double d2) {
   return true;
 } 
 
-template<uint16 dimM, uint16 dimN>
-bool compare_mat (Mat<dimM, dimN>& mat1, Mat<dimM, dimN>& mat2) {
-  for (uint16 i = 0; i < dimM; i++) {
-    for (uint16 j = 0; j < dimM; j++) {
-      if (!compare_double(mat1[i][j], mat2[i][j])) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
 void main()
 {
 	Mat<3,3> mat(1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f);
@@ -35,14 +23,14 @@ void main()
 	Mat<3,3> mat2 = mat;
 	cout << "mat=mat2:" << endl;
 	cout << mat << endl;
-  if (!compare_mat(mat, mat2)) {
+  if (!matCompare(mat, mat2)) {
     error ("mat!=mat2");
   }
   //test2
 	cout << "mat2.zero()" << endl;
 	mat2.zero();
 	cout << mat2 << endl;
-  if (!compare_mat(mat2, Mat<3,3>(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f))) {
+  if (!matCompare(mat2, Mat<3,3>(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f))) {
     error ("mat2!=zeros");
   }
 
@@ -83,7 +71,7 @@ void main()
   Mat<3,3> inv_mat33(-0.07914764,  0.02435312,  0.00456621,
         1.24505327,  0.00152207, -0.18721461, -0.47031963, -0.00913242,  0.12328767);
   cout << "answer inv_mat33 = " << endl << inv_mat33 << endl;
-  if (!compare_mat(mat33.inv(mat33.det()), inv_mat33)) {
+  if (!matCompare(mat33.inv(mat33.det()), inv_mat33)) {
     error("mat33.inv() is not correct");
   } 
 
@@ -100,7 +88,7 @@ void main()
        1.95000000e+00, -1.00000000e-01, -2.15000000e+00, 1.30000000e+00,
        1.25000000e-01,   6.89552582e-17,  -3.75000000e-01, 2.50000000e-01);
   cout << "answer inv_mat44 = " << endl << inv_mat44 << endl;
-  if (!compare_mat(mat44.inv(mat44.det()), inv_mat44)) {
+  if (!matCompare(mat44.inv(mat44.det()), inv_mat44)) {
     error("mat44.inv() is not correct");
   } 
 
@@ -123,7 +111,7 @@ void main()
          -3.65917041e-01,  -4.17391304e+00,   3.64217891e-01,
          -2.89855072e-02,  -5.90134933e+00,   2.76261869e-01,
           3.17391304e+00);
-  if (!compare_mat(mat55.inv(mat55.det()), inv_mat55)) {
+  if (!matCompare(mat55.inv(mat55.det()), inv_mat55)) {
     error("mat55.inv() is not correct");
   } 
   

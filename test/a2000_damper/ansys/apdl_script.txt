@@ -1,0 +1,57 @@
+
+CDREAD,DB,'for_ansys','cdb',,'',''
+
+disp = 9.0
+G=1.0
+d=2.0/500.0
+
+/PREP7  
+!*  
+TBDE,HYPE,1,,,  
+TB,HYPE,1,1,2,NEO   
+TBTEMP,0
+TBDATA,,G,d,,,,
+
+!preparing for solving
+FINISH  
+/SOL
+OUTRES,ERASE
+OUTRES,RSOL,ALL 
+OUTRES,NSOL,ALL
+OUTRES,BASI,ALL
+DELTIM,5,0.1,5 
+NLGEOM,1
+ALLSEL,ALL
+NROPT,FULL
+
+!solving with a few steps
+*do,ind1,1,10
+	D,10000, ,-disp*ind1/10, , , ,UY, , , , ,
+	TIME,100/10*ind1
+	SOLVE
+*enddo
+
+/POST1
+RSYS,0
+!postprocessing
+*DIM,FREAC,ARRAY,21
+*DIM,time_vec,ARRAY,21
+*DIM,disp_vec,ARRAY,21
+FREAC(1)=0.0
+time_vec(1)=0.0
+disp_vec(1)=0.0
+*DO,ind1,1,20
+	time_vec(ind1+1) = ind1*100/20
+	disp_vec(ind1+1) = ind1/20*disp
+	SET,,,,,ind1*100/20
+	*GET,res,NODE,10000,RF,FY
+	FREAC(ind1+1) = abs(res)
+*ENDDO
+
+
+*CFOPEN,frez.txt
+*VWRITE,'time', 'disp', 'force'
+(A8,A8,A10)
+*VWRITE,time_vec(1),disp_vec(1), FREAC(1)
+(F8.0,F8.2,F10.2)
+*CFCLOSE

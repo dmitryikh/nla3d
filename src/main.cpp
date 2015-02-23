@@ -2,7 +2,7 @@
 #include "sys.h"
 #include "FE_Storage.h"
 #include "vtk_proc.h"
-#include "basic_elements.h"
+#include "element_MIXED_8N_3D_P0.h"
 #include "Solution.h"
 #include "Reaction_proc.h"
 
@@ -82,9 +82,9 @@ int main (int argc, char* argv[])
 	Timer pre_solve(true);
   //TODO: now the type of the element is hardcoded into a source code.
   //It's very unconvinience for real usage of nla3d
-	FE_Storage<MIXED_8N_3D_P0_NL> storage;
+	FE_Storage<MIXED_8N_3D_P0> storage;
   if (!read_ans_data(model_filename.c_str(), &storage)) {
-    error("Can't read FE info from %s file. exiting..");
+    error("Can't read FE info from %s file. exiting..", model_filename.c_str());
   }
   Material* mat = createMaterial(mat_name);
   if (mat->getNumC() != mat_Ci.size())

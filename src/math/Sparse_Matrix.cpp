@@ -41,7 +41,7 @@ void Sparse_Matrix_SUR::add_value(uint32 row, uint32 column, double value)
 	assert(row > 0 && row < n_rows+1);
 	assert(column > 0 && column < n_rows+1);
 	if (row > column) swap(column,row);
-	uint32 gi = general_index(row, column);
+	uint64 gi = general_index(row, column);
 	if (is_training)
 	{
 		if (training_data.count(gi) == 0)
@@ -74,7 +74,7 @@ void Sparse_Matrix_SUR::stop_training(bool copy_values_to_matrix)
 		iofeir[i+1] = iofeir[i]+n_in_row[i];
 	}
 
-	map<uint32, Value_Description>::iterator p = training_data.begin();
+	map<uint64, Value_Description>::iterator p = training_data.begin();
 	uint32 counter = 0;
 	while (p!=training_data.end())
 	{
@@ -107,7 +107,7 @@ void Sparse_Matrix_SUR::zero()
 	assert(n_values);
 	memset(values, 0, sizeof(double)*n_values);
 }
-uint32 Sparse_Matrix_SUR::general_index(uint32 row, uint32 column)
+uint64 Sparse_Matrix_SUR::general_index(uint32 row, uint32 column)
 {
 	assert(n_rows);
 	//предпологается, что симметрия матрицы уже учтена (upper-triangular)
@@ -116,8 +116,11 @@ uint32 Sparse_Matrix_SUR::general_index(uint32 row, uint32 column)
 	//while (k < row-1) gen_index += n_rows-k++;
 	//gen_index += column - row;
 	//return (uint32) //(row-2+n_rows)*(row-1)*0.5+column-row;
-	double ind = ((double)n_rows+1.0)*((double)row-1.0) - (double)row*((double)row-1.0)*0.5+column-row;
-	return (uint32) ind;
+	//double ind = ((double)n_rows+1.0)*((double)row-1.0) - (double)row*((double)row-1.0)*0.5+column-row;
+	uint64 res = (uint64) n_rows*((uint64)row-1)-((uint64)row-2)*((uint64)row-1)/2+1+(uint64)column-(uint64)row;
+	//warning("SUR: gi %d for %d \t %d", res, row, column);
+	//return (uint64) ind;
+	return res;
 }
 bool Sparse_Matrix_SUR::search_index(uint32 row, uint32 column, uint32 &ind)
 {
@@ -298,7 +301,7 @@ void Sparse_Matrix_R::add_value(uint32 row, uint32 column, double value)
 {
 	assert(row > 0 && row < n_rows+1);
 	assert(column > 0 && column < n_columns+1);
-	uint32 gi = general_index(row, column);
+	uint64 gi = general_index(row, column);
 	if (is_training)
 	{
 		if (training_data.count(gi) == 0)
@@ -332,7 +335,7 @@ void Sparse_Matrix_R::stop_training(bool copy_values_to_matrix)
 	}
 	//iofeir[n_rows] = iofeir[n_rows-1] + 1;
 
-	map<uint32, Value_Description>::iterator p = training_data.begin();
+	map<uint64, Value_Description>::iterator p = training_data.begin();
 	uint32 counter = 0;
 	while (p!=training_data.end())
 	{
@@ -364,10 +367,11 @@ void Sparse_Matrix_R::zero()
 	assert(n_values);
 	memset(values, 0, sizeof(double)*n_values);
 }
-uint32 Sparse_Matrix_R::general_index(uint32 row, uint32 column)
+uint64 Sparse_Matrix_R::general_index(uint32 row, uint32 column)
 {
 	assert(n_columns);
-	return (uint32) (row-1)*n_columns+column - 1;
+	uint64 res =((uint64)row-1)*(uint64)n_columns+(uint64)column - (uint64)1;
+	return res;
 }
 bool Sparse_Matrix_R::search_index(uint32 row, uint32 column, uint32 &ind)
 {

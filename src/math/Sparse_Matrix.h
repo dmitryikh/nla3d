@@ -55,9 +55,9 @@ public:
 		return n_rows;
 	}
 private:
-	uint32 general_index(uint32 row, uint32 column);
+	uint64 general_index(uint32 row, uint32 column);
 	bool is_training;
-	map<uint32, Value_Description> training_data;
+	map<uint64, Value_Description> training_data;
 	uint32 *n_in_row;
 	uint32 n_rows; //количество строк и столбцов в квадратной матрице;...
 	
@@ -118,9 +118,9 @@ public:
 		return n_columns;
 	}
 private:
-	uint32 general_index(uint32 row, uint32 column);
+	uint64 general_index(uint32 row, uint32 column);
 	bool is_training;
-	map<uint32, Value_Description> training_data;
+	map<uint64, Value_Description> training_data;
 	uint32 *n_in_row;
 	uint32 n_rows; //количество строк 
 	uint32 n_columns; //и столбцов в прямоугольной матрице;...

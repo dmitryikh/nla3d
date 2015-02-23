@@ -15,11 +15,19 @@
 #include <stdlib.h>
 
 using namespace std;
+//#ifdef VC_COMPILER
+#define int8 char //-127 to +127
+#define uint8 unsigned char //0 to +255
+#define int16 short //-32 767 to +32 767
+#define uint16 unsigned short //0 to +65 535
+#define int32 int //-2 147 483 647 to +2 147 483 647
+#define uint32 unsigned int // 0 to +4 294 967 295
+#define int64 long long //-9 223 372 036 854 775 807 to +9 223 372 036 854 775 807
+#define uint64 unsigned long long //0 to +18 446 744 073 709 551 615
 
-#define uint16 unsigned int
-#define uint32 unsigned int // as long as Visual C compiler int = long
-#define int16 int
-#define int32 long
+//#else
+//#error Dont know integers types
+//#endif
 
 #define M_PI       3.14159265358979323846
 
@@ -61,6 +69,15 @@ enum el_component
 };
 
 const char* const el_component_labels[]={"UNDEFINED","E_X","E_Y","E_Z","E_XY","E_XZ","E_YZ","E_VOL","E_1","E_2","E_3","S_X","S_Y","S_Z","S_XY","S_XZ","S_YZ","S_P","S_1","S_2","S_3","U_X","U_Y","U_Z","POS_X","POS_Y","POS_Z","COMP_LAST"};
+
+enum el_tensor
+{
+	TENS_UNDEF,
+
+	TENS_COUCHY,
+};
+
+const char* const el_tensor_labels[]={"UNDEFINED","COUCHY"};
 
 // use it in material matrix creator
 #define ANALYSIS_3D 1

@@ -47,10 +47,10 @@ add_subdirectory (test)
 file (GLOB NLA3D_LIB_SOURCES
 	  "src/*.cpp")
 
-#TODO: this remove_item command doesn't work
-list(REMOVE_ITEM NLA3D_LIB_SOURCES src/main.cpp)
-
+# here are two main targets: for 3d analysis nla3d, and for 2d analysis - nla2d
 set (NLA3D_APP_SOURCES "src/main.cpp")
+set (NLA2D_APP_SOURCES "src/main2d.cpp")
+list(REMOVE_ITEM NLA3D_LIB_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/main2d.cpp)
 
 #collect all sources except main.cpp into a static link
 #this static link could be conviniently used for tests
@@ -60,7 +60,13 @@ target_link_libraries(nla3d_lib math mkl_intel_c mkl_intel_thread libiomp5md mkl
 #main executable of the project: nla3d.exe program
 add_executable(nla3d ${NLA3D_APP_SOURCES})
 # Properties->Linker->Input->Additional Dependencies
+
 target_link_libraries(nla3d nla3d_lib)
+
+#main executable of the project: nla3d.exe program
+add_executable(nla2d ${NLA2D_APP_SOURCES})
+target_link_libraries(nla2d nla3d_lib)
+
 
 # Add logic to INSTALL.vcproj to copy app.exe to destination directory
 install (TARGETS nla3d

@@ -5,6 +5,7 @@
 #include "math\Vec.h"
 #include "math\Mat.h"
 #include "FE_Storage.h"
+
 //pre-defines
 class Material;
 class FE_Storage_Interface;
@@ -122,11 +123,15 @@ public:
 
 	template <uint16 el_dofs_num>
 	void assemble (uint32 el, const Mat<el_dofs_num,el_dofs_num> &Ke, const Vec<el_dofs_num> &Qe, FE_Storage_Interface *storage);
-
+	template <uint16 dimM, uint16 dimN>
+	void assemble2(uint32 el,MatSym<dimM> &Kuu, Mat2<dimM,dimM> &Kup, Mat2<dimN,dimN> &Kpp, Vec<dimM> &Fu, Vec<dimN> &Fp, FE_Storage_Interface *  storage);
+	template <uint16 dimM>
+	void assemble3(uint32 el,MatSym<dimM> &Kuu, Vec<dimM> &Kup, double Kpp, Vec<dimM> &Fu, double Fp, FE_Storage_Interface *  storage);
 	virtual void pre (uint32 el, FE_Storage_Interface *storage)=0;
 	virtual void build (uint32 el, FE_Storage_Interface *storage)=0;
 	virtual void update (uint32 el, FE_Storage_Interface *storage)=0;
 	virtual double getComponent (uint16 gp, el_component code, uint32 el, FE_Storage_Interface *storage)=0;
+	virtual Mat<3,3> getTensor (uint16 gp, el_tensor code, uint32 el, FE_Storage_Interface *storage)=0;
 
 	Element& operator= (const Element& from);
 
@@ -285,4 +290,98 @@ void Element::assemble (uint32 el, const Mat<el_dofs_num,el_dofs_num> &Ke, const
 
 	for (uint16 di=0; di < Element::n_dofs(); di++)
 		storage->Fi_add(-(int32)el, di, Qe[eds+di]);
+}
+
+template <uint16 dimM, uint16 dimN>
+void Element::assemble2(uint32 el,MatSym<dimM> &Kuu, Mat2<dimM,dimM> &Kup, Mat2<dimN,dimN> &Kpp, Vec<dimM> &Fu, Vec<dimN> &Fp, FE_Storage_Interface *  storage) 
+{
+	assert (Element::n_nodes()*Node::n_dofs() == dimM);
+	assert (Element::n_dofs() == dimN);
+	double *Kuu_p = Kuu.ptr();
+	double *Kup_p = Kup.ptr();
+	double *Kpp_p = Kpp.ptr();
+	double *Fu_p = Fu_p.ptr();
+	double *Fp_p = Fp.ptr();                               
+
+	for (uint16 i=0; i < Element::n_nodes(); i++)
+		for (uint16 di=0; di < Node::n_dofs(); di++)
+			for (uint16 j=i; j < Element::n_nodes(); j++)
+				for (uint16 dj=di; dj < Node::n_dofs(); dj++)
+				{
+						storage->Kij_add(nodes[i],di,nodes[j],dj, *Kuu_p);
+						Kuu_p++;
+				}
+	//upper diagonal process for nodes-el dofs
+	for (uint16 i=0; i < Element::n_nodes(); i++)
+		for(uint16 di=0; di < Node::n_dofs(); di++)
+			for (uint16 dj=0; dj < Element::n_dofs(); dj++)
+			{
+				storage->Kij_add(nodes[i],di, -(int32)el, dj, *Kup_p);
+				Kup_p++;
+			}
+	//upper diagonal process for el-el dofs
+	for (uint16 di=0; di < Element::n_dofs(); di++)
+		for (uint16 dj=di; dj < Element::n_dofs(); dj++)
+		{
+			storage->Kij_add(-(int32)el, di, -(int32)el, dj,  *Kpp_p);
+			Kpp_p++;
+		}
+
+	for (uint16 i=0; i < Element::n_nodes(); i++)
+		for (uint16 di=0; di < Node::n_dofs(); di++)
+		{
+			storage->Fi_add(nodes[i],di, *Fu_p);
+			Fu_p++;
+		}
+
+	for (uint16 di=0; di < Element::n_dofs(); di++)
+	{
+		storage->Fi_add(-(int32)el, di, *Fp_p);
+		Fp_p++;
+	}
+}
+
+template <uint16 dimM>
+void Element::assemble3(uint32 el,MatSym<dimM> &Kuu, Vec<dimM> &Kup, double Kpp, Vec<dimM> &Fu, double Fp, FE_Storage_Interface *  storage) 
+{
+	assert (Element::n_nodes()*Node::n_dofs() == dimM);
+	assert (Element::n_dofs() == 1);
+	double *Kuu_p = Kuu.ptr();
+	double *Kup_p = Kup.ptr();
+	double *Fu_p = Fu.ptr();
+
+	for (uint16 i=0; i < Element::n_nodes(); i++)
+		for (uint16 di=0; di < Node::n_dofs(); di++)
+		for (uint16 j=i; j < Element::n_nodes(); j++)
+			
+				for (uint16 dj=0; dj < Node::n_dofs(); dj++)
+				{
+					if ((i==j) && (dj<di)) continue;
+					else
+					{
+						storage->Kij_add(nodes[i],di,nodes[j],dj, *Kuu_p);
+						Kuu_p++;
+					}
+				}
+	//upper diagonal process for nodes-el dofs
+	for (uint16 i=0; i < Element::n_nodes(); i++)
+		for(uint16 di=0; di < Node::n_dofs(); di++)
+			for (uint16 dj=0; dj < Element::n_dofs(); dj++)
+			{
+				storage->Kij_add(nodes[i],di, -(int32)el, dj, *Kup_p);
+				Kup_p++;
+			}
+	//upper diagonal process for el-el dofs
+			storage->Kij_add(-(int32)el, 0, -(int32)el, 0,  Kpp);
+
+
+	for (uint16 i=0; i < Element::n_nodes(); i++)
+		for (uint16 di=0; di < Node::n_dofs(); di++)
+		{
+			storage->Fi_add(nodes[i],di, *Fu_p);
+			Fu_p++;
+		}
+
+		storage->Fi_add(-(int32)el, 0, Fp);
+
 }

@@ -2,122 +2,171 @@
 #include <string>
 #include "math\Vec.h"
 #include "math\Mat.h"
+#include "States.h"
+
+enum mat_comp
+{
+	M_XX =  0,
+	M_XY =  1,
+	M_XZ =  2,
+	M_YY =  3,
+	M_YZ =  4,
+	M_ZZ =  5
+};
 
 enum mat_model
 {
 	MAT_NOT_DEFINED,
-	MAT_HOOKEAN,
-	MAT_COMP_NEO_HOOKEAN,
-  LAST_MAT
+  MAT_COMP_NEO_HOOKEAN,
+  MAT_COMP_BIDERMAN,
+  MAT_COMP_MOONEYRIVLIN,
+  MAT_LAST
 };
-const char* const mat_model_labels[]={
-  "UNDEFINED",
-  "Hookean",
-  "Neo-Hookean"
+const char* const mat_model_labels[]={"UNDEFINED",
+  "Neo-Hookean",
+  "Biderman",
+  "Mooney-Rivlin"
 };
 
+// Material must have named material constants
 
 class Material
 {
 public:
-	Material () : C(NULL), numC(0), code(MAT_NOT_DEFINED)
+	enum mat_func_deriv
+	{
+		AL_1	=	0,
+		AL_2	=	1,
+		AL_11	=	2,
+		AL_12	=	3,
+		AL_22	=	4
+	};
+	Material () : MC(NULL), numC(0), code(MAT_NOT_DEFINED)
 	{ 
 	}
 	Material (uint16 num_c, mat_model _code);
 	~Material()   // TODO: discover the virtual destructor
 	{
-		if (C) delete[] C; 
-
-		C = NULL;
+		if (MC) delete[] MC; 
+		MC = NULL;
 	}
 	virtual double getK0 () = 0; //initial(linearized) Bulk module
 	virtual double getGxy0 () = 0; //initial Shear module
 	virtual double getEx0 () = 0; //initial tension/comp. module
 	virtual double getMuxy0 () = 0; //initial Poisson coef.
-	virtual dMat mat_D_d(uint16 an_type); // для лин. задач, связь между девиаторами напр и деф.
-	virtual dMat mat_E_c(uint16 an_type, const double* C, double p_e); // для нелин. задач смешанного метода: функция возвращ. касат. матрицу упругости (дифф. по C)
-	virtual dMat mat_E_p(uint16 an_type, const double* C); // для нелин. задач смешанного метода, касательный модуль по гидростатическому давлению
-	virtual dMat getS(uint16 an_type, const double* C, double p_e); //получить напряжения П-К2 из компонент мер деформаций
+	virtual void getS_U (uint16 ncomp, const mat_comp* comps, const double* C, double *S) = 0;
+	virtual void getS_UP (uint16 ncomp, const mat_comp* comps, const double* C, double *S) = 0; //
+	virtual void getD_U (uint16 ncomp, const mat_comp* comps, const double* C, double *D) = 0; //for non linear U elements
+	virtual void getDdDp_UP (uint16 ncomp, const mat_comp* comps, const double* C, double *Dd, double *Dp) = 0; //for nonlinear U-P elements
 	virtual string toString();
 	string getName();
 	uint16 getCode ();
 	double& Ci (uint16 i);
+	double& getCstr (char* mname);
 	uint16 getNumC ();
 	void read_from_stream (istream &str);
-	double getJ(uint16 an_type, const double* C);
+	static double getJ(const double* C);
+	static void getC_inv(const double* C, const double J, double* C_inv);
+	static const double I[6];
 protected:
-	double* C;
+	void register_mat_const(uint16 num, ...);
+	double* MC;
+	vector<string> MC_names;
 	uint16 numC;
 	mat_model code;
 	string name;
 	
 };
 
-//базовый класс для гиперупругих материалов
-class Material_Hyper : public Material
+class Mat_Hyper_Isotrop_General : public Material
 {
-public:
-	dMat mat_E(uint16 an_type, const double* C, double* par); // для нелин. задач смешанного метода: функция возвращ. касат. матрицу упругости (дифф. по C)
-	dMat mat_Ep(uint16 an_type, const double* C, double* par); // для нелин. задач смешанного метода, касательный модуль по гидростатическому давлению
-	dMat vec_S(uint16 an_type, const double* C, double* par); //получить напряжения П-К2 из компонент мер деформаций
-	virtual void W_first_derivatives (double I1, double I2, double J, double *ksi)=0; //ksi1, ksi2, ksiJ
-	virtual void W_derivatives (double I1, double I2, double J, double *ksi)=0;// ksi1, ksi2, ksi11, ksi12, ksi22, ksiJ, ksiJJ
-	virtual void get_Eijkl (uint16 an_type, const double* C, double* par, double *E);
-	virtual void get_S (uint16 an_type, const double* C, double* par, double *S);
-	void get_matC(uint16 an_type, const double* C, Mat<3,3> &mat);
-	// E1111, E1122, E1133, 0.5E1112+1121
-	static const uint16 mat_index[6][2]; //матрица индексов 11 22 33 12 23 13
-	static const uint16 pds_index[3];
-	static const Mat<3,3> matI;
-};
-
-//базовый класс для гиперупругих материалов для смешанной формулировки, W_vol = 0.5k(J-1)^2;
-class Material_Hyper_Mixed : public Material_Hyper
-{
-public:
-	virtual void W_first_derivatives (double I1, double I2, double J, double *ksi)=0; //ksi1, ksi2
-	virtual void W_derivatives (double I1_, double I2_, double *ksi)=0;// ksi1, ksi2, ksi11, ksi12, ksi22
-	virtual void get_Eijkl (uint16 an_type, const double* C, double* par, double *E);
-	virtual void get_S (uint16 an_type, const double* C, double* par, double *S);
-};
-
-
-// constants:
-// C1 = E,  C2 = mu
-class Material_Hookean : public Material
-{
-public:
-	Material_Hookean() : Material(2, MAT_HOOKEAN) 
+	public:
+	Mat_Hyper_Isotrop_General ()
 	{
+		W_derivatives1 = NULL;
+		W_derivatives2 = NULL;	
 	}
+	
+	virtual void getS_U (uint16 ncomp, const  mat_comp* comps, const double* C, double *S);
+	virtual void getS_UP (uint16 ncomp, const  mat_comp* comps, const double* C, double *S); //
+	virtual void getD_U (uint16 ncomp, const  mat_comp* comps, const double* C, double *D); //for non linear U elements
+	virtual void getDdDp_UP (uint16 ncomp, const  mat_comp* comps, const double* C, double *Dd, double *Dp); //for nonlinear U-P elements	
+	void getS_P_test (uint16 ncomp, const  mat_comp* comps, const double* C, double *S);
+	void Mat_Hyper_Isotrop_General::getDdDp_UP_test (uint16 ncomp, const  mat_comp* comps, const double* C, double *Dd, double *Dp);
+	void (*W_derivatives1) (double, double, double, double*, double*);
+	void (*W_derivatives2) (double, double, double, double*, double*);
+	
+	static const double II[6][6];
+};
+
+class Mat_Comp_Neo_Hookean : public Mat_Hyper_Isotrop_General
+{
+	public:
+	enum Mat_Comp_Neo_Hookean_CONST {
+		C_C10 = 0,
+		C_K
+	};
+	
+	Mat_Comp_Neo_Hookean () {
+		register_mat_const(2,"C10","K");
+		W_derivatives1 = &W_first_derivatives;
+		W_derivatives2 = &W_second_derivatives;
+	}
+	static void W_first_derivatives (double I1, double I2, double I3, double* mat_consts, double *alpha);
+	static void W_second_derivatives (double I1, double I2, double I3, double* mat_consts, double *alpha);
 	double getK0 (); //initial(linearized) Bulk module
 	double getGxy0 (); //initial Shear module
 	double getEx0 (); //initial tension/comp. module
 	double getMuxy0 (); //initial Poisson coef.
-	dMat mat_D_d(uint16 an_type);
 };
 
-
-
-//constants:
-// C1 = E; C2 = mu
-class Material_Comp_Neo_Hookean : public Material
+class Mat_Comp_Biderman : public Mat_Hyper_Isotrop_General
 {
-public:
-	Material_Comp_Neo_Hookean() : Material(2, MAT_COMP_NEO_HOOKEAN) 
-	{
+	public:
+	enum Mat_Comp_Biderman_CONST {
+		C_C10 = 0,
+		C_C20,
+		C_C30,
+		C_C01,
+		C_K
+	};
+	
+	Mat_Comp_Biderman () {
+		register_mat_const(5,"C10","C20","C30","C01","K");
+		W_derivatives1 = &W_first_derivatives;
+		W_derivatives2 = &W_second_derivatives;
 	}
+	static void W_first_derivatives (double I1, double I2, double I3, double* mat_consts, double *alpha);
+	static void W_second_derivatives (double I1, double I2, double I3, double* mat_consts, double *alpha);
 	double getK0 (); //initial(linearized) Bulk module
 	double getGxy0 (); //initial Shear module
 	double getEx0 (); //initial tension/comp. module
 	double getMuxy0 (); //initial Poisson coef.
-
-	virtual dMat mat_E_c(uint16 an_type, const double* C, double p_e); // для нелин. задач смешанного метода: функция возвращ. касат. матрицу упругости (дифф. по C)
-	virtual dMat mat_E_p(uint16 an_type, const double* C); // для нелин. задач смешанного метода, касательный модуль по гидростатическому давлению
-	virtual dMat getS(uint16 an_type, const double* C, double p_e); //получить напряжения П-К2 из компонент мер деформаций
 };
 
+class Mat_Comp_MooneyRivlin : public Mat_Hyper_Isotrop_General
+{
+	public:
+	enum Mat_Comp_MooneyRivlin_CONST {
+		C_C10 = 0,
+		C_C01,
+		C_K
+	};
+	
+	Mat_Comp_MooneyRivlin () {
+		register_mat_const(3,"C10","C01","K");
+		W_derivatives1 = &W_first_derivatives;
+		W_derivatives2 = &W_second_derivatives;
+	}
+	static void W_first_derivatives (double I1, double I2, double I3, double* mat_consts, double *alpha);
+	static void W_second_derivatives (double I1, double I2, double I3, double* mat_consts, double *alpha);
+	double getK0 (); //initial(linearized) Bulk module
+	double getGxy0 (); //initial Shear module
+	double getEx0 (); //initial tension/comp. module
+	double getMuxy0 (); //initial Poisson coef.
+};
 
+// ---=== FUNCTIONS ===--- //
 inline string Material::getName()
 {
 	return mat_model_labels[code];
@@ -131,7 +180,7 @@ inline uint16 Material::getCode ()
 inline double& Material::Ci (uint16 i)
 {
 	assert(i < numC);
-	return C[i];
+	return MC[i];
 }
 
 inline uint16 Material::getNumC ()

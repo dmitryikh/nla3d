@@ -44,7 +44,7 @@ void Reaction_proc::process (uint16 curLoadstep, uint16 qLoadstep)
 	for (uint32 i=0; i < nodes.size(); i++)
 		force += storage->get_reaction_force(nodes[i],dofs[i]);
   if (filename.length() > 0) {
-    ofstream file(filename,ios::trunc);
+    ofstream file(filename,ios::app);
     if (!file)
     {
       warning("Reaction_proc::pre: Can't create a file with name %s", filename);

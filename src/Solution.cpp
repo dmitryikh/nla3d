@@ -76,6 +76,9 @@ void Solution::main_process ()
 	for (uint16 i=0; i < storage->getNumPostProc(); i++)
 		storage->getPostProc(i).pre(qLoadstep);
 
+  //TODO: this is temporary. 
+  //We need to have a material table (different materials for different elements)
+	GlobStates.setptr(States::PTR_CURMATER, (void*) &(storage->getMaterial()));
 	for (uint32 el = 1; el <= storage->getNumElement(); el++)
 				storage->getElement(el).pre(el, storage);
 	echolog("Preporation time: %4.2f sec.", sol.stop());
@@ -83,14 +86,17 @@ void Solution::main_process ()
 	double dF_par;
 	double cumF_par = 0.0;
 	uint16 cum_iterations = 0;
+	GlobStates.setuint32(States::UI32_CURLOADSTEP, 1);
 	for (curLoadstep = 1; curLoadstep <= qLoadstep; curLoadstep++ )
 	{
+		GlobStates.setuint32(States::UI32_CURSUBSTEP, curLoadstep);
 		dF_par = 1.0/qLoadstep;
 		cumF_par += dF_par;
 		
 		curIterat= 1;
 		for (; curIterat <= qIterat; curIterat++ )
 		{
+			GlobStates.setuint16(States::UI16_EQUILITER, curIterat);
 			cum_iterations++;
 			echolog("------LS = %d of %d, IT = %d (%d)------", curLoadstep, qLoadstep, curIterat, cum_iterations);
 			if (stopit)
@@ -115,7 +121,11 @@ void Solution::main_process ()
 				echolog("Start formulation for elements ( %d )", storage->getNumElement());
 			}
 			for (uint32 el = 1; el <= storage->getNumElement(); el++)
+			{
+				GlobStates.setuint32(States::UI32_CURELEM, el);
 				storage->getElement(el).build(el, storage);
+			}
+			GlobStates.undefineuint32(States::UI32_CURELEM);
 			if (cum_iterations == 1)
 				echolog("Formulation time: %4.2f sec.", sol.stop());
 			//учет "узловых" Г.У. пока только кинематические
@@ -145,9 +155,13 @@ void Solution::main_process ()
 			if (cum_iterations == 1)
 				sol.start();
 			//вычисление деформаций и напряжений в элементах
-			for (uint32 el = 1; el <= storage->getNumElement(); el++)
+			for (uint32 el = 1; el <= storage->getNumElement(); el++) 
+			{
+				GlobStates.setuint32(States::UI32_CURELEM, el);
 				storage->getElement(el).update(el, storage);
-
+			}
+			GlobStates.undefineuint32(States::UI32_CURELEM);
+			
 			if (cum_iterations == 1)
 				echolog("Elements updating time: %4.2f sec.", sol.stop());
 

@@ -45,8 +45,12 @@ public:
 	//double* ptr ();
 	//friend функции
 	friend std::ostream& operator<< <dimM,dimN> (std::ostream& stream, const Mat<dimM,dimN> &obj);
-	template <uint16 dimM, uint16 dimN, uint16 dimM2, uint16 dimN2> friend Mat<dimM,dimN2> operator* (const Mat<dimM,dimN> &op1, const Mat<dimM2,dimN2> &op2);
-	template <uint16 dimM, uint16 dimN, uint16 dimM2> friend Vec<dimM> operator* (const Mat<dimM,dimN> &op1, const Vec<dimM2> &op2);
+	template <uint16 dimM, uint16 dimN, uint16 dimM2, uint16 dimN2> 
+    friend Mat<dimM,dimN2> operator* (const Mat<dimM,dimN> &op1, const Mat<dimM2,dimN2> &op2);
+	template <uint16 dimM, uint16 dimN, uint16 dimM2> 
+    friend Vec<dimM> operator* (const Mat<dimM,dimN> &op1, const Vec<dimM2> &op2);
+  template<uint16 dimM, uint16 dimN>
+    friend bool matCompare (Mat<dimM, dimN>& mat1, Mat<dimM, dimN>& mat2, double eps);
 
 private:
 	Vec<dimN> data[dimM];
@@ -344,13 +348,17 @@ Vec<dimM>  Mat<dimM,dimN>::eigenvalues()
 //}
 
 
-
-
-
-
-
-
-
+template<uint16 dimM, uint16 dimN>
+bool matCompare (Mat<dimM, dimN>& mat1, Mat<dimM, dimN>& mat2, double eps = 1.0e-5) {
+  for (uint16 i = 0; i < dimM; i++) {
+    for (uint16 j = 0; j < dimM; j++) {
+      if (fabs(mat1[i][j] - mat2[i][j]) > eps) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
 
 
 
@@ -505,5 +513,286 @@ void dMat::cpVec(Vec<M> &vec, uint16 col)
 	assert(dimM >= M && dimN > col);
 	for (uint16 i = 0; i < M; i++)
 		(*this)[i][col] = vec[i];
+}
+
+
+//-------------------------------------------------------------
+//	Mat2
+//-------------------------------------------------------------
+template<uint16 dimM, uint16 dimN>
+class Mat2 {
+public:
+	Mat2() {
+		assert(dimM && dimN);
+	}
+	Mat2(double first, ...) {
+		assert(dimM && dimN);
+		va_list argp;
+		va_start(argp, first);
+		for (uint16 i=0; i < dimM; i++)
+			for (uint16 j=0; j < dimN; j++)
+			{
+				if (i == 0 && j == 0) data[i][j]=first;
+				else data[i][j]=va_arg(argp, double);
+			}
+		va_end(argp);
+	}
+
+	void zeros() {
+		memset((void*) data, 0, sizeof(double)*dimM*dimN);
+	}
+	void simple_read (std::istream &st);
+	bool compare (Mat2<dimM,dimN> &B, double eps = 0.00001);
+	double* ptr() {
+		return (double*)data;
+	}
+
+	double data[dimM][dimN];
+};
+
+template<uint16 dimM, uint16 dimN>
+void Mat2<dimM,dimN>::simple_read (std::istream &st)
+{
+	double *Bp = (double*) data;
+	for (uint16 i=0;i<dimM;i++)
+	{
+		for (uint16 j=0;j<dimN;j++)
+		{
+			st >> *Bp;
+			Bp++;
+		}
+	}
+}
+
+template<uint16 dimM, uint16 dimN>
+bool Mat2<dimM,dimN>::compare (Mat2<dimM,dimN> &B, double eps)
+{
+	double *Dp = (double*) data;
+	double *Bp = B.ptr();
+	for (uint16 i=0;i<dimM;i++)
+	{
+		for (uint16 j=0;j<dimN;j++)
+		{
+			if (fabs(*Dp-*Bp) > eps) {
+				return false;
+			}
+			Dp++;
+			Bp++;
+		}
+	}
+	return true;
+}
+//-------------------------------------------------------------
+//	MatSym
+//-------------------------------------------------------------
+template<uint16 dimM>
+class MatSym {
+public:
+	MatSym () {
+		assert(dimM);
+	}
+	double* ptr() {
+		return data;
+	}
+
+	void zeros() {
+		memset((void*) data, 0, sizeof(double)*getLength());
+	}
+	
+	double& comp (uint16 i, uint16 j) {
+		uint16 b;
+		if (i > j) {
+			b = j;
+			j = i;
+			i = b;
+		}
+		b = (2*dimM-(i-1))/2*i + (j-i);
+		b = dimM*i - (i-1)*i/2 + (j-i);
+		return data[b];
+	}
+	
+	uint16 getLength () {
+		return dimM*(dimM+1)/2;
+	}
+  Mat<dimM, dimM> toMat();
+	void simple_read (std::istream &st);
+	bool compare (MatSym<dimM> &B, double eps = 0.00001);
+	double data[dimM*(dimM+1)/2];
+};
+
+template<uint16 dimM>
+void MatSym<dimM>::simple_read (std::istream &st)
+{
+	double *Bp = (double*) data;
+	uint16 l = getLength();
+	for (uint16 i=0;i<l;i++)
+	{
+			st >> *Bp;
+			Bp++;
+	}
+}
+
+template<uint16 dimM>
+bool MatSym<dimM>::compare (MatSym<dimM> &B, double eps)
+{
+	double *Dp = (double*) data;
+	double *Bp = B.ptr();
+	uint16 l = getLength();
+	for (uint16 i=0;i<l;i++)
+	{
+		if (fabs(*Dp-*Bp) > eps) {
+			return false;
+		}
+		Dp++;
+		Bp++;
+	}
+	return true;
+}
+
+template<uint16 dimM>
+Mat<dimM, dimM> MatSym<dimM>::toMat() {
+  uint16 ind = 0;
+  Mat<dimM,dimM> mat;
+  for (uint16 i = 0; i < dimM; i++) {
+    for (uint16 j = i; j < dimM; j++) {
+      mat[i][j] = data[ind];
+      mat[j][i] = data[ind];
+      ind++;
+    }
+  }
+  return mat;
+}
+
+template<uint16 dimM,uint16 dimN>
+void matBTDBprod (Mat2<dimM,dimN> &B, MatSym<dimM> &D, double coef, MatSym<dimN> &R) 
+{
+	Mat2<dimN,dimM> A;
+	A.zeros();
+	double *Ap = A.ptr();
+	double *Bp = B.ptr();
+	double *Dp = D.ptr();
+	double *Rp = R.ptr();
+	uint16 i,j,k;
+
+	//A = BT*D
+		// BT*Du + BT*Dd
+	for (k=0;k<dimM;k++)
+	{
+		j = k; // include diag elem
+		while (j < dimM)
+		{
+			for (i=0;i<dimN;i++)
+			{
+				Ap[i*dimM+j] += Bp[k*dimN+i]*(*Dp);
+			}
+			Dp++;
+			j++;
+		}
+	}
+		// BT*DuT
+		Dp = D.ptr();
+	for (j=0;j<dimM;j++)
+	{
+		k = j + 1; Dp++; //leave the diagonal
+		while (k < dimM)
+		{
+			for (i=0;i<dimN;i++)
+			{
+				Ap[i*dimM+j] += Bp[k*dimN+i]*(*Dp);
+			}
+			Dp++;
+			k++;
+		}
+	}
+
+	//R = A*B
+	for (i=0;i<dimN;i++)
+	{
+		for (j=i;j<dimN;j++)
+		{
+			for (k=0;k<dimM;k++)
+			{
+				*Rp += Ap[i*dimM+k]*Bp[k*dimN+j]*coef;
+			}
+			Rp++;
+		}
+	}
+
+
+	//matABprod(Mat2<dimM1,dimN1> &A, Mat2<dimM2,dimN2> &B, const double coef, Mat2<dimM1,dimN2> &R) 
+
+	//Dp = D.ptr()+1;
+	//Ap = A.ptr();
+
+	//for (Dp = D.ptr()+1,Ap = A.ptr(),i=0;i<dimN-1;i++,Dp++)
+	//	for(k=i+1,Bp = &B[k][0],At=Ap;k<dimN;k++,Dp++)
+	//		for (j=0,Ap=At;j<dimM;j++,Ap++,Bp++)
+	//			*Ap+=(*Bp)*(*Dp);
+
+	//for (Bp = B.ptr(),Dp = D.ptr(),k=0;k<dimN;k++)
+	//	for (i=k,Bt = Bp,At = &A[k][0];i<dimN;i++,Dp++)
+	//		for (j=0,Bp = Bt,Ap = At;j<dimM;j++,Ap++,Bp++)
+	//			*Ap+=(*Dp)*(*Bp);
+	//
+	//for (k=0;k<dimN;k++)
+	//	for(i=0,Rp=res.ptr(),Bp=&B[k][0];i<dimM;i++,Bp++)
+	//		for(j=0,Ap=&A[k][0];j<dimM;j++,Rp++,Ap++)
+	//			*Rp+=(*Ap)*(*Bp)*coef;
+}
+
+template<uint16 dimM,uint16 dimN>
+void matBTVprod(Mat2<dimM,dimN> &B, Vec<dimM> &V, double coef, Vec<dimN> &R)
+{
+	double *Bp = B.ptr();
+	uint16 i,j;
+	for (i=0;i<dimN;i++)
+		for (j=0;j<dimM;j++)
+			R[i] += Bp[j*dimN+i]*V[j]*coef;
+}
+
+template<uint16 dimM,uint16 dimN>
+void matBVprod(Mat2<dimM,dimN> &B,Vec<dimN> &V, double coef, Vec<dimM> &R) {
+	double *Bp = B.ptr();
+	uint16 i,j;
+	for (i=0;i<dimM;i++)
+		for (j=0;j<dimN;j++)
+			R[i] += Bp[i*dimN+j]*V[j]*coef;
+}
+
+
+template<uint16 dimM1,uint16 dimN1,uint16 dimN2>
+void matABprod(Mat2<dimM1,dimN1> &A, Mat2<dimN1,dimN2> &B, const double coef, Mat2<dimM1,dimN2> &R) 
+{
+	uint16 i,j,k;
+	double *Rp = R.ptr();
+	double *Ap = A.ptr();
+	double *Bp = B.ptr();
+	for (i=0;i<dimM1;i++)
+	{
+		for (j=0;j<dimN2;j++)
+		{
+			for (k=0;k<dimN1;k++)
+				*Rp += Ap[i*dimN1+k]*Bp[k*dimN2+j]*coef;
+			Rp++;
+		}
+	}
+}
+
+template<uint16 dimM1,uint16 dimN1,uint16 dimN2>
+void matATBprod(Mat2<dimM1,dimN1> &A, Mat2<dimM1,dimN2> &B, const double coef, Mat2<dimN1,dimN2> &R) 
+{
+	uint16 i,j,k;
+	double *Rp = R.ptr();
+	double *Ap = A.ptr();
+	double *Bp = B.ptr();
+	for (i=0;i<dimN1;i++)
+	{
+		for (j=0;j<dimN2;j++)
+		{
+			for (k=0;k<dimM1;k++)
+				*Rp += Ap[k*dimN1+i]*Bp[k*dimN2+j]*coef;
+			Rp++;
+		}
+	}
 }
 
