@@ -86,3 +86,31 @@ void Element::change_el_dofs_num (uint16 ndof, ...)
 	}
 }
 
+Element::elTypes Element::elName2elType (string elName) {
+  for (uint16 i = 0; i < Element::LAST; i++) {
+    if (elName.compare(Element::elTypeLabels[i]) == 0) {
+      return i;
+    }
+  }
+  return Element::NOT_DEFINED;
+}
+void Element::createElements (string elName, const uint32 n, void** ptr) {
+  uint16 elId = elName2elType(elName);
+  if (elId == Element::NOT_DEFINED)
+    error("createElements: can't find element type with name %s", elName.c_str());
+  switch (elId) {
+    case Element::PLANE41:
+      for (uint32 i = 0; i < n; i++) {
+        ptr[i] = (void*) new MIXED_4N_2D_P0();
+      }
+      break;
+    case Element::SOLID81:
+      for (uint32 i = 0; i < n; i++) {
+        ptr[i] = (void*) new MIXED_8N_3D_P0();
+      }
+      break;
+    default:
+      error("createElements: don't have an element with id %d", matId);
+  }
+}
+

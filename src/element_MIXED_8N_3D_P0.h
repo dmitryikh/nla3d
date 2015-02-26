@@ -21,9 +21,9 @@ public:
 	}
 
   //solving procedures
-	void pre (uint32 el, FE_Storage_Interface *storage);
-	void build (uint32 el, FE_Storage_Interface *storage);
-	void update (uint32 el, FE_Storage_Interface *storage);
+	void pre ();
+	void build ();
+	void update ();
 
 	void make_B_L (uint16 nPoint, Mat2<6,24> &B);	//функция создает линейную матрицу [B]
 	void make_B_NL (uint16 nPoint,  Mat2<9,24> &B); //функция создает линейную матрицу [Bomega]
@@ -31,8 +31,8 @@ public:
 	void make_Omega (uint16 nPoint, Mat2<6,9> &B);
 
   //postproc procedures
-	virtual double getComponent (uint16 gp, el_component code, uint32 el, FE_Storage_Interface *storage);
-	virtual Mat<3,3> getTensor (uint16 gp, el_tensor code, uint32 el, FE_Storage_Interface *storage);
+	void getScalar(double& scalar, el_component code, uint16 gp, const double scale);
+	void getTensor(MatSym<3>& tensor, el_tensor code, uint16 gp, const double scale);
 
   // internal element data
 	// S[0] - Sx	S[1] - Sy	S[2] - Sz	S[3] - Sxy	S[4] - Syz	S[5] - Sxz

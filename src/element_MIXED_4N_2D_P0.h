@@ -28,8 +28,8 @@ public:
 	Mat<4,8> make_Bomega (uint16 nPoint);	//функция создает линейную матрицу [Bomega]
 
   //postproc procedures
-	virtual double getComponent (uint16 gp, el_component code, uint32 el, FE_Storage_Interface *storage);
-  virtual Mat<3,3> getTensor (uint16 gp, el_tensor code, uint32 el, FE_Storage_Interface *storage);
+	double getComponent (uint16 gp, el_component code, uint32 el, FE_Storage_Interface *storage);
+  void getTensor (uint16 gp, el_tensor code, uint32 el, FE_Storage_Interface *storage, MatSym<3> &tensor);
 
   // internal element data
 	// S[0] - Sx	S[1] - Sy	S[2] - Sxy

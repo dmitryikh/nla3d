@@ -99,15 +99,25 @@ private:
 };
 
 //Element abstract class
-class Element
-{
+class Element {
 public: 
-	Element () : nodes(NULL)
-	{
+  enum elTypes {
+    NOT_DEFINED,
+    PLANE41,
+    SOLID81,
+    LAST
+  };
+
+  static const char* const elTypeLabels[]={"UNDEFINED",
+    "PLANE41",
+    "SOLID81",
+  };
+
+	Element () : nodes(NULL) {
 	}
-	~Element()
-	{
+	~Element() {
 		if (nodes) delete[] nodes;
+    nodes = NULL;
 	}
 	static uint16 n_nodes();
 	static uint16 n_dim();
@@ -120,25 +130,35 @@ public:
 	static uint16 n_nodes_per_face();
 	static Face& get_face(uint16 fn);
 	static Dof_Type dof_type(uint16 dof);
+  static FE_Storage_Interface& getStorage();
 
 	template <uint16 el_dofs_num>
-	void assemble (uint32 el, const Mat<el_dofs_num,el_dofs_num> &Ke, const Vec<el_dofs_num> &Qe, FE_Storage_Interface *storage);
+	void assemble (const Mat<el_dofs_num,el_dofs_num> &Ke, const Vec<el_dofs_num> &Qe);
 	template <uint16 dimM, uint16 dimN>
-	void assemble2(uint32 el,MatSym<dimM> &Kuu, Mat2<dimM,dimM> &Kup, Mat2<dimN,dimN> &Kpp, Vec<dimM> &Fu, Vec<dimN> &Fp, FE_Storage_Interface *  storage);
+	void assemble2(MatSym<dimM> &Kuu, Mat2<dimM,dimM> &Kup, Mat2<dimN,dimN> &Kpp, Vec<dimM> &Fu, Vec<dimN> &Fp);
 	template <uint16 dimM>
-	void assemble3(uint32 el,MatSym<dimM> &Kuu, Vec<dimM> &Kup, double Kpp, Vec<dimM> &Fu, double Fp, FE_Storage_Interface *  storage);
-	virtual void pre (uint32 el, FE_Storage_Interface *storage)=0;
-	virtual void build (uint32 el, FE_Storage_Interface *storage)=0;
-	virtual void update (uint32 el, FE_Storage_Interface *storage)=0;
-	virtual double getComponent (uint16 gp, el_component code, uint32 el, FE_Storage_Interface *storage)=0;
-	virtual Mat<3,3> getTensor (uint16 gp, el_tensor code, uint32 el, FE_Storage_Interface *storage)=0;
+	void assemble3(MatSym<dimM> &Kuu, Vec<dimM> &Kup, double Kpp, Vec<dimM> &Fu, double Fp);
+
+  // hear of the element class
+	virtual void pre()=0;
+	virtual void build()=0;
+	virtual void update()=0;
+	virtual void getScalar(double& scalar, el_component code, uint16 gp = GP_MEAN, const double scale = 1.0)=0;
+	virtual void getTensor(MatSym<3>& tensor, el_tensor code, uint16 gp = GP_MEAN, const double scale = 1.0)=0;
 
 	Element& operator= (const Element& from);
+
+  uint32 getElNum();
+
+  static elTypes elName2elType (string elName); 
+  static void createElements (string elName, const uint32 n, void** ptr); 
 
 	//in-out operation:
 	void read_from_stream (istream &str);
 	void display (uint32 en);
 	string toString();
+
+  friend class FE_Storage_Interface;
 protected:
 
 	void change_node_dofs_num (uint16 ndof,...);
@@ -151,8 +171,9 @@ protected:
 	static uint16 number_of_integration_points;	// number of int points per coordinate
 	static uint16 number_of_dofs;
 	static vector<Dof_Type> dof_types;
-
 	uint32 *nodes;
+  uint32 elNum;
+  static FE_Storage_Interface* storage;
 };
 
 
@@ -260,9 +281,17 @@ inline Dof_Type Element::dof_type(uint16 dof)
 	return dof_types[dof];
 }
 
+inline FE_Storage_Interface& Element::getStorage() {
+  return *storage;
+}
+
+inline uint32 Element::getElNum() {
+  return elNum;
+}
+
 
 template <uint16 el_dofs_num>
-void Element::assemble (uint32 el, const Mat<el_dofs_num,el_dofs_num> &Ke, const Vec<el_dofs_num> &Qe, FE_Storage_Interface *storage)
+void Element::assemble (const Mat<el_dofs_num,el_dofs_num> &Ke, const Vec<el_dofs_num> &Qe)
 {
 	uint16 eds = Element::n_nodes()*Node::n_dofs(); // el's dofs start number
 	assert(el_dofs_num == eds+Element::n_dofs());
@@ -278,22 +307,22 @@ void Element::assemble (uint32 el, const Mat<el_dofs_num,el_dofs_num> &Ke, const
 	for (uint16 i=0; i < Element::n_nodes(); i++)
 		for(uint16 di=0; di < Node::n_dofs(); di++)
 			for (uint16 dj=0; dj < Element::n_dofs(); dj++)
-				storage->Kij_add(nodes[i],di, -(int32)el, dj, Ke[i*Node::n_dofs()+di][eds+dj]);
+				storage->Kij_add(nodes[i],di, -(int32)getElNum(), dj, Ke[i*Node::n_dofs()+di][eds+dj]);
 	//upper diagonal process for el-el dofs
 	for (uint16 di=0; di < Element::n_dofs(); di++)
 		for (uint16 dj=di; dj < Element::n_dofs(); dj++)
-			storage->Kij_add(-(int32)el, di, -(int32)el, dj,  Ke[eds+di][eds+dj]);
+			storage->Kij_add(-(int32)getElNum(), di, -(int32)getElNum(), dj,  Ke[eds+di][eds+dj]);
 
 	for (uint16 i=0; i < Element::n_nodes(); i++)
 		for (uint16 di=0; di < Node::n_dofs(); di++)
 			storage->Fi_add(nodes[i],di, Qe[i*Node::n_dofs()+di]);
 
 	for (uint16 di=0; di < Element::n_dofs(); di++)
-		storage->Fi_add(-(int32)el, di, Qe[eds+di]);
+		storage->Fi_add(-(int32)getElNum(), di, Qe[eds+di]);
 }
 
 template <uint16 dimM, uint16 dimN>
-void Element::assemble2(uint32 el,MatSym<dimM> &Kuu, Mat2<dimM,dimM> &Kup, Mat2<dimN,dimN> &Kpp, Vec<dimM> &Fu, Vec<dimN> &Fp, FE_Storage_Interface *  storage) 
+void Element::assemble2(MatSym<dimM> &Kuu, Mat2<dimM,dimM> &Kup, Mat2<dimN,dimN> &Kpp, Vec<dimM> &Fu, Vec<dimN> &Fp) 
 {
 	assert (Element::n_nodes()*Node::n_dofs() == dimM);
 	assert (Element::n_dofs() == dimN);
@@ -316,14 +345,14 @@ void Element::assemble2(uint32 el,MatSym<dimM> &Kuu, Mat2<dimM,dimM> &Kup, Mat2<
 		for(uint16 di=0; di < Node::n_dofs(); di++)
 			for (uint16 dj=0; dj < Element::n_dofs(); dj++)
 			{
-				storage->Kij_add(nodes[i],di, -(int32)el, dj, *Kup_p);
+				storage->Kij_add(nodes[i],di, -(int32)getElNum(), dj, *Kup_p);
 				Kup_p++;
 			}
 	//upper diagonal process for el-el dofs
 	for (uint16 di=0; di < Element::n_dofs(); di++)
 		for (uint16 dj=di; dj < Element::n_dofs(); dj++)
 		{
-			storage->Kij_add(-(int32)el, di, -(int32)el, dj,  *Kpp_p);
+			storage->Kij_add(-(int32)getElNum(), di, -(int32)getElNum(), dj,  *Kpp_p);
 			Kpp_p++;
 		}
 
@@ -336,13 +365,13 @@ void Element::assemble2(uint32 el,MatSym<dimM> &Kuu, Mat2<dimM,dimM> &Kup, Mat2<
 
 	for (uint16 di=0; di < Element::n_dofs(); di++)
 	{
-		storage->Fi_add(-(int32)el, di, *Fp_p);
+		storage->Fi_add(-(int32)getElNum(), di, *Fp_p);
 		Fp_p++;
 	}
 }
 
 template <uint16 dimM>
-void Element::assemble3(uint32 el,MatSym<dimM> &Kuu, Vec<dimM> &Kup, double Kpp, Vec<dimM> &Fu, double Fp, FE_Storage_Interface *  storage) 
+void Element::assemble3(MatSym<dimM> &Kuu, Vec<dimM> &Kup, double Kpp, Vec<dimM> &Fu, double Fp) 
 {
 	assert (Element::n_nodes()*Node::n_dofs() == dimM);
 	assert (Element::n_dofs() == 1);
@@ -368,12 +397,11 @@ void Element::assemble3(uint32 el,MatSym<dimM> &Kuu, Vec<dimM> &Kup, double Kpp,
 		for(uint16 di=0; di < Node::n_dofs(); di++)
 			for (uint16 dj=0; dj < Element::n_dofs(); dj++)
 			{
-				storage->Kij_add(nodes[i],di, -(int32)el, dj, *Kup_p);
+				storage->Kij_add(nodes[i],di, -(int32)getElNum(), dj, *Kup_p);
 				Kup_p++;
 			}
 	//upper diagonal process for el-el dofs
-			storage->Kij_add(-(int32)el, 0, -(int32)el, 0,  Kpp);
-
+			storage->Kij_add(-(int32)getElNum(), 0, -(int32)getElNum(), 0,  Kpp);
 
 	for (uint16 i=0; i < Element::n_nodes(); i++)
 		for (uint16 di=0; di < Node::n_dofs(); di++)
@@ -381,7 +409,7 @@ void Element::assemble3(uint32 el,MatSym<dimM> &Kuu, Vec<dimM> &Kup, double Kpp,
 			storage->Fi_add(nodes[i],di, *Fu_p);
 			Fu_p++;
 		}
-
-		storage->Fi_add(-(int32)el, 0, Fp);
-
+		storage->Fi_add(-(int32)getElNum(), 0, Fp);
 }
+
+  

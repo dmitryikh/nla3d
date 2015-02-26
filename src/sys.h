@@ -73,8 +73,10 @@ const char* const el_component_labels[]={"UNDEFINED","E_X","E_Y","E_Z","E_XY","E
 enum el_tensor
 {
 	TENS_UNDEF,
-
 	TENS_COUCHY,
+  TENS_PK2, // second Piola-Kirchgoff stress tensor (symmetric 3x3)
+  TENS_E,
+  TENS_C
 };
 
 const char* const el_tensor_labels[]={"UNDEFINED","COUCHY"};

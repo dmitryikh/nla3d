@@ -4,8 +4,8 @@
 #include "math\Mat.h"
 #include "States.h"
 
-enum mat_comp
-{
+// TODO: need to wrap this enum into some namespace
+enum mat_comp {
 	M_XX =  0,
 	M_XY =  1,
 	M_XZ =  2,
@@ -13,34 +13,36 @@ enum mat_comp
 	M_YZ =  4,
 	M_ZZ =  5
 };
+// TODO: need to wrap somewhere
+const mat_comp MatCompsGlobal[6];
 
-enum mat_model
-{
-	MAT_NOT_DEFINED,
-  MAT_COMP_NEO_HOOKEAN,
-  MAT_COMP_BIDERMAN,
-  MAT_COMP_MOONEYRIVLIN,
-  MAT_LAST
-};
-const char* const mat_model_labels[]={"UNDEFINED",
-  "Neo-Hookean",
-  "Biderman",
-  "Mooney-Rivlin"
-};
 
 // Material must have named material constants
-
 class Material
 {
 public:
-	enum mat_func_deriv
-	{
+	enum mat_func_deriv {
 		AL_1	=	0,
 		AL_2	=	1,
 		AL_11	=	2,
 		AL_12	=	3,
 		AL_22	=	4
 	};
+
+  enum matId {
+    NOT_DEFINED,
+    NEO_HOOKEAN_COMP,
+    BIDERMAN_COMP,
+    MOONEYRIVLIN_COMP,
+    LAST
+  };
+
+  static const char* const matModelLabels[]={"UNDEFINED",
+    "Neo-Hookean",
+    "Biderman",
+    "Mooney-Rivlin"
+  };
+
 	Material () : MC(NULL), numC(0), code(MAT_NOT_DEFINED)
 	{ 
 	}
@@ -68,6 +70,11 @@ public:
 	static double getJ(const double* C);
 	static void getC_inv(const double* C, const double J, double* C_inv);
 	static const double I[6];
+
+
+  static matId matName2matId (string matName); 
+  static Material* createMaterial (string matName); 
+
 protected:
 	void register_mat_const(uint16 num, ...);
 	double* MC;
@@ -188,5 +195,3 @@ inline uint16 Material::getNumC ()
 	return numC;
 }
 
-uint16 matName2matId (string matName); 
-Material* createMaterial (string matName); 

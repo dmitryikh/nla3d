@@ -771,6 +771,10 @@ void FE_Storage<el_type>::elements_reassign(uint32 _en)
 	elements.clear();
 	n_elements = _en;
 	elements.assign(_en, el_type());
+  Element::storage = this;
+  for (uint32 i = 0; i < _en; i++) {
+    elements[i].elNum= i+1;
+  }
 	nBand = 0;
 }
 

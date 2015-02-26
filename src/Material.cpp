@@ -8,6 +8,7 @@ const double Mat_Hyper_Isotrop_General::II[6][6] = {	{1.0,0.0,0.0,0.0,0.0,0.0},
 														{0.0,0.0,0.0,0.0,0.5,0.0},
 														{0.0,0.0,0.0,0.0,0.0,1.0} };
 
+const mat_comp MatCompsGlobal[6] = {M_XX, M_XY, M_XZ, M_YY, M_YZ, M_ZZ};
 //---------------------------------------------------------
 //----------------MATERIAL ABSTRACT CLASS------------------
 //---------------------------------------------------------
@@ -289,7 +290,6 @@ double Mat_Comp_Biderman::getMuxy0()
 }
 
 
-
 //---------------------------------------------------------
 //-----------------Mat_Comp_MooneyRivlin-------------------
 //---------------------------------------------------------
@@ -312,12 +312,11 @@ double Mat_Comp_MooneyRivlin::getGxy0()
 {
 	//return MC[C_C10]/(2*(1+MC[C_K])); 
 	error("why im here?");
-	return 0.5*MC[C_C10];
+	return 0.5*MC[C_C10]; //TODO: be careful! this answer is wrong!
 }
 
 double Mat_Comp_MooneyRivlin::getK0()
 {
-	//return MC[C_C10]/(3*(1-2*MC[C_K]));
 	return MC[C_K];
 }
 
@@ -334,28 +333,28 @@ double Mat_Comp_MooneyRivlin::getMuxy0()
 }
 
 
-uint16 matName2matId (string matName) {
-  for (uint16 i = 0; i < MAT_LAST; i++) {
-    if (matName.compare(mat_model_labels[i]) == 0) {
+Material::matId Material::matName2matId (string matName) {
+  for (uint16 i = 0; i < Material::LAST; i++) {
+    if (matName.compare(Material::matModelLabels[i]) == 0) {
       return i;
     }
   }
-  return MAT_NOT_DEFINED;
+  return Material::NOT_DEFINED;
 }
 
-Material* createMaterial (string matName) {
+Material* Material::createMaterial (string matName) {
   uint16 matId = matName2matId(matName);
   Material* mat;
-  if (matId == MAT_NOT_DEFINED)
+  if (matId == Material::NOT_DEFINED)
     error("createMaterial: can't find material %s", matName.c_str());
   switch (matId) {
-    case MAT_COMP_NEO_HOOKEAN:
+    case Material::NEO_HOOKEAN_COMP:
       mat = new Mat_Comp_Neo_Hookean();
       break;
-    case MAT_COMP_BIDERMAN:
+    case Material::BIDERMAN_COMP:
       mat = new Mat_Comp_Biderman();
       break;
-    case MAT_COMP_MOONEYRIVLIN:
+    case Material::MOONEYRIVLIN_COMP:
       mat = new Mat_Comp_MooneyRivlin();
       break;
     default:

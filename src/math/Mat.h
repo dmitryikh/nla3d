@@ -663,6 +663,11 @@ Mat<dimM, dimM> MatSym<dimM>::toMat() {
   return mat;
 }
 
+// [R] = coef * [B]^T*[D]*[B]
+// coef - double scalar
+// [B] - common matrix (dimM x dimN)
+// [D] - symmetric matrix (dimM x dimM)
+// [R] - symmetrix matrix (dimN x dimN)
 template<uint16 dimM,uint16 dimN>
 void matBTDBprod (Mat2<dimM,dimN> &B, MatSym<dimM> &D, double coef, MatSym<dimN> &R) 
 {
@@ -718,26 +723,6 @@ void matBTDBprod (Mat2<dimM,dimN> &B, MatSym<dimM> &D, double coef, MatSym<dimN>
 		}
 	}
 
-
-	//matABprod(Mat2<dimM1,dimN1> &A, Mat2<dimM2,dimN2> &B, const double coef, Mat2<dimM1,dimN2> &R) 
-
-	//Dp = D.ptr()+1;
-	//Ap = A.ptr();
-
-	//for (Dp = D.ptr()+1,Ap = A.ptr(),i=0;i<dimN-1;i++,Dp++)
-	//	for(k=i+1,Bp = &B[k][0],At=Ap;k<dimN;k++,Dp++)
-	//		for (j=0,Ap=At;j<dimM;j++,Ap++,Bp++)
-	//			*Ap+=(*Bp)*(*Dp);
-
-	//for (Bp = B.ptr(),Dp = D.ptr(),k=0;k<dimN;k++)
-	//	for (i=k,Bt = Bp,At = &A[k][0];i<dimN;i++,Dp++)
-	//		for (j=0,Bp = Bt,Ap = At;j<dimM;j++,Ap++,Bp++)
-	//			*Ap+=(*Dp)*(*Bp);
-	//
-	//for (k=0;k<dimN;k++)
-	//	for(i=0,Rp=res.ptr(),Bp=&B[k][0];i<dimM;i++,Bp++)
-	//		for(j=0,Ap=&A[k][0];j<dimM;j++,Rp++,Ap++)
-	//			*Rp+=(*Ap)*(*Bp)*coef;
 }
 
 template<uint16 dimM,uint16 dimN>

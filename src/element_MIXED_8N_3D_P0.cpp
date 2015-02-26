@@ -4,22 +4,21 @@ const mat_comp MIXED_8N_3D_P0::components[6] = {M_XX, M_YY, M_ZZ, M_XY, M_YZ, M_
 const uint16 MIXED_8N_3D_P0::num_components = 6;
 
 
-void MIXED_8N_3D_P0::pre (uint32 el, FE_Storage_Interface *storage)
+void MIXED_8N_3D_P0::pre()
 {
 	S.assign(npow(n_int(),n_dim()), Vec<6>(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
 	C.assign(npow(n_int(),n_dim()), Vec<6>(1.0, 1.0, 1.0, 0.0, 0.0, 0.0));
 	O.assign(npow(n_int(),n_dim()), Vec<9>(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
 
-	if (det.size()==0) 
-	{
+	if (det.size()==0) {
 		Node** nodes_p = new Node*[Element::n_nodes()];
-		storage->element_nodes(el, nodes_p);	
-		make_Jacob(el, nodes_p);
+		storage->element_nodes(getElNum(), nodes_p);	
+		make_Jacob(getElNum(), nodes_p);
 	}
 }
 
 
-void MIXED_8N_3D_P0::build (uint32 el, FE_Storage_Interface *storage)
+void MIXED_8N_3D_P0::build()
 {
 //построение матрицы жесткости и вектора нагрузки для элемента
 	double Kpp = 0.0;
@@ -39,7 +38,7 @@ void MIXED_8N_3D_P0::build (uint32 el, FE_Storage_Interface *storage)
 	Mat2<6,9> matO;
 	Mat2<9,24> matB_NL;
 	MatSym<24> Kuu; //матрица жесткости перед вектором перемещений
-	double p_e = storage->get_qi_n(-(int32)el, 0);
+	double p_e = storage->get_qi_n(-(int32)getElNum(), 0);
 	GlobStates.setdouble(States::DOUBLE_HYDPRES, p_e);
 	double dWt; //множитель при суммировании квадратур Гаусса
 
@@ -91,32 +90,15 @@ void MIXED_8N_3D_P0::build (uint32 el, FE_Storage_Interface *storage)
 	}//прошлись по всем точкам интегрирования
 	GlobStates.undefineuint16(States::UI16_CURINTPOINT);
 	GlobStates.undefinedouble(States::DOUBLE_HYDPRES);
-	assemble3(el,Kuu, Kup, Kpp, Fu,Fp,  storage);
-
-	//Mat<25,25> Ke;
-	//Vec<25> F_e; //вектор правых частей элемента
-	////сборка в одну матрицу
-	//for (uint16 i=0; i < 24; i++)
-	//	for (uint16 j=0; j < 24; j++)
-	//		Ke[i][j] = Kuu[i][j];
-	//for (uint16 i=0; i<24; i++)
-	//	Ke[i][24] = Kup[i][0];
-	//for (uint16 i=0; i<24; i++)
-	//	Ke[24][i] = Kup[i][0];
-	//Ke[24][24] = Kpp;
-	//for (uint16 i=0; i < 24; i++)
-	//	F_e[i] = Fu[i];
-	//F_e[24] = Fp;
-
-	//assemble(el,Ke, F_e, storage);
+	assemble3(Kuu, Kup, Kpp, Fu,Fp,  storage);
 }
 
 
-void MIXED_8N_3D_P0::update (uint32 el, FE_Storage_Interface *storage)
+void MIXED_8N_3D_P0::update()
 {
 	Vec<25> Un; //вектор решений для степеней свобод элемента и его узлов
 	// получаем вектор перемещений элемента из общего решения
-	storage->get_q_e(el, Un.ptr());
+	storage->get_q_e(getElNum(), Un.ptr());
 	Vec<24> U;
 	Mat2<9,24> B_NL;
 	Vec<6> vecC;
@@ -250,183 +232,92 @@ void MIXED_8N_3D_P0::make_Omega (uint16 nPoint, Mat2<6,9> &B)
 	}
 }
 
-
-double MIXED_8N_3D_P0::getComponent(uint16 gp, el_component code, uint32 el, FE_Storage_Interface *storage)
-{
-	//////////////////////////////////////
+void MIXED_8N_3D_P0::getScalar(double& scalar, el_component code, uint16 gp, const double scale) {
 	//see codes in sys.h
 	//gp - needed gauss point 
-
-	assert (gp < n_int()*n_int()*n_int());
-	double res = 0.0;
-
-	if (code >= E_X && code <= E_3)
-	{
-		Mat<3,3> matC(C[gp][0],C[gp][3],C[gp][5],
-				  C[gp][3],C[gp][1],C[gp][4],
-				  C[gp][5],C[gp][4],C[gp][2]);
-		 
-		switch (code)
-		{
-		case E_X:
-			res = (matC[0][0]-1)*0.5;
-			break;
-		case E_Y:
-			res = (matC[1][1]-1)*0.5;
-			break;
-		case E_Z:
-			res = (matC[2][2]-1)*0.5;
-			break;
-		case E_XY:
-			res = matC[0][1]*0.5;
-			break;
-		case E_YZ:
-			res = matC[1][2]*0.5;
-			break;
-		case E_XZ:
-			res = matC[0][2]*0.5;
-			break;
-		case E_VOL:
-			res = sqrt(matC.det());
-			break;
-		case E_1:
-			res = sqrt(matC.eigenvalues()[0]);
-			break;
-		case E_2:
-			res = sqrt(matC.eigenvalues()[1]);
-			break;
-		case E_3:
-			res = sqrt(matC.eigenvalues()[2]);
-			break;
-		}
-	}
-
-	if (code >= S_X && code <= S_3)
-	{
-		Mat<3,3> matX;
-		Mat<3,3> matS;
-		Mat<3,3> matT;
-
-		matX[0][0] = 1+O[gp][0];
-		matX[0][1] = O[gp][1];
-		matX[0][2] = O[gp][2];
-		matX[1][0] = O[gp][3];
-		matX[1][1] = 1+O[gp][4];
-		matX[1][2] = O[gp][5];
-		matX[2][0] = O[gp][6];
-		matX[2][1] = O[gp][7];
-		matX[2][2] = 1+O[gp][8];
-
-		matS[0][0] = S[gp][0];
-		matS[0][1] = S[gp][3];
-		matS[0][2] = S[gp][5];
-		matS[1][0] = S[gp][3];
-		matS[1][1] = S[gp][1];
-		matS[1][2] = S[gp][4];
-		matS[2][0] = S[gp][5];
-		matS[2][1] = S[gp][4];
-		matS[2][2] = S[gp][2];
-
-		matT = matX * matS * matX.transpose() * (1.0f/matX.det());
-
-		switch (code)
-		{
-		case S_X:
-			res = matT[0][0];
-			break;
-		case S_Y:
-			res = matT[1][1];
-			break;
-		case S_Z:
-			res = matT[2][2];
-			break;
-		case S_XY:
-			res = matT[0][1];
-			break;
-		case S_YZ:
-			res = matT[1][2];
-			break;
-		case S_XZ:
-			res = matT[0][2];
-			break;
+  if {gp == GP_MEAN} { //need to average result over the element
+    double dWtSum = volume();
+    double dWt;
+    for (uint16 nPoint = 0; nPoint < npow(n_int(),n_dim()); nPoint ++) {
+      dWt = g_weight(nPoint);
+      getScalar(scalar, code, nPoint, dWt/dWtSum*scale );
+    }
+    return;
+  }
+	assert (npow(n_int(),n_dim()));
+  switch (code) {
 		case S_P:
-			res = storage->get_qi_n(-(int32)el, 0);
+			scalar += storage->get_qi_n(-(int32)getElNum(), 0) * scale;
 			break;
-		case S_1:
-			res = matT.eigenvalues()[0];
-			break;
-		case S_2:
-			res = matT.eigenvalues()[1];
-			break;
-		case S_3:
-			res = matT.eigenvalues()[2];
-			break;
-		}
-	}
-	return res;
+    default:
+      error("MIXED_8N_3D_P0::getScalar: no data for code %d", code);
+  }
 }
 
+//return a tensor in a global coordinate system
+void  MIXED_8N_3D_P0::getTensor(MatSym<3>& tensor, el_tensor code, uint16 gp, const double scale) {
+  if {gp == GP_MEAN} { //need to average result over the element
+    double dWtSum = volume();
+    double dWt;
+    for (uint16 nPoint = 0; nPoint < npow(n_int(),n_dim()); nPoint ++) {
+      dWt = g_weight(nPoint);
+      getTensor(tensor, code, nPoint, dWt/dWtSum*scale);
+    }
+    return;
+  }
+	assert (npow(n_int(),n_dim()));
+	switch (code) {
+    case TENS_COUCHY:
+      Mat2<3,3> matF;
+      MatSym<3> matS;
+      double J;
 
-Mat<3,3> MIXED_8N_3D_P0::getTensor (uint16 gp, el_tensor code, uint32 el, FE_Storage_Interface *storage) {
-	Vec<3> cmass(0.0, 0.0, 0.0);
-	Vec<3> xi;
-	for (uint16 i = 0; i < Element::n_nodes(); i ++)
-	{
-		storage->get_node_pos(storage->getElement(el).node_num(i), xi.ptr(), true);
-		cmass = cmass + xi;
+      //matF^T  
+      matF.data[0][0] = 1+O[gp][0];
+      matF.data[1][0] = O[gp][1];
+      matF.data[2][0] = O[gp][2];
+      matF.data[0][1] = O[gp][3];
+      matF.data[1][1] = 1+O[gp][4];
+      matF.data[2][1] = O[gp][5];
+      matF.data[0][2] = O[gp][6];
+      matF.data[1][2] = O[gp][7];
+      matF.data[2][2] = 1+O[gp][8];
+
+      J = matF.data[0][0]*(matF.data[1][1]*matF.data[2][2]-matF.data[1][2]*matF.data[2][1])-matF.data[0][1]*(matF.data[1][0]*matF.data[2][2]-matF.data[1][2]*matF.data[2][0])+matF.data[0][2]*(matF.data[1][0]*matF.data[2][1]-matF.data[1][1]*matF.data[2][0]);
+
+      matS.data[0] = S[gp][0];
+      matS.data[1] = S[gp][3];
+      matS.data[2] = S[gp][5];
+      matS.data[3] = S[gp][1];
+      matS.data[4] = S[gp][4];
+      matS.data[5] = S[gp][2];
+      matBTDBprod (matF, matS, 1.0/J*scale, tensor); //Symmetric Couchy tensor
+      break;
+    case TENS_PK2:
+      tensor.data[0] += S[gp][0]*scale;
+      tensor.data[1] += S[gp][3]*scale;
+      tensor.data[2] += S[gp][5]*scale;
+      tensor.data[3] += S[gp][1]*scale;
+      tensor.data[4] += S[gp][4]*scale;
+      tensor.data[5] += S[gp][2]*scale;
+      break;
+    case TENS_C:
+      tensor.data[0] += C[gp][0]*scale;
+      tensor.data[1] += C[gp][3]*scale;
+      tensor.data[2] += C[gp][5]*scale;
+      tensor.data[3] += C[gp][1]*scale;
+      tensor.data[4] += C[gp][4]*scale;
+      tensor.data[5] += C[gp][2]*scale;
+      break;
+    case TENS_E:
+      tensor.data[0] += (C[gp][0]-1.0)*0.5*scale;
+      tensor.data[1] += C[gp][3]*0.5*scale;
+      tensor.data[2] += C[gp][5]*0.5*scale;
+      tensor.data[3] += (C[gp][1]-1.0)*0.5*scale;
+      tensor.data[4] += C[gp][4]*0.5*scale;
+      tensor.data[5] += (C[gp][2]-1.0)*0.5*scale;
+      break;
+    default:
+      error("MIXED_8N_3D_P0::getTensor: no data for code %d", code);
 	}
-	cmass = cmass * (1.0/Element::n_nodes());
-	cmass[1]=0.0;
-	//TODO: Storage::el_center(el, def/undef)
-	cmass = cmass * (1.0/cmass.lenght());
-	
-	Vec<3> nr(cmass[0],cmass[1],0.0);
-	Vec<3> nz(0.0,0.0,1.0);
-	Vec<3> nt(cmass[1],-cmass[0],0.0);
-	
-	Mat<3,3> Q(cmass[0],cmass[2],0.0,
-				0.0,0.0,1.0,
-				cmass[2],	-cmass[0],	0.0);
-
-	Mat<3,3> matX;
-	Mat<3,3> matS;
-	Mat<3,3> matT;
-
-	matX[0][0] = 1+O[gp][0];
-	matX[0][1] = O[gp][1];
-	matX[0][2] = O[gp][2];
-	matX[1][0] = O[gp][3];
-	matX[1][1] = 1+O[gp][4];
-	matX[1][2] = O[gp][5];
-	matX[2][0] = O[gp][6];
-	matX[2][1] = O[gp][7];
-	matX[2][2] = 1+O[gp][8];
-
-	matS[0][0] = S[gp][0];
-	matS[0][1] = S[gp][3];
-	matS[0][2] = S[gp][5];
-	matS[1][0] = S[gp][3];
-	matS[1][1] = S[gp][1];
-	matS[1][2] = S[gp][4];
-	matS[2][0] = S[gp][5];
-	matS[2][1] = S[gp][4];
-	matS[2][2] = S[gp][2];
-
-	matT = matX * matS * matX.transpose() * (1.0f/matX.det());
-
-	Mat<3,3> matC;
-	matC = Q.transpose()*matT*Q;
-
-
-
-	switch (code)
-	{
-	case TENS_COUCHY:
-		return matC;
-		break;
-	}
-
-	return Mat<3,3>(0.0,0.0,0.0,
-					0.0,0.0,0.0,
-					0.0,0.0,0.0);
 }

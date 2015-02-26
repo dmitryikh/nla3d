@@ -14,10 +14,13 @@ public:
 	vector<double>	det;	//Jacobian
 	const static Mat<4,4> gPoint; //integration points & weights for Gauss integration
 	const static Mat<4,4> gWeight; // supported schemes 1x1x1 to 4x4x4
+
 	void make_Jacob(uint32 el, Node** nodes);	//function to calculate all this staff above
 	void npoint_to_ii(uint16 nPoint, uint16 *ii); //by number of gauss point find indexes
 	void npoint_to_xi(uint16 nPoint, double *xi); //by number of gauss point find local coordinates
 	double g_weight(uint16 nPoint);
+  double volume();
+
 	const static int16 _signs[8][3];
 };
 
@@ -124,3 +127,14 @@ double Element_Lagrange_Formulation<dim,nodes_num>::g_weight(uint16 nPoint)
 		res *= gWeight[Element::n_int()-1][ii[i]];
 	return res;
 }
+
+template <uint32 dim, uint32 nodes_num> 
+double Element_Lagrange_Formulation<dim,nodes_num>::volume()
+{
+  double volume = 0.0;
+  for (uint16 nPoint=0; (int32) nPoint < npow(Element::n_int(),dim); nPoint++) {
+    volume += g_weight(nPoint);
+  }
+	return volume;
+}
+
