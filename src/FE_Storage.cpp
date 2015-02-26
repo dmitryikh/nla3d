@@ -1,301 +1,436 @@
-
 #include "FE_Storage.h"
 
+FE_Storage::FE_Storage()  {
+	n_nodes = 0;
+	n_elements = 0;
+	n_dofs = 0;
 
-//bool FE_Storage::save_mdl (const char *filename)
-//{
-//	ofstream file(filename);
-//	if (!file)
-//	{
-//		warning("FE_Storage::save_mdl: Can't create save fale `%s`",filename);
-//		return false;
-//	}
-//	file << "2D" << " ";
-//	if (fem_type==FEM_PLANE)
-//		file << "PLANE ";
-//	else if (fem_type==FEM_AXYM)
-//		file << "AXYM ";
-//	else
-//	{
-//		warning("FE_Storage::save_mdl: unknown type of fem_type = %d",fem_type);
-//		file.close();
-//		return false;
-//	}
-//	file << nn << " " << en << " " << bounds.size() << endl;
-//	for (uint32 i=0; i < nn; i++)
-//		file << nodes[i].toString() << endl;
-//	for (uint32 i=0; i < en; i++)
-//		file << elements[i].toString() << endl;
-//	for (uint32 i=0; i < bounds.size(); i++)
-//		file << bounds[i].toString() << endl;
-//	if (material)
-//		file << material->toString() << endl;
-//	file.close();
-//	return true;
-//}
+	n_constrained_dofs = 0;
+	n_solve_dofs = 0;
+	n_MPC_eqs = 0;
 
-//bool FE_Storage::load_mdl (const char *filename)
-//{
-//	//удаляем всё
-//	//TODO: залочить доступ к storage
-//	if (material) delete material;
-//	elements.clear();
-//	nodes.clear();
-//	bounds.clear();
-//	nn=0;
-//	en=0;
-//	nDOFs=0;
-//
-//	ifstream file(filename);
-//	if (!file)
-//	{
-//		warning("FE_Storage::load_mdl: Can't open file `%s`",filename);
-//		return false;
-//	}
-//
-//	string str;
-//	file >> str;
-//	if (str != "2D")
-//	{
-//		warning("FE_Storage::load_mdl: unknown dimension of solution (%s)", str.c_str());
-//		file.close();
-//		return false;
-//	}
-//	file >> str;
-//	if (str=="PLANE")
-//		fem_type = FEM_PLANE;
-//	else if (str=="AXYM")
-//		fem_type = FEM_AXYM;
-//	else
-//	{
-//		warning("FE_Storage::load_mdl: unknown type of analysis (%s)",str);
-//		file.close();
-//		return false;
-//	}
-//	file >> nn;
-//	if (nn < 1)
-//	{
-//		warning("FE_Storage::load_mdl: nodes number is invalid (%d)",nn);
-//		file.close();
-//		return false;
-//	}
-//	file >> en;
-//	if (en <1)
-//	{
-//		warning("FE_Storage::load_mdl: elements number is invalid (%d)",en);
-//		file.close();
-//		return false;
-//	}
-//	uint32 bcn;
-//	file >> bcn;
-//	if (bcn < 1)
-//	{
-//		warning("FE_Storage::load_mdl: boundary conditions number is invalid (%d)",bcn);
-//		file.close();
-//		return false;
-//	}
-//	nodes.assign(nn, Node());
-//	elements.assign(en, Element4_2D());	
-//	bounds.assign(bcn, Bound());
-//	for (uint32 i=0; i < nn; i++)
-//		nodes[i].read_from_stream(file);
-//	for (uint32 i=0; i < en; i++)
-//		elements[i].read_from_stream(file);
-//	for (uint32 i=0; i < bcn; i++)
-//		bounds[i].read_from_stream(file);
-//	file >> str;
-//	if (str == "Material_Comp_Neo_Hookean")
-//	{
-//		material = new Material_Comp_Neo_Hookean();
-//		file >> material->E;
-//		file >> material->mu;
-//	}
-//	else if (str == "Material_Hookean")
-//	{
-//			material = new Material_Hookean();
-//			file >> material->E;
-//			file >> material->mu;
-//	}
-//	status = ST_LOADED;
-//	nDOFs = nn*Node::nDOF;
-//	file.close();
-//	return true;
-//}
-//
+	material = NULL;
+	KssCsT = NULL;
+	Cc = NULL;
+	Kcs = NULL;
+	Kcc = NULL;
 
+	vec_q_lambda = NULL;
+	vec_q = NULL;
+	vec_qc = NULL;
+	vec_qs = NULL;
+	vec_lambda = NULL;
 
-//void FE_Storage::makestripmodel(double B, double H, uint16 nB, uint16 nH, double alpha, double r, double delta)
-//{
-//	uint32 nN = (nB+1)*(nH+1);
-//	uint32 nE = nB*nH;
-//	nodes.clear();
-//	nodes.assign(nN, Node());
-//	elements.clear();
-//	elements.assign(nE, Element4_2D());
-//	bounds.clear();
-//	en = nE;
-//	nn = nN;
-//	nDOFs=nn*Node::nDOF;
-//	Force_proc *fproc = new Force_proc(this);
-//	EList_proc *el_proc1 = new EList_proc(this, "EVOL", 4);
-//	EList_proc *el_proc2 = new EList_proc(this, "EY", 4);
-//	EList_proc *el_proc3 = new EList_proc(this, "EXY", 4);
-//	EList_proc *el_proc4 = new EList_proc(this, "SX", GP_MEAN);
-//	EList_proc *el_proc5 = new EList_proc(this, "SY", GP_MEAN);
-//	EList_proc *el_proc6 = new EList_proc(this, "SXY", GP_MEAN);
-//	for (uint16 i=0; i < nH+1; i++)
-//	{
-//		for (uint16 j=0; j < nB+1; j++)
-//		{
-//			nodes[i*(nB+1)+j].coord[0] = r+(H/nH)*i*tan(M_PI/2-alpha)+j*B/nB;
-//			nodes[i*(nB+1)+j].coord[1] = (H/nH)*i;
-//			if (i==nH)
-//			{
-//				fproc->nodes.push_back(i*(nB+1)+j+1);
-//				fproc->dofs.push_back(1);
-//			}
-//			if (i>0 && j>0)
-//			{
-//				elements[(i-1)*nB+j-1].nodes[0]=(i-1)*(nB+1)+j-1+1;
-//				elements[(i-1)*nB+j-1].nodes[3]=(i)*(nB+1)+j-1+1;
-//				elements[(i-1)*nB+j-1].nodes[2]=(i)*(nB+1)+j+1;
-//				elements[(i-1)*nB+j-1].nodes[1]=(i-1)*(nB+1)+j+1;
-//				if ((int)((nH)/4) == i)
-//				{
-//					el_proc1->elems.push_back((i-1)*nB+j-1);
-//					el_proc2->elems.push_back((i-1)*nB+j-1);
-//					el_proc3->elems.push_back((i-1)*nB+j-1);
-//				}
-//				if ((int)((nH)/2) == i)
-//				{
-//					el_proc4->elems.push_back((i-1)*nB+j-1);
-//					el_proc5->elems.push_back((i-1)*nB+j-1);
-//					el_proc6->elems.push_back((i-1)*nB+j-1);
-//				}
-//			}
-//		}
-//	}
-//	// boundary constrains
-//	for (uint16 j=0; j<nB+1; j++)
-//	{
-//		Bound bd;
-//		bd.key = D_UX;
-//		bd.value = 0.0f;
-//		bd.node = j+1;
-//		bounds.push_back(bd);
-//		bd.key = D_UY;
-//		bounds.push_back(bd);
-//		bd.key = D_UX;
-//		bd.node = ((nH)*(nB+1))+j+1;
-//		bounds.push_back(bd);
-//		bd.key = D_UY;
-//		bd.value = -H*delta;
-//		bounds.push_back(bd);
-//	}
-//	status=ST_LOADED;
-//}
-//
-//void FE_Storage::makecircmodel (double r1, double r2, double fi1, double fi2, uint16 nR, uint16 nFi, double P)
-//{
-//	uint32 nN = (nR+1)*(nFi+1);
-//	uint32 nE = nR*nFi;
-//	nodes.clear();
-//	nodes.assign(nN, Node());
-//	elements.clear();
-//	elements.assign(nE, Element4_2D());
-//	bounds.clear();
-//	en = nE;
-//	nn = nN;
-//	nDOFs=nn*Node::nDOF;
-//	double dFi = (fi2 - fi1)/(nFi);
-//	double dR = (r2-r1)/(nR);
-//	double dP = P/(nR+1);
-//	EList_proc *el_proc1 = new EList_proc(this, "SX", GP_MEAN);
-//	EList_proc *el_proc2 = new EList_proc(this, "SY", GP_MEAN);
-//	EList_proc *el_proc3 = new EList_proc(this, "SXY", GP_MEAN);
-//	NList_proc *n_proc4 = new NList_proc(this, "UX");
-//	for (uint16 i=0; i < nFi+1; i++)
-//	{
-//		for (uint16 j=0; j < nR+1; j++)
-//		{
-//			nodes[i*(nR+1)+j].coord[0] = (r1+dR*j)*cos(fi1+dFi*i);
-//			nodes[i*(nR+1)+j].coord[1] = (r1+dR*j)*sin(fi1+dFi*i);
-//			if (i>0 && j>0)
-//			{
-//				elements[(i-1)*nR+j-1].nodes[0]=(i-1)*(nR+1)+j-1+1;
-//				elements[(i-1)*nR+j-1].nodes[3]=(i)*(nR+1)+j-1+1; //
-//				elements[(i-1)*nR+j-1].nodes[2]=(i)*(nR+1)+j+1; //
-//				elements[(i-1)*nR+j-1].nodes[1]=(i-1)*(nR+1)+j+1;
-//				if ((int)((nFi)/3) == i)
-//				{
-//					el_proc1->elems.push_back((i-1)*nR+j-1);
-//					el_proc2->elems.push_back((i-1)*nR+j-1);
-//					el_proc3->elems.push_back((i-1)*nR+j-1);
-//				}
-//			}
-//			if ((int)((nFi)/3) == i)
-//			{
-//				n_proc4->nodes.push_back(i*(nR+1)+j);
-//			}
-//		}
-//	}
-//	// boundary constrains
-//	uint16 i_zad = nFi;
-//	uint16 i_p = 0;
-//	for (uint16 j=0; j<nR+1; j++)
-//	{
-//		Bound bd;
-//		// заделка
-//		bd.key = D_UX;
-//		bd.value = 0.0f;
-//		bd.node = i_zad*(nR+1)+j+1;
-//		bounds.push_back(bd);
-//		bd.key = D_UY;
-//		bounds.push_back(bd);
-//		// сила
-//		bd.key = F_X;
-//		bd.node = i_p*(nR+1)+j+1;
-//		bd.value = -dP*cos(fi1);
-//		bounds.push_back(bd);
-//		bd.key = F_Y;
-//		bd.value = -dP*sin(fi1);
-//		bounds.push_back(bd);
-//	}
-//	status=ST_LOADED;
-//}
+	vec_dq_dlambda = NULL;
+	vec_dq = NULL;
+	vec_dqc = NULL;
+	vec_dqs = NULL;
+	vec_dlambda = NULL;
+
+	vec_reactions = NULL;
+
+	vec_F = NULL;
+	vec_Fc = NULL;
+	vec_Fs = NULL;
+
+	vec_b = NULL;
+
+	vec_rhs = NULL;
+	vec_rhs_dof = NULL;
+	vec_rhs_mpc = NULL;
+
+	dof_array = NULL;
+	
+	status = ST_INIT;
+  elType = Element::NOT_DEFINED;
+  elements = NULL;
+};
+
+FE_Storage::~FE_Storage () {
+	status = ST_INIT; //TODO: check
+	for (uint16 i=0; i < post_procs.size(); i++)
+		delete post_procs[i];
+	if (material) delete material;
+	if (KssCsT) delete KssCsT;
+	if (Cc) delete Cc;
+	if (Kcs) delete Kcs;
+	if (Kcc) delete Kcc;
+
+	if (vec_q_lambda) delete[] vec_q_lambda;
+	if (vec_dq_dlambda) delete[] vec_dq_dlambda;
+	if (vec_reactions) delete[] vec_reactions;
+	if (vec_F) delete[] vec_F;
+	if (vec_b) delete[] vec_b;
+	if (vec_rhs) delete[] vec_rhs;
+	if (dof_array) delete[] dof_array;
+
+  clearMesh();
+}
+
+bool FE_Storage::prepare_for_solution () {
+	if (status < ST_LOADED) {
+		warning ("FE_Storage::prepare_for_solution: model isn't loaded");
+		return false;
+	}
+
+	n_dofs = n_nodes*Node::n_dofs() + n_elements*Element::n_dofs(); //общее число степеней свободы
+	//n_constrained_dofs - подсчитано при задании BC's
+	//n_MPC_eqs - подсчитано при задании MPC's
+	n_MPC_eqs = list_bc_MPC.size();
+	//
+	n_solve_dofs = n_dofs - n_constrained_dofs;
+	if (n_MPC_eqs)	Cc = new Sparse_Matrix_R(n_MPC_eqs, n_constrained_dofs);
+	KssCsT = new Sparse_Matrix_SUR(n_solve_dofs + n_MPC_eqs);
+	Kcs = new Sparse_Matrix_R(n_constrained_dofs, n_solve_dofs);
+	Kcc = new Sparse_Matrix_SUR(n_constrained_dofs);
+
+	// заполняем массив степеней свободы
+	dof_array = new Dof[n_dofs];
+	uint32 next_eq_solve = n_constrained_dofs+1;
+	uint32 next_eq_const = 1;
+	list<BC_dof_constraint>::iterator p = list_bc_dof_constraint.begin();
+	while (p != list_bc_dof_constraint.end())
+	{
+		dof_array[get_dof_num(p->node, p->node_dof)-1].is_constrained = true;
+		p++;
+	}
+	for (uint32 i=0; i<n_dofs; i++)
+	{
+		if (dof_array[i].is_constrained)
+			dof_array[i].eq_number = next_eq_const++;
+		else
+			dof_array[i].eq_number = next_eq_solve++;
+	}
+	//настраеваем массивы значенийстепеней свободы {qc; qs; lambda}
+	vec_q_lambda = new double[n_dofs+n_MPC_eqs];
+	memset(vec_q_lambda, 0, sizeof(double)*(n_dofs+n_MPC_eqs));
+	vec_q = vec_q_lambda;
+	vec_qc = vec_q_lambda;
+	vec_qs = &(vec_q_lambda[n_constrained_dofs]);
+	vec_lambda = &(vec_q_lambda[n_dofs]); //тут нарушается адресация
+	
+	vec_dq_dlambda = new double[n_dofs+n_MPC_eqs];
+	memset(vec_dq_dlambda, 0, sizeof(double)*(n_dofs+n_MPC_eqs));
+	vec_dq = vec_dq_dlambda;
+	vec_dqc = vec_dq_dlambda;
+	vec_dqs = &(vec_dq_dlambda[n_constrained_dofs]);
+	vec_dlambda = &(vec_dq_dlambda[n_dofs]);
+	
+	vec_reactions = new double[n_constrained_dofs];
+	memset(vec_reactions, 0, sizeof(double)*n_constrained_dofs);
+
+	vec_F = new double[n_dofs];
+	memset(vec_F, 0, sizeof(double)*n_dofs);
+	vec_Fc = vec_F;
+	vec_Fs = &(vec_F[n_constrained_dofs]);
+
+	if (n_MPC_eqs)
+	{
+		vec_b = new double[n_MPC_eqs];
+		memset(vec_b, 0, sizeof(double)*n_MPC_eqs);
+	}
+
+	// {rhs} = size(n_solve_dofs+n_MPC_eqs)
+	vec_rhs = new double[n_solve_dofs+n_MPC_eqs];
+	memset(vec_rhs, 0, sizeof(double)*(n_solve_dofs+n_MPC_eqs));
+	vec_rhs_dof = vec_rhs;
+	vec_rhs_mpc = &(vec_rhs[n_solve_dofs]);
+
+	echolog("DoFs = %d, constrained DoFs = %d, MPC eq. = %d, TOTAL eq. = %d", n_dofs, n_constrained_dofs, n_MPC_eqs, n_solve_dofs + n_MPC_eqs);
+
+	if (!material)
+	{
+		warning("FE_Storage::prepare_for_solution: material isn't defined");
+		return false;
+	}
+	return true;
+}
 
 
-//
-//double FE_Storage::node_q(uint32 n, uint16 dof)
-//{
-//	assert(dof >= 0 && dof < Node::nDOF);
-//	//dof: x - 0, y - 1, z - 2
-//	// n: от 1 
-//	return (*vecQsum)[(n-1)*Node::nDOF+dof+1];
-//}
+//функция возвращает ссылку на значение, которое хранится в глобальной матрице жосткости по адресу 
+// строка: dofi-тая степень свободы nodei-того узла 
+// столбец: dofj-тая степень свободы nodej-того узла 
+// узлы нумеруются с индекса 1, dofi=[0;Node::nDOF()-1];
+void FE_Storage::Kij_add(int32 nodei, uint16 dofi, int32 nodej, uint16 dofj, double value) {
+	//assert(matK);
+	uint32 eq_row = get_dof_eq_num(nodei, dofi);
+	uint32 eq_col = get_dof_eq_num(nodej, dofj);
+	if (eq_row > eq_col) swap(eq_row, eq_col);
+	if (eq_row <= n_constrained_dofs) {
+		if (eq_col <= n_constrained_dofs) {
+			Kcc->add_value(eq_row, eq_col, value);
+    } else {
+			Kcs->add_value(eq_row, eq_col - n_constrained_dofs, value);
+    }
+  } else {
+		KssCsT->add_value(eq_row - n_constrained_dofs, eq_col - n_constrained_dofs, value);
+  }
+}
 
-//void FE_Storage::save_to_fortran (const char *filename)
-//{
-//	ofstream file(filename);
-//	file << en << " " << nn << " " << 2 << " " << 4 << endl;
-//	for (uint32 i=0; i < nn; i++)
-//	{
-//		file << i+1 << " " << nodes[i].coord[0] << " " << nodes[i].coord[1] << endl;
-//	}
-//	for (uint32 i=0; i < en; i++)
-//	{
-//		file << i+1 << " " << elements[i].nodes[0] << " " << elements[i].nodes[1] << " " << elements[i].nodes[2] << " " << elements[i].nodes[3] << endl;
-//	}
-//	file << bounds.size() << endl;
-//	for (uint32 i=0; i < bounds.size(); i++)
-//	{
-//		file << bounds[i].node << " ";
-//		if (bounds[i].key == D_UX) file << "10 " << bounds[i].value << " 0.0" << endl;
-//		else file << "01 0.0 " <<bounds[i].value << endl;
-//	}
-//	file << "6.0  0.45" << endl << "3   8" << endl << 0 << endl << 6;
-//	file.close();
-//}
+void FE_Storage::Cij_add(uint32 eq_num, int32 nodej, uint32 dofj, double value) {
+	assert(Cc);
+	assert(eq_num > 0 && eq_num <= n_MPC_eqs);
+	uint32 dof_col = get_dof_eq_num(nodej, dofj);
+	if (dof_col <= n_constrained_dofs) {
+		Cc->add_value(eq_num, dof_col, value);
+  }	else {
+		//Cs
+		KssCsT->add_value(dof_col-n_constrained_dofs, n_solve_dofs+eq_num, value);
+  }
+}
+
+//getFi(..) возвращает ссылку на ячейку глобального вектора сил
+//по адресу dofi-тая степень свободы nodei-того узла
+// узлы нумеруются с индекса 1, dofi=[0;Node::nDOF()-1];
+// TODO: CHECK
+void FE_Storage::Fi_add(int32 nodei, uint16 dofi, double value) {
+	assert(vec_F);
+	uint32 row = get_dof_eq_num(nodei, dofi);
+	assert(row <= n_dofs);
+	vec_F[row-1] += value;
+}
+
+void FE_Storage::zeroK() {
+	assert(KssCsT);
+	KssCsT->zero_block(n_solve_dofs);// TODO: сделать эту функцию //DEBUG
+	//KssCsT->zero();//DEBUG
+	Kcc->zero();
+	Kcs->zero();
+}
+
+void FE_Storage::zeroF() {
+	assert(vec_F);
+	memset(vec_F, 0, sizeof(double)*n_dofs);
+	memset(vec_dq_dlambda, 0, sizeof(double)*(n_dofs+n_MPC_eqs));//TODO: test
+}
+
+
+Sparse_Matrix_SUR& FE_Storage::get_solve_mat() {
+	assert(KssCsT);
+	return *KssCsT;
+}
+
+
+double* FE_Storage::get_solve_rhs () {
+	assert(vec_rhs);
+	double *KcsTdqc = new double[n_solve_dofs];
+	Kcs->transpose_mult_vec(vec_dqc,KcsTdqc);
+	for (uint32 i=0; i < n_solve_dofs; i++)
+		vec_rhs_dof[i] = vec_Fs[i] - KcsTdqc[i];//Kcs->transpose_mult_vec_i(vec_dqc,i+1);//TODO: тут может быть ошибка
+	for (uint32 i=0; i < n_MPC_eqs; i++)
+		vec_rhs_mpc[i] = vec_b[i] - Cc->mult_vec_i(vec_dqc,i+1);
+	delete[] KcsTdqc;
+	return vec_rhs;
+}
+
+
+uint16 FE_Storage::add_post_proc (Post_proc *pp) {
+	assert(pp);
+	uint16 num = this->post_procs.size()+1;
+	pp->nPost_proc = num;
+	post_procs.push_back(pp);
+	return num;
+}
+
+//clearMesh() функция очищает таблицу узлов, элементов, ГУ
+void FE_Storage::clearMesh () {
+	status = ST_INIT; //TODO продумать
+	deleteElements();
+	nodes.clear();
+	list_bc_dof_constraint.clear();
+	list_bc_dof_force.clear();
+	list_bc_MPC.clear();
+	n_nodes = 0;
+	n_elements = 0;
+	n_dofs = 0;
+	n_constrained_dofs = 0;
+	n_solve_dofs = 0;
+	n_MPC_eqs = 0;
+}
+
+
+void FE_Storage::deleteElements() {
+  for (uint32 i = 0; i < n_elements; i++) {
+    delete elements[i];
+  }
+  delete[] elements;
+  elements = NULL;
+  n_elements = 0;
+}
+
+//nodes_reassign(_nn)
+void FE_Storage::nodes_reassign(uint32 _nn)
+{
+	nodes.clear();
+	n_nodes = _nn;
+  //Node() fires Vec<3> constructor, thus Node coordinates are (0,0,0) by default
+  //TODO: try-catch of memory overflow
+	nodes.assign(_nn, Node()); // TODO: тут бы catch на возможность выделения памяти
+}
+
+//elements_reassign(_en)
+void FE_Storage::elements_reassign(uint32 _en)
+{
+  deleteElements();
+	n_elements = _en;
+  elements = new Element*[n_elements];
+  Element::createElements (type, n_elements, elements); 
+  Element::storage = this;
+  for (uint32 i = 0; i < _en; i++) {
+    //access elNum protected values as friend
+    elements[i]->elNum = i+1;
+  }
+}
+
+
+// get_q_e(el, ptr) функция возвращает вектор узловых степеней свободы элемента,
+// вызывающая сторона должна предоставить массив ptr размерностью Element::n_nodes()*Node::n_dofs() + Element::n_dofs()
+// el начинается с 1
+void FE_Storage::get_q_e(uint32 el, double* ptr)
+{
+	assert(el <= n_elements);
+	assert(vec_q_lambda);
+	for (uint16 i=0; i<Element::n_nodes(); i++)
+		for (uint16 j=0; j<Node::n_dofs(); j++)
+			ptr[i*Node::n_dofs()+j] = vec_q_lambda[get_dof_eq_num(elements[el-1]->node_num(i), j)-1];
+	for (uint16 i=0; i < Element::n_dofs(); i++)
+		ptr[Element::n_nodes()*Node::n_dofs()+i] = vec_q_lambda[get_dof_eq_num(-(int32)el, i)-1];
+}
+// get_dq_e см. выше
+void FE_Storage::get_dq_e(uint32 el, double* ptr)
+{
+	assert(el <= n_elements);
+	assert(vec_dq_dlambda);
+	for (uint16 i=0; i<Element::n_nodes(); i++)
+		for (uint16 j=0; j<Node::n_dofs(); j++)
+			ptr[i*Node::n_dofs()+j] = vec_dq_dlambda[get_dof_eq_num(elements[el-1]->node_num(i), j)-1];
+	for (uint16 i=0; i < Element::n_dofs(); i++)
+		ptr[Element::n_nodes()*Node::n_dofs()+i] = vec_dq_dlambda[get_dof_eq_num(-(int32)el, i)-1];
+}
+
+//get_q_n(n, ptr)
+// n начинается с 1
+void FE_Storage::get_q_n(uint32 n, double* ptr)
+{
+	assert(n > 0 && n <= n_nodes);
+	assert(vec_q_lambda);
+	for (uint16 j=0; j<Node::n_dofs(); j++)
+		ptr[j] = vec_q[get_dof_eq_num(n, j)-1];
+}
+
+//void get_node_pos(uint32 n, double* ptr, bool def = false) double массим на 3 элемента!
+//n с 1
+void FE_Storage::get_node_pos(uint32 n, double* ptr, bool def = false)
+{
+	assert(n > 0 && n <= n_nodes);
+	for (uint16 i=0; i<3; i++)
+		ptr[i] = nodes[n-1].pos[i];
+	if (def)
+	{
+		for (uint16 i=0; i<Node::n_dofs(); i++)
+			switch(Node::dof_type(i))
+			{
+			case UX:
+				ptr[0] += get_qi_n(n, i);
+				break;
+			case UY:
+				ptr[1] += get_qi_n(n,i);
+				break;
+			case UZ:
+				ptr[2] += get_qi_n(n,i);
+			}
+	}
+}
+
+double FE_Storage::get_reaction_force(int32 n, uint16 dof) {
+	uint32 eq_num = get_dof_eq_num(n,dof);
+	assert(vec_reactions);
+	assert(eq_num > 0 && eq_num <= n_constrained_dofs);
+	return vec_reactions[eq_num-1];
+}
+
+
+void FE_Storage::pre_first() {
+	//включаем тренировку матриц
+	KssCsT->start_training();
+	if (n_MPC_eqs) Cc->start_training();
+	Kcc->start_training();
+	Kcs->start_training();
+}
+
+
+void FE_Storage::post_first() {
+	//выключаем тренировку матриц
+	if (n_MPC_eqs) 
+	{
+		Cc->stop_training();
+	}
+	KssCsT->stop_training();
+	
+	Kcc->stop_training();
+	Kcs->stop_training();
+
+}
+
+
+void FE_Storage::process_solution()
+{
+	// из вектора решения вытаскиваем все необходимое
+	//складываем решение
+
+	for (uint32 i=0; i < n_dofs; i++)
+		vec_q[i] += vec_dq[i];
+	for (uint32 i=n_dofs; i < n_dofs+n_MPC_eqs; i++)
+		vec_q_lambda[i] = vec_dq_dlambda[i];
+	
+	//cout << "q:"<<endl;
+	//for (uint32 i=0; i < n_nodes; i++)
+	//	for (uint16 j=0; j < Node::n_dofs(); j++)
+	//		cout << "N" <<i+1<<"("<<j<<")=" << get_qi_n(i+1, j) << endl; //DEBUG
+	//находим реакции
+	//cout << "reactions:"<<endl;
+	for (uint32 i=0; i < n_constrained_dofs; i++)
+	{
+		vec_reactions[i] = Kcs->mult_vec_i(vec_dqs,i+1) + Kcc->mult_vec_i(vec_dqc,i+1) - vec_Fc[i];
+		if (n_MPC_eqs && Cc->get_n_values())
+			vec_reactions[i] += Cc->transpose_mult_vec_i(vec_dlambda,i+1);
+		//cout << vec_reactions[i] << endl; //DEBUG
+	}
+}
+
+
+void FE_Storage::apply_BCs (uint16 curLoadstep, uint16 curIteration, double d_par, double cum_par) {
+	if (curLoadstep == 1 && curIteration == 1) {
+		//заполним Cc Cs и vec_b
+		uint32 eq_num = 1;
+		list<BC_MPC>::iterator mpc = list_bc_MPC.begin();
+		while (mpc != list_bc_MPC.end()) {
+			vec_b[eq_num-1] = mpc->b;
+			list<MPC_token>::iterator token = mpc->eq.begin();
+			while (token != mpc->eq.end()) {
+				Cij_add(eq_num, token->node, token->node_dof, token->coef);
+				token++;
+			}
+			eq_num++;
+			mpc++;
+		}
+	}
+	
+	//заполним вектор узловых сил
+	list<BC_dof_force>::iterator bc_force = list_bc_dof_force.begin();
+	while (bc_force != list_bc_dof_force.end())	{
+		Fi_add(bc_force->node, bc_force->node_dof, bc_force->value*cum_par);
+		bc_force++;
+	}
+
+	//заполним вектор заданных перемещений
+	list<BC_dof_constraint>::iterator bc_dof = list_bc_dof_constraint.begin();
+	while (bc_dof != list_bc_dof_constraint.end()) {
+		uint32 eq_num = get_dof_eq_num(bc_dof->node, bc_dof->node_dof);//TODO: DEBUG stuff
+		vec_dq[eq_num-1] = bc_dof->value*d_par;
+		bc_dof++;
+	}
+}
 
 
 // read Ansys Mechanical APDL *.cdb file. Nodes, Elements, Displacement BC and MPC (Constraint equations) is supported

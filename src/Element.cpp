@@ -94,8 +94,7 @@ Element::elTypes Element::elName2elType (string elName) {
   }
   return Element::NOT_DEFINED;
 }
-void Element::createElements (string elName, const uint32 n, void** ptr) {
-  uint16 elId = elName2elType(elName);
+void Element::createElements (elTypes elId, const uint32 n, void** ptr) {
   if (elId == Element::NOT_DEFINED)
     error("createElements: can't find element type with name %s", elName.c_str());
   switch (elId) {

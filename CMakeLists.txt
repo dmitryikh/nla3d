@@ -77,3 +77,8 @@ add_custom_command(TARGET nla3d POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
   ${MKL_PATH}/ia32/bin/libiomp5md.dll
   $<TARGET_FILE_DIR:nla3d>)
+
+
+
+add_executable(nla3d_with_lambda custom/main_with_lambda_proc.cpp)
+target_link_libraries(nla3d_with_lambda nla3d_lib)

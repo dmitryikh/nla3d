@@ -13,11 +13,12 @@ void prepeare_processors (FE_Storage_Interface& storage);
 uint16 it_num_default = 15;
 uint16 ls_num_default = 10;
 string mat_name_default = "Compressible Neo-Hookean";
+Element::elTypes elTypeDefault = Element::SOLID81;
 //TODO: how to initialize vector<double> whithin declaration..
 vector<double> mat_Ci_default;
 bool is_vtk_default = true;
 
-bool parse_args (int argc, char* argv[], string& model_filename, uint16& it_num, uint16& ls_num, string& mat_name, vector<double>& mat_Ci, bool& is_vtk) {
+bool parse_args (int argc, char* argv[], string& model_filename, uint16& it_num, uint16& ls_num, string& mat_name, vector<double>& mat_Ci, bool& is_vtk, Element::elTypes& elType) {
   if (argc < 2) {
     return false;
   }
@@ -42,6 +43,13 @@ bool parse_args (int argc, char* argv[], string& model_filename, uint16& it_num,
     ls_num = atoi(tmp);
   } else {
     ls_num = ls_num_default;
+  }
+
+  tmp = getCmdOption(argv, argv + argc, "-element");
+  if (tmp) {
+    elType = Element::elName2elType(tmp);
+  } else {
+    elType = elTypeDefault;
   }
 
   vector<char*> vtmp = getCmdManyOptions(argv, argv + argc, "-material");
@@ -73,16 +81,16 @@ int main (int argc, char* argv[])
   string model_filename;
   bool is_vtk;
   vector<double> mat_Ci;
+  Element::elTypes elType;
 
 	echolog("---=== WELCOME TO NLA PROGRAM ===---");
-  if (!parse_args(argc, argv, model_filename, it_num, ls_num, mat_name, mat_Ci, is_vtk)) {
+  if (!parse_args(argc, argv, model_filename, it_num, ls_num, mat_name, mat_Ci, is_vtk, elType)) {
     usage();
     exit(1);
   }
 	Timer pre_solve(true);
-  //TODO: now the type of the element is hardcoded into a source code.
-  //It's very unconvinience for real usage of nla3d
-	FE_Storage<MIXED_8N_3D_P0> storage;
+	FE_Storage storage;
+  storage.elType = elType;
   if (!read_ans_data(model_filename.c_str(), &storage)) {
     error("Can't read FE info from %s file. exiting..", model_filename.c_str());
   }

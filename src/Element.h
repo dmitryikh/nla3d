@@ -151,7 +151,7 @@ public:
   uint32 getElNum();
 
   static elTypes elName2elType (string elName); 
-  static void createElements (string elName, const uint32 n, void** ptr); 
+  static void createElements (elTypes elId, const uint32 n, void** ptr); 
 
 	//in-out operation:
 	void read_from_stream (istream &str);
