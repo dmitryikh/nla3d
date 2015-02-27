@@ -1,6 +1,6 @@
 #pragma once
 #include "sys.h"
-#include "Element.h"
+#include "elements/element.h"
 
 // dim - смысл размерности геометрии элемента
 // квадратичные фф??? надо реализовать

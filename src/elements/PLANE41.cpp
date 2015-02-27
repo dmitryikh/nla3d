@@ -1,23 +1,20 @@
-#include "element_MIXED_4N_2D_P0.h"
+#include "elements/PLANE41.h"
 
-const mat_comp MIXED_4N_2D_P0::components[3] = {M_XX, M_YY, M_XY};
-const uint16 MIXED_4N_2D_P0::num_components = 3;
+const tensorComponents ElementPLANE41::components[3] = {M_XX, M_YY, M_XY};
+const uint16 ElementPLANE41::num_components = 3;
 
-//------------------MIXED_4N_2D_P0--------------------
-void MIXED_4N_2D_P0::pre ()
-{
+//------------------ElementPLANE41--------------------
+void ElementPLANE41::pre() {
 	S.assign(npow(n_int(),n_dim()), Vec<3>(0.0f, 0.0f, 0.0f));
 	C.assign(npow(n_int(),n_dim()), Vec<3>(1.0f, 1.0f, 0.0f));
 	O.assign(npow(n_int(),n_dim()), Vec<4>(0.0f, 0.0f, 0.0f, 0.0f));
-	if (det.size()==0) 
-	{
+	if (det.size()==0) {
 		Node** nodes_p = new Node*[Element::n_nodes()];
 		storage->element_nodes(getElNum(), nodes_p);	
 		make_Jacob(getElNum(), nodes_p);
 	}
 }
-void MIXED_4N_2D_P0::build ()
-{
+void ElementPLANE41::build () {
 //построение матрицы жесткости и вектора нагрузки для элемента
 	Mat<8,8> Kuu; //матрица жесткости элемента
 	Mat<8,1> Kup;
@@ -40,11 +37,13 @@ void MIXED_4N_2D_P0::build ()
 	Vec<3> vecD_p;
 	double p_e = storage->get_qi_n(-(int32)getElNum(), 0);
 	GlobStates.setdouble(States::DOUBLE_HYDPRES, p_e);
-  Material *mat = (Material*) GlobStates.getptr(States::PTR_CURMATER);
-	double k = mat->getK0();
+  Mat_Hyper_Isotrop_General* mat = dynamic_cast<Mat_Hyper_Isotrop_General*> ((Material*)GlobStates.getptr(States::PTR_CURMATER));
+  if (mat == NULL) {
+    error("ElementPLANE41::build: material is not derived from Mat_Hyper_Isotrop_General");
+  }
+	double k = mat->getK();
 	double dWt; //Gaussian quadrature
-	for (uint16 nPoint=0; (int32) nPoint < npow(Element::n_int(),n_dim()); nPoint++)
-	{
+	for (uint16 nPoint=0; (int32) nPoint < npow(Element::n_int(),n_dim()); nPoint++) {
 		GlobStates.setuint16(States::UI16_CURINTPOINT, nPoint);
 		dWt = g_weight(nPoint);
     // all meterial functions are waiting [C] for 3D case. So we need to use CVec here.
@@ -100,17 +99,17 @@ void MIXED_4N_2D_P0::build ()
 		Fe[i] = -Qe[i];
 	Fe[8] = -Fp;
 	//загнать в глоб. матрицу жесткости и узловых сил
-	assemble(getElNum(), Ke, Fe, storage);
+	assemble(Ke, Fe);
 }
 //
-inline Mat<3,8> MIXED_4N_2D_P0::make_B (uint16 nPoint) {
+inline Mat<3,8> ElementPLANE41::make_B(uint16 nPoint) {
 	Mat<3,8> B = Mat<3,8>(NjXi[nPoint][0][0], 0.0f, NjXi[nPoint][0][1], 0.0f, NjXi[nPoint][0][2], 0.0f, NjXi[nPoint][0][3], 0.0f,
 									0.0f, NjXi[nPoint][1][0], 0.0f, NjXi[nPoint][1][1], 0.0f, NjXi[nPoint][1][2], 0.0f, NjXi[nPoint][1][3],
 									NjXi[nPoint][1][0], NjXi[nPoint][0][0], NjXi[nPoint][1][1], NjXi[nPoint][0][1], NjXi[nPoint][1][2], NjXi[nPoint][0][2], NjXi[nPoint][1][3], NjXi[nPoint][0][3]);
 	return B;
 }
 //
-Mat<4,8> MIXED_4N_2D_P0::make_Bomega (uint16 nPoint)
+Mat<4,8> ElementPLANE41::make_Bomega(uint16 nPoint)
 {
 	Mat<4,8> Bomega = Mat<4,8>(NjXi[nPoint][0][0], 0.0f, NjXi[nPoint][0][1], 0.0f, NjXi[nPoint][0][2], 0.0f, NjXi[nPoint][0][3], 0.0f,
 										NjXi[nPoint][1][0], 0.0f, NjXi[nPoint][1][1], 0.0f, NjXi[nPoint][1][2], 0.0f, NjXi[nPoint][1][3], 0.0f,
@@ -119,13 +118,16 @@ Mat<4,8> MIXED_4N_2D_P0::make_Bomega (uint16 nPoint)
 	return Bomega;
 }
 //
-void MIXED_4N_2D_P0::update ()
+void ElementPLANE41::update()
 {
 	Vec<9> U; //вектор перемещений элемента
 	// получаем вектор перемещений элемента из общего решения
 	storage->get_q_e(getElNum(), U.ptr());
 	Vec<8> Un;
-  Material *mat = (Material*) GlobStates.getptr(States::PTR_CURMATER);
+  Mat_Hyper_Isotrop_General* mat = dynamic_cast<Mat_Hyper_Isotrop_General*> ((Material*) GlobStates.getptr(States::PTR_CURMATER));
+  if (mat == NULL) {
+    error("ElementPLANE41::update: material is not derived from Mat_Hyper_Isotrop_General");
+  }
   Vec<6> CVec;
   CVec[M_XZ] = 0.0;
   CVec[M_YZ] = 0.0;
@@ -154,10 +156,10 @@ void MIXED_4N_2D_P0::update ()
 	GlobStates.undefinedouble(States::DOUBLE_HYDPRES);
 }
 
-void MIXED_4N_2D_P0::getScalar(double& scalar, el_component code, uint16 gp, const double scale) {
+void ElementPLANE41::getScalar(double& scalar, el_component code, uint16 gp, const double scale) {
 	//see codes in sys.h
 	//gp - needed gauss point 
-  if {gp == GP_MEAN} { //need to average result over the element
+  if (gp == GP_MEAN) { //need to average result over the element
     double dWtSum = volume();
     double dWt;
     for (uint16 nPoint = 0; nPoint < npow(n_int(),n_dim()); nPoint ++) {
@@ -172,13 +174,13 @@ void MIXED_4N_2D_P0::getScalar(double& scalar, el_component code, uint16 gp, con
 			scalar += storage->get_qi_n(-(int32)getElNum(), 0) * scale;
 			break;
     default:
-      error("MIXED_4N_2D_P0::getScalar: no data for code %d", code);
+      error("ElementPLANE41::getScalar: no data for code %d", code);
   }
 }
 
 //return a tensor in a global coordinate system
-void  MIXED_4N_2D_P0::getTensor(MatSym<3>& tensor, el_tensor code, uint16 gp, const double scale) {
-  if {gp == GP_MEAN} { //need to average result over the element
+void  ElementPLANE41::getTensor(MatSym<3>& tensor, el_tensor code, uint16 gp, const double scale) {
+  if (gp == GP_MEAN) { //need to average result over the element
     double dWtSum = volume();
     double dWt;
     for (uint16 nPoint = 0; nPoint < npow(n_int(),n_dim()); nPoint ++) {
@@ -188,6 +190,11 @@ void  MIXED_4N_2D_P0::getTensor(MatSym<3>& tensor, el_tensor code, uint16 gp, co
     return;
   }
 	assert (npow(n_int(),n_dim()));
+
+  MatSym<3> matS;
+  Mat_Hyper_Isotrop_General* mat;
+  Mat2<3,3> matF;
+  double J;
 
   Vec<6> CVec;
   CVec[M_XZ] = 0.0;
@@ -210,16 +217,13 @@ void  MIXED_4N_2D_P0::getTensor(MatSym<3>& tensor, el_tensor code, uint16 gp, co
 
 	switch (code) {
     case TENS_COUCHY:
-      Mat2<3,3> matF;
-      MatSym<3> matS;
-      double J;
 
-      matF.zero();
-      matF[0][0] = 1+O[gp][0];
-      matF[0][1] = O[gp][1];
-      matF[1][0] = O[gp][2];
-      matF[1][1] = 1+O[gp][3];
-      matF[2][2] = 1;
+      matF.zeros();
+      matF.data[0][0] = 1+O[gp][0]; //11
+      matF.data[0][1] = O[gp][1];  //12
+      matF.data[1][0] = O[gp][2];  //21
+      matF.data[1][1] = 1+O[gp][3];//22
+      matF.data[2][2] = 1; //33
 
       J = matF.data[0][0]*(matF.data[1][1]*matF.data[2][2]-matF.data[1][2]*matF.data[2][1])-matF.data[0][1]*(matF.data[1][0]*matF.data[2][2]-matF.data[1][2]*matF.data[2][0])+matF.data[0][2]*(matF.data[1][0]*matF.data[2][1]-matF.data[1][1]*matF.data[2][0]);
       //In order to complete matS (3x3 symmetric matrix, PK2 tensor) we need 
@@ -228,12 +232,19 @@ void  MIXED_4N_2D_P0::getTensor(MatSym<3>& tensor, el_tensor code, uint16 gp, co
       //and store it in S[nPoint] vector.
       //2) Second solution is to resotre S33 right here.
       //Now 2) is working.
-      storage->getMaterial().getS_UP (6, MatCompsGlobal, CVec.ptr(), matS.data);
+      mat = dynamic_cast<Mat_Hyper_Isotrop_General*> (&storage->getMaterial());
+      if (mat == NULL) {
+        error("ElementPLANE41::getTensor: material is not derived from Mat_Hyper_Isotrop_General");
+      }
+      mat->getS_UP (6, defaultTensorComponents, CVec.ptr(), matS.data);
       matBTDBprod (matF, matS, 1.0/J, tensor); //Symmetric Couchy tensor
       break;
     case TENS_PK2:
-      MatSym<3> matS;
-      storage->getMaterial().getS_UP (6, MatCompsGlobal, CVec.ptr(), matS.data);
+      mat = dynamic_cast<Mat_Hyper_Isotrop_General*> (&storage->getMaterial());
+      if (mat == NULL) {
+        error("ElementPLANE41::getTensor: material is not derived from Mat_Hyper_Isotrop_General");
+      }
+      mat->getS_UP (6, defaultTensorComponents, CVec.ptr(), matS.data);
       tensor.data[0] += matS.data[0]*scale;
       tensor.data[1] += matS.data[1]*scale;
       tensor.data[2] += matS.data[2]*scale;
@@ -258,6 +269,6 @@ void  MIXED_4N_2D_P0::getTensor(MatSym<3>& tensor, el_tensor code, uint16 gp, co
       tensor.data[5] += (CVec[M_ZZ]-1.0)*0.5*scale;
       break;
     default:
-      error("MIXED_4N_2D_P0::getTensor: no data for code %d", code);
+      error("ElementPLANE41::getTensor: no data for code %d", code);
 	}
 }

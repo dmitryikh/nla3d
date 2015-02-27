@@ -1,4 +1,3 @@
-
 #pragma once
 #include <mkl.h>
 #include "sys.h"
@@ -27,7 +26,7 @@ public:
 		solver_type = SAE_CHOLESKY;
 		if_solver_first_time = true;
 	};
-	void attach (FE_Storage_Interface *st);
+	void attach (FE_Storage *st);
 	void run (bool multi_thread = false); // запустить решение задачи
 	void stop (); // остановить решение задачи
 
@@ -61,7 +60,7 @@ private:
 	uint16 solveSAE_Cholesky();
 	uint16 solveSAE_DSS ();
 	static void fork (void *ptr);
-	FE_Storage_Interface* storage;
+	FE_Storage* storage;
 	void main_process (); //главный процесс решения, вызывается после отделения процесса
 };
 

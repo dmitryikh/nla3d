@@ -2,23 +2,23 @@
 #include "sys.h"
 #include "FE_Storage.h"
 #include "vtk_proc.h"
-#include "element_MIXED_8N_3D_P0.h"
 #include "Solution.h"
 #include "Reaction_proc.h"
+#include "materials/material_factory.h"
 
-void prepeare_processors (FE_Storage_Interface& storage);
+void prepeare_processors (FE_Storage& storage);
 
 // Here is defaults values for command line options
 // For command line format see usage() below
 uint16 it_num_default = 15;
 uint16 ls_num_default = 10;
 string mat_name_default = "Compressible Neo-Hookean";
-Element::elTypes elTypeDefault = Element::SOLID81;
+ElementFactory::elTypes elTypeDefault = ElementFactory::SOLID81;
 //TODO: how to initialize vector<double> whithin declaration..
 vector<double> mat_Ci_default;
 bool is_vtk_default = true;
 
-bool parse_args (int argc, char* argv[], string& model_filename, uint16& it_num, uint16& ls_num, string& mat_name, vector<double>& mat_Ci, bool& is_vtk, Element::elTypes& elType) {
+bool parse_args (int argc, char* argv[], string& model_filename, uint16& it_num, uint16& ls_num, string& mat_name, vector<double>& mat_Ci, bool& is_vtk, ElementFactory::elTypes& elType) {
   if (argc < 2) {
     return false;
   }
@@ -47,7 +47,7 @@ bool parse_args (int argc, char* argv[], string& model_filename, uint16& it_num,
 
   tmp = getCmdOption(argv, argv + argc, "-element");
   if (tmp) {
-    elType = Element::elName2elType(tmp);
+    elType = ElementFactory::elName2elType(tmp);
   } else {
     elType = elTypeDefault;
   }
@@ -70,7 +70,7 @@ bool parse_args (int argc, char* argv[], string& model_filename, uint16& it_num,
 }
 
 void usage () {
-  echolog("nla3d model_file [-material mat_name mat_C0 mat_C1 ..] [-iterations it_num] [-loadsteps ls_num] [-novtk]");
+  echolog("nla3d model_file [-element el_name] [-material mat_name mat_C0 mat_C1 ..] [-iterations it_num] [-loadsteps ls_num] [-novtk]");
 }
 
 int main (int argc, char* argv[])
@@ -81,7 +81,7 @@ int main (int argc, char* argv[])
   string model_filename;
   bool is_vtk;
   vector<double> mat_Ci;
-  Element::elTypes elType;
+  ElementFactory::elTypes elType;
 
 	echolog("---=== WELCOME TO NLA PROGRAM ===---");
   if (!parse_args(argc, argv, model_filename, it_num, ls_num, mat_name, mat_Ci, is_vtk, elType)) {
@@ -94,7 +94,7 @@ int main (int argc, char* argv[])
   if (!read_ans_data(model_filename.c_str(), &storage)) {
     error("Can't read FE info from %s file. exiting..", model_filename.c_str());
   }
-  Material* mat = createMaterial(mat_name);
+  Material* mat = MaterialFactory::createMaterial(mat_name);
   if (mat->getNumC() != mat_Ci.size())
     error("Material %s needs exactly %d constants (%d were provided)", mat_name.c_str(), mat->getNumC(), mat_Ci.size());
   for (uint16 i = 0; i < mat->getNumC(); i++) 
@@ -125,7 +125,7 @@ int main (int argc, char* argv[])
 //here is a mechanism of processors to deal with it
 //but it needs a lot of options to setup it
 //now it's needed to hardcode initialization and setup of a such processors
-void prepeare_processors (FE_Storage_Interface& storage) {
+void prepeare_processors (FE_Storage& storage) {
 	Reaction_proc* proc = new Reaction_proc(&storage, "loading_force.txt");
 	list<BC_dof_constraint> &lst = storage.get_dof_const_BC_list();
 

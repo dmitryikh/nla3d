@@ -2,10 +2,9 @@
 #include <string>
 #include <list>
 #include "sys.h"
-#include "Material.h"
-#include "Element.h"
-#include "math\Mat_Band.h"
-#include "math\Sparse_Matrix.h"
+#include "materials/material_factory.h"
+#include "elements/element_factory.h"
+#include "math/Sparse_Matrix.h"
 #include "post_proc.h"
  
 //pre-defines
@@ -19,7 +18,7 @@ class BC
 public:
 	BC () : is_updatetable(false)
 	{  }
-	//virtual void apply(FE_Storage_Interface *storage)=0;
+	//virtual void apply(FE_Storage *storage)=0;
 	bool is_updatetable; //нужно ли обновлять на каждом шаге решения
 };
 class BC_dof_constraint : public BC
@@ -30,7 +29,7 @@ public:
 	int32 node;
 	uint16 node_dof;
 	double value;
-	//void apply(FE_Storage_Interface *storage);
+	//void apply(FE_Storage *storage);
 };
 
 class BC_dof_force : public BC
@@ -41,7 +40,7 @@ public:
 	int32 node;
 	uint16 node_dof;
 	double value;
-	//void apply(FE_Storage_Interface *storage);
+	//void apply(FE_Storage *storage);
 };
 class MPC_token
 {
@@ -61,7 +60,7 @@ class BC_MPC : public BC
 public:
 	list<MPC_token> eq;
 	double b;
-	void apply(FE_Storage_Interface *storage);
+	void apply(FE_Storage *storage);
 };
 
 #define ST_INIT 1
@@ -73,10 +72,9 @@ public:
 //				nodes, elements, solution staff (global matrixes and vectors), processors.
 //TODO: add mutexes to prevent multithreads errors
 
-class FE_Storage:
-{
+class FE_Storage {
 public:
-	Element** elements;
+	vector<Element*> elements;
 	vector<Node> nodes;
 	list<BC_dof_force> list_bc_dof_force;
 	list<BC_dof_constraint> list_bc_dof_constraint;
@@ -125,7 +123,7 @@ public:
 	//status
 	uint16 status;
 
-  Element::elTypes elType;
+  ElementFactory::elTypes elType;
 
 	//methods
 	FE_Storage();
@@ -134,6 +132,7 @@ public:
 	uint32 get_dof_num(int32 node, uint16 dof);
 	uint32 get_dof_eq_num(int32 node, uint16 dof);
 	bool is_dof_constrained(int32 node, uint16 dof);
+
 
 	void Kij_add(int32 nodei, uint16 dofi, int32 nodej, uint16 dofj, double value);
 	void Cij_add(uint32 eq_num, int32 nodej, uint32 dofj, double value);
@@ -208,23 +207,6 @@ private:
 };
 
 
-inline uint32 FE_Storage::get_dof_num(int32 node, uint16 dof) {
-	// возвращает число от 1 до n_dofs
-	uint32 res = (node < 0)?((-node-1)*Element::n_dofs()+dof+1):(n_elements*Element::n_dofs()+(node-1)*Node::n_dofs()+dof+1);
-	return res; 
-}
-
-inline uint32 FE_Storage::get_dof_eq_num(int32 node, uint16 dof) {
-	assert(dof_array);
-	return dof_array[get_dof_num(node,dof)-1].eq_number;
-}
-
-
-inline bool FE_Storage::is_dof_constrained(int32 node, uint16 dof) {
-	assert(dof_array);
-	return dof_array[get_dof_num(node,dof)-1].is_constrained;
-}
-
 
 inline double* FE_Storage::get_solve_result_vector ()
 {
@@ -293,16 +275,6 @@ inline void FE_Storage::add_bounds (BC_MPC &bc)
 }
 
 
-// element_nodes(el, node_ptr), вызывающая сторона должна предоставить массив 
-// указателей Node* на >= Element::nNodes() элементов
-// el начинается с 1
-inline void FE_Storage::element_nodes(uint32 el, Node** node_ptr)
-{
-	assert(el <= n_elements);
-	for (uint16 i=0; i<Element::n_nodes(); i++)
-		node_ptr[i] = & nodes[elements[el-1]->node_num(i)-1]; //TODO: CHECK
-}
-
 
 //get_qi_n(n, dof)
 // n начинается с 1
@@ -319,4 +291,6 @@ inline double* FE_Storage::get_vec_dqs()
 	return vec_dqs;
 }
 
-bool read_ans_data (const char *filename, FE_Storage_Interface *storage);
+bool read_ans_data (const char *filename, FE_Storage *storage);
+
+

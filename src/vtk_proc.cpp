@@ -1,6 +1,6 @@
 #include "vtk_proc.h"
 
-Vtk_proc::Vtk_proc(FE_Storage_Interface *st, string _fileName) : Post_proc(st)
+Vtk_proc::Vtk_proc(FE_Storage *st, string _fileName) : Post_proc(st)
 {
 	name = "Vtk_processor";
 	file_name = _fileName;

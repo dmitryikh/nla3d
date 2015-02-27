@@ -1,6 +1,5 @@
 #include "post_proc.h"
-#include "FE_Storage.h"
-Post_proc::Post_proc(FE_Storage_Interface *st) 
+Post_proc::Post_proc(FE_Storage *st) 
 {
 	assert(st);
 	storage = st;

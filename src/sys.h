@@ -98,12 +98,25 @@ const char* const el_tensor_labels[]={"UNDEFINED","COUCHY"};
 #define F_Y 5
 #define F_Z 6
 
+
+// TODO: need to wrap this enum into some namespace
+enum tensorComponents {
+	M_XX =  0,
+	M_XY =  1,
+	M_XZ =  2,
+	M_YY =  3,
+	M_YZ =  4,
+	M_ZZ =  5
+};
+// TODO: need to wrap somewhere
+const tensorComponents defaultTensorComponents[6] = {M_XX, M_XY, M_XZ, M_YY, M_YZ, M_ZZ};
+
 const char SYS_VERSION[] = "1.1";
 const char SYS_DATA[] = "30.01.12";
 const char log_file_name[]="log.txt";
 const bool debug_mode = true;
 
-class FE_Storage_Interface;
+class FE_Storage;
 
 class Log_opts 
 {

@@ -80,7 +80,7 @@ void Solution::main_process ()
   //We need to have a material table (different materials for different elements)
 	GlobStates.setptr(States::PTR_CURMATER, (void*) &(storage->getMaterial()));
 	for (uint32 el = 1; el <= storage->getNumElement(); el++)
-				storage->getElement(el).pre(el, storage);
+				storage->getElement(el).pre();
 	echolog("Preporation time: %4.2f sec.", sol.stop());
 	curCriteria = 0.0f;
 	double dF_par;
@@ -123,7 +123,7 @@ void Solution::main_process ()
 			for (uint32 el = 1; el <= storage->getNumElement(); el++)
 			{
 				GlobStates.setuint32(States::UI32_CURELEM, el);
-				storage->getElement(el).build(el, storage);
+				storage->getElement(el).build();
 			}
 			GlobStates.undefineuint32(States::UI32_CURELEM);
 			if (cum_iterations == 1)
@@ -158,7 +158,7 @@ void Solution::main_process ()
 			for (uint32 el = 1; el <= storage->getNumElement(); el++) 
 			{
 				GlobStates.setuint32(States::UI32_CURELEM, el);
-				storage->getElement(el).update(el, storage);
+				storage->getElement(el).update();
 			}
 			GlobStates.undefineuint32(States::UI32_CURELEM);
 			
@@ -378,7 +378,7 @@ void Solution::bound (double dF_par)
 	//}
 }
 
-void Solution::attach (FE_Storage_Interface *st)
+void Solution::attach (FE_Storage *st)
 {
 	assert(st);
 	if (status == SOL_SOLVING)

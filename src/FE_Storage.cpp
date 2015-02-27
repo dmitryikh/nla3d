@@ -42,8 +42,7 @@ FE_Storage::FE_Storage()  {
 	dof_array = NULL;
 	
 	status = ST_INIT;
-  elType = Element::NOT_DEFINED;
-  elements = NULL;
+  elType = ElementFactory::NOT_DEFINED;
 };
 
 FE_Storage::~FE_Storage () {
@@ -253,8 +252,7 @@ void FE_Storage::deleteElements() {
   for (uint32 i = 0; i < n_elements; i++) {
     delete elements[i];
   }
-  delete[] elements;
-  elements = NULL;
+  elements.clear();
   n_elements = 0;
 }
 
@@ -273,8 +271,10 @@ void FE_Storage::elements_reassign(uint32 _en)
 {
   deleteElements();
 	n_elements = _en;
-  elements = new Element*[n_elements];
-  Element::createElements (type, n_elements, elements); 
+  //TODO: use vector : elements.reserve
+  elements.reserve(_en);
+  //elements = new Element*[n_elements];
+  ElementFactory::createElements (elType, n_elements, elements); 
   Element::storage = this;
   for (uint32 i = 0; i < _en; i++) {
     //access elNum protected values as friend
@@ -320,7 +320,7 @@ void FE_Storage::get_q_n(uint32 n, double* ptr)
 
 //void get_node_pos(uint32 n, double* ptr, bool def = false) double массим на 3 элемента!
 //n с 1
-void FE_Storage::get_node_pos(uint32 n, double* ptr, bool def = false)
+void FE_Storage::get_node_pos(uint32 n, double* ptr, bool def)
 {
 	assert(n > 0 && n <= n_nodes);
 	for (uint16 i=0; i<3; i++)
@@ -435,7 +435,7 @@ void FE_Storage::apply_BCs (uint16 curLoadstep, uint16 curIteration, double d_pa
 
 // read Ansys Mechanical APDL *.cdb file. Nodes, Elements, Displacement BC and MPC (Constraint equations) is supported
 // read_ans_data repcales storage's mesh.
-bool read_ans_data(const char *filename, FE_Storage_Interface *storage)
+bool read_ans_data(const char *filename, FE_Storage *storage)
 {
 	uint32 n_number, en;
 	ifstream file(filename);
@@ -549,3 +549,34 @@ bool read_ans_data(const char *filename, FE_Storage_Interface *storage)
 	storage->setStatus(ST_LOADED);
 	return true;
 }
+
+
+//I'd like to make this functions inline
+
+uint32 FE_Storage::get_dof_num(int32 node, uint16 dof) {
+	// возвращает число от 1 до n_dofs
+	uint32 res = (node < 0)?((-node-1)*Element::n_dofs()+dof+1):(n_elements*Element::n_dofs()+(node-1)*Node::n_dofs()+dof+1);
+	return res; 
+}
+
+uint32 FE_Storage::get_dof_eq_num(int32 node, uint16 dof) {
+	assert(dof_array);
+	return dof_array[get_dof_num(node,dof)-1].eq_number;
+}
+
+// element_nodes(el, node_ptr), вызывающая сторона должна предоставить массив 
+// указателей Node* на >= Element::nNodes() элементов
+// el начинается с 1
+void FE_Storage::element_nodes(uint32 el, Node** node_ptr)
+{
+	assert(el <= n_elements);
+	for (uint16 i=0; i<Element::n_nodes(); i++)
+		node_ptr[i] = & nodes[elements[el-1]->node_num(i)-1]; //TODO: CHECK
+}
+
+bool FE_Storage::is_dof_constrained(int32 node, uint16 dof) {
+	assert(dof_array);
+	return dof_array[get_dof_num(node,dof)-1].is_constrained;
+}
+
+

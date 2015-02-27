@@ -38,7 +38,7 @@ add_custom_command(TARGET 3d_damper_test_exe POST_BUILD
 # build exe for test 3d_damper
 add_executable(a2000_damper_test_exe a2000_damper/a2000_damper_test.cpp)
 target_link_libraries(a2000_damper_test_exe nla3d_lib)
-add_test(NAME a2000_damper_test COMMAND a2000_damper_test_exe ${PROJECT_SOURCE_DIR}/test/a2000_damper/a2000.cdb -material Neo-Hookean 1 500 -loadsteps 20 -novtk -refcurve ${PROJECT_SOURCE_DIR}/test/a2000_damper/ansys/loading_curve_ansys.txt)
+add_test(NAME a2000_damper_test COMMAND a2000_damper_test_exe ${PROJECT_SOURCE_DIR}/test/a2000_damper/a2000.cdb -element PLANE41 -material Neo-Hookean 1 500 -loadsteps 20 -novtk -refcurve ${PROJECT_SOURCE_DIR}/test/a2000_damper/ansys/loading_curve_ansys.txt)
 # taken from stackoverflow: How to copy DLL files into the same folder as the executable using CMake
 add_custom_command(TARGET a2000_damper_test_exe POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different

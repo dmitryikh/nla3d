@@ -1,13 +1,13 @@
 #include "Reaction_proc.h"
 
-Reaction_proc::Reaction_proc(FE_Storage_Interface *st) : Post_proc(st)
+Reaction_proc::Reaction_proc(FE_Storage *st) : Post_proc(st)
 {
 	name ="Reaction_proc";
 	active = true;
   reactVec.clear();
 }
 
-Reaction_proc::Reaction_proc(FE_Storage_Interface *st, string _filename) : Post_proc(st)
+Reaction_proc::Reaction_proc(FE_Storage *st, string _filename) : Post_proc(st)
 {
 	name ="Reaction_proc";
 	active = true;

@@ -45,12 +45,11 @@ add_subdirectory (test)
 
 
 file (GLOB NLA3D_LIB_SOURCES
-	  "src/*.cpp")
+	  "src/*.cpp" "src/materials/*.cpp" "src/elements/*cpp")
 
-# here are two main targets: for 3d analysis nla3d, and for 2d analysis - nla2d
+# here is a main target - nla3d.exe
 set (NLA3D_APP_SOURCES "src/main.cpp")
-set (NLA2D_APP_SOURCES "src/main2d.cpp")
-list(REMOVE_ITEM NLA3D_LIB_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/main2d.cpp)
+list(REMOVE_ITEM NLA3D_LIB_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp) 
 
 #collect all sources except main.cpp into a static link
 #this static link could be conviniently used for tests
@@ -62,10 +61,6 @@ add_executable(nla3d ${NLA3D_APP_SOURCES})
 # Properties->Linker->Input->Additional Dependencies
 
 target_link_libraries(nla3d nla3d_lib)
-
-#main executable of the project: nla3d.exe program
-add_executable(nla2d ${NLA2D_APP_SOURCES})
-target_link_libraries(nla2d nla3d_lib)
 
 
 # Add logic to INSTALL.vcproj to copy app.exe to destination directory
@@ -79,6 +74,3 @@ add_custom_command(TARGET nla3d POST_BUILD
   $<TARGET_FILE_DIR:nla3d>)
 
 
-
-add_executable(nla3d_with_lambda custom/main_with_lambda_proc.cpp)
-target_link_libraries(nla3d_with_lambda nla3d_lib)

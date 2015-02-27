@@ -1,10 +1,10 @@
-#include "element_MIXED_8N_3D_P0.h"
+#include "elements/SOLID81.h"
 
-const mat_comp MIXED_8N_3D_P0::components[6] = {M_XX, M_YY, M_ZZ, M_XY, M_YZ, M_XZ};
-const uint16 MIXED_8N_3D_P0::num_components = 6;
+const tensorComponents ElementSOLID81::components[6] = {M_XX, M_YY, M_ZZ, M_XY, M_YZ, M_XZ};
+const uint16 ElementSOLID81::num_components = 6;
 
 
-void MIXED_8N_3D_P0::pre()
+void ElementSOLID81::pre()
 {
 	S.assign(npow(n_int(),n_dim()), Vec<6>(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
 	C.assign(npow(n_int(),n_dim()), Vec<6>(1.0, 1.0, 1.0, 0.0, 0.0, 0.0));
@@ -18,7 +18,7 @@ void MIXED_8N_3D_P0::pre()
 }
 
 
-void MIXED_8N_3D_P0::build()
+void ElementSOLID81::build()
 {
 //построение матрицы жесткости и вектора нагрузки для элемента
 	double Kpp = 0.0;
@@ -27,8 +27,11 @@ void MIXED_8N_3D_P0::build()
 	Vec<24> Kup;
 	Vec<24> Fu; //вектор узловых сил элемента
 	Vec<24> F_ext; //вектор внешних сил (пока не подсчитывается)
-	Material *mat = (Material*) GlobStates.getptr(States::PTR_CURMATER);
-	double k = mat->getK0();
+  Mat_Hyper_Isotrop_General* mat = dynamic_cast<Mat_Hyper_Isotrop_General*> ((Material*)GlobStates.getptr(States::PTR_CURMATER));
+  if (mat == NULL) {
+    error("SOLLID81::build: material is not derived from Mat_Hyper_Isotrop_General");
+  }
+	double k = mat->getK();
 	MatSym<6> matD_d;
 	Vec<6> vecD_p;
 	Vec<6> vecC;
@@ -90,11 +93,11 @@ void MIXED_8N_3D_P0::build()
 	}//прошлись по всем точкам интегрирования
 	GlobStates.undefineuint16(States::UI16_CURINTPOINT);
 	GlobStates.undefinedouble(States::DOUBLE_HYDPRES);
-	assemble3(Kuu, Kup, Kpp, Fu,Fp,  storage);
+	assemble3(Kuu, Kup, Kpp, Fu,Fp);
 }
 
 
-void MIXED_8N_3D_P0::update()
+void ElementSOLID81::update()
 {
 	Vec<25> Un; //вектор решений для степеней свобод элемента и его узлов
 	// получаем вектор перемещений элемента из общего решения
@@ -106,7 +109,10 @@ void MIXED_8N_3D_P0::update()
 		U[i] = Un[i];
 	double p_e = Un[24];
 	GlobStates.setdouble(States::DOUBLE_HYDPRES, p_e);
-	Material *mat = (Material*) GlobStates.getptr(States::PTR_CURMATER);
+  Mat_Hyper_Isotrop_General* mat = dynamic_cast<Mat_Hyper_Isotrop_General*> ((Material*)GlobStates.getptr(States::PTR_CURMATER));
+  if (mat == NULL) {
+    error("ElementSOLID81::update: material is not derived from Mat_Hyper_Isotrop_General");
+  }
 	for (uint16 nPoint=0; (int32) nPoint < npow(Element::n_int(),n_dim()); nPoint++)
 	{
 		GlobStates.setuint16(States::UI16_CURINTPOINT, nPoint);
@@ -136,7 +142,7 @@ void MIXED_8N_3D_P0::update()
 }
 
 
-void MIXED_8N_3D_P0::make_B_L (uint16 nPoint, Mat2<6,24> &B)
+void ElementSOLID81::make_B_L (uint16 nPoint, Mat2<6,24> &B)
 {
 	double *B_L = B.ptr();
 	for (uint16 i=0; i < 8; i++)
@@ -154,7 +160,7 @@ void MIXED_8N_3D_P0::make_B_L (uint16 nPoint, Mat2<6,24> &B)
 }
 
 
-void MIXED_8N_3D_P0::make_B_NL (uint16 nPoint,  Mat2<9,24> &B)
+void ElementSOLID81::make_B_NL (uint16 nPoint,  Mat2<9,24> &B)
 {
 	double *B_NL = B.ptr();
 	for (uint16 i=0; i < 8; i++)
@@ -173,7 +179,7 @@ void MIXED_8N_3D_P0::make_B_NL (uint16 nPoint,  Mat2<9,24> &B)
 
 
 
-void MIXED_8N_3D_P0::make_S (uint16 nPoint, MatSym<9> &B)
+void ElementSOLID81::make_S (uint16 nPoint, MatSym<9> &B)
 {
 	double *Sp = B.ptr();
 	Sp[0]	+= S[nPoint][0];
@@ -214,7 +220,7 @@ void MIXED_8N_3D_P0::make_S (uint16 nPoint, MatSym<9> &B)
 }
 
 
-void MIXED_8N_3D_P0::make_Omega (uint16 nPoint, Mat2<6,9> &B)
+void ElementSOLID81::make_Omega (uint16 nPoint, Mat2<6,9> &B)
 {
 	double *Omega = B.ptr();
 
@@ -232,10 +238,10 @@ void MIXED_8N_3D_P0::make_Omega (uint16 nPoint, Mat2<6,9> &B)
 	}
 }
 
-void MIXED_8N_3D_P0::getScalar(double& scalar, el_component code, uint16 gp, const double scale) {
+void ElementSOLID81::getScalar(double& scalar, el_component code, uint16 gp, const double scale) {
 	//see codes in sys.h
 	//gp - needed gauss point 
-  if {gp == GP_MEAN} { //need to average result over the element
+  if (gp == GP_MEAN) { //need to average result over the element
     double dWtSum = volume();
     double dWt;
     for (uint16 nPoint = 0; nPoint < npow(n_int(),n_dim()); nPoint ++) {
@@ -250,13 +256,13 @@ void MIXED_8N_3D_P0::getScalar(double& scalar, el_component code, uint16 gp, con
 			scalar += storage->get_qi_n(-(int32)getElNum(), 0) * scale;
 			break;
     default:
-      error("MIXED_8N_3D_P0::getScalar: no data for code %d", code);
+      error("ElementSOLID81::getScalar: no data for code %d", code);
   }
 }
 
 //return a tensor in a global coordinate system
-void  MIXED_8N_3D_P0::getTensor(MatSym<3>& tensor, el_tensor code, uint16 gp, const double scale) {
-  if {gp == GP_MEAN} { //need to average result over the element
+void  ElementSOLID81::getTensor(MatSym<3>& tensor, el_tensor code, uint16 gp, const double scale) {
+  if (gp == GP_MEAN) { //need to average result over the element
     double dWtSum = volume();
     double dWt;
     for (uint16 nPoint = 0; nPoint < npow(n_int(),n_dim()); nPoint ++) {
@@ -266,11 +272,13 @@ void  MIXED_8N_3D_P0::getTensor(MatSym<3>& tensor, el_tensor code, uint16 gp, co
     return;
   }
 	assert (npow(n_int(),n_dim()));
+
+  Mat2<3,3> matF;
+  MatSym<3> matS;
+  double J;
+
 	switch (code) {
     case TENS_COUCHY:
-      Mat2<3,3> matF;
-      MatSym<3> matS;
-      double J;
 
       //matF^T  
       matF.data[0][0] = 1+O[gp][0];
@@ -318,6 +326,6 @@ void  MIXED_8N_3D_P0::getTensor(MatSym<3>& tensor, el_tensor code, uint16 gp, co
       tensor.data[5] += (C[gp][2]-1.0)*0.5*scale;
       break;
     default:
-      error("MIXED_8N_3D_P0::getTensor: no data for code %d", code);
+      error("ElementSOLID81::getTensor: no data for code %d", code);
 	}
 }

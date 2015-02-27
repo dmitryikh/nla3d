@@ -6,8 +6,8 @@
 class Reaction_proc : public Post_proc
 {
 public:
-	Reaction_proc(FE_Storage_Interface *st);
-	Reaction_proc(FE_Storage_Interface *st, string _filename);
+	Reaction_proc(FE_Storage *st);
+	Reaction_proc(FE_Storage *st, string _filename);
 	virtual ~Reaction_proc() { };
 	virtual void pre (uint16 qLoadstep);
 	virtual void process (uint16 curLoadstep, uint16 qLoadstep);
