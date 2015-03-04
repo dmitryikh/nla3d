@@ -8,9 +8,9 @@ template <uint32 dim, uint32 nodes_num>
 class Element_Lagrange_Formulation
 {
 public:
-	static vector<Vec<nodes_num>> gN; // calculated form function on ecah int point
-	vector<Mat<dim,dim>> Jacob;	//Jacob inv matrix
-	vector<Mat<dim,nodes_num>> NjXi; //derivates form function / local coordinates
+	static vector<Vec<nodes_num> > gN; // calculated form function on ecah int point
+	vector<Mat<dim,dim> > Jacob;	//Jacob inv matrix
+	vector<Mat<dim,nodes_num> > NjXi; //derivates form function / local coordinates
 	vector<double>	det;	//Jacobian
 	const static Mat<4,4> gPoint; //integration points & weights for Gauss integration
 	const static Mat<4,4> gWeight; // supported schemes 1x1x1 to 4x4x4
@@ -33,7 +33,7 @@ template <uint32 dim, uint32 nodes_num> const Mat<4,4> Element_Lagrange_Formulat
 												1.0f, 1.0f, 0.0f, 0.0f,
 												0.5555555555556f, 0.8888888888889f, 0.5555555555556f, 0.0f,
 												0.3478548451375f, 0.6521451548625f, 0.6521451548625f, 0.3478548451375f);
-template <uint32 dim, uint32 nodes_num> vector<Vec<nodes_num>> Element_Lagrange_Formulation<dim,nodes_num>::gN;
+template <uint32 dim, uint32 nodes_num> vector<Vec<nodes_num> > Element_Lagrange_Formulation<dim,nodes_num>::gN;
 
 template <uint32 dim, uint32 nodes_num>const  int16 Element_Lagrange_Formulation<dim,nodes_num>::_signs[8][3] = {-1,-1,-1,1,-1,-1,1,1,-1,-1,1,-1,-1,-1,1,1,-1,1,1,1,1,-1,1,1};
 

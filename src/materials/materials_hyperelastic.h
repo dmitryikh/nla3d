@@ -1,5 +1,6 @@
 #pragma once
 #include "materials/material.h"
+#include <Eigen/Dense>
 
 //----------------------------------------------//
 //-----------Mat_Hyper_Isotrop_General----------//
@@ -13,7 +14,8 @@ class Mat_Hyper_Isotrop_General : public Material {
 	void getD_U (uint16 ncomp, const  tensorComponents* comps, const double* C, double *D); 
   //for nonlinear U-P elements	
 	void getS_UP (uint16 ncomp, const  tensorComponents* comps, const double* C, double *S);
-	void getDdDp_UP (uint16 ncomp, const  tensorComponents* comps, const double* C, double *Dd, double *Dp); 
+  void getDdDp_UP (uint16 ncomp, const  tensorComponents* comps, const double* C, Eigen::Ref<Eigen::MatrixXd> Dd, Eigen::Ref<Eigen::MatrixXd> Dp); 
+  void getDdDp_UP (uint16 ncomp, const  tensorComponents* comps, const double* C, double *Dd, double *Dp);
 
 	virtual void W_first_derivatives (double I1, double I2, double I3, double *alpha) = 0;
 	virtual void W_second_derivatives (double I1, double I2, double I3, double *alpha) = 0;

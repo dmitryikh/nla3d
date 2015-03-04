@@ -59,8 +59,8 @@ void Mat_Hyper_Isotrop_General::getS_UP (uint16 ncomp, const  tensorComponents* 
 		S[i] = ko1*A[ij]+ko2*B[ij]+press*J*C_inv[ij];
 	}		
 }
-
-void Mat_Hyper_Isotrop_General::getDdDp_UP (uint16 ncomp, const  tensorComponents* comps, const double* C, double *Dd, double *Dp) {
+void Mat_Hyper_Isotrop_General::getDdDp_UP (uint16 ncomp, const  tensorComponents* comps, const double* C, double *Dd, double *Dp)
+{
 	double press = GlobStates.getdouble(States::DOUBLE_HYDPRES);
 	
 	double alpha[5];
@@ -126,6 +126,74 @@ void Mat_Hyper_Isotrop_General::getDdDp_UP (uint16 ncomp, const  tensorComponent
 			ind++;
 		}
 		Dp[i] = J*C_inv[ij];
+	}
+}
+
+void Mat_Hyper_Isotrop_General::getDdDp_UP (uint16 ncomp, const  tensorComponents* comps, const double* C,
+                                                  Eigen::Ref<Eigen::MatrixXd> Dd, Eigen::Ref<Eigen::MatrixXd> Dp) {
+	double press = GlobStates.getdouble(States::DOUBLE_HYDPRES);
+	
+	double alpha[5];
+	double I1C = C[M_XX]+C[M_YY]+C[M_ZZ]; 
+	double I2Cz= C[M_XX]*C[M_YY] + C[M_YY]*C[M_ZZ] + C[M_XX]*C[M_ZZ] - C[M_XY]*C[M_XY] - C[M_YZ]*C[M_YZ] - C[M_XZ]*C[M_XZ];
+	
+	double _13I1C = 1.0/3.0*I1C;
+	double _23I2C = 2.0/3.0*I2Cz;
+	
+	double J = getJ(C);
+	
+	double pp = pow(J,-2.0/3.0);
+	double oo = pow(J,-2);
+	double pppp = pp*pp;
+	
+	double C_inv[6];/* = {oo*(C[M_YY]*C[M_ZZ]-C[M_YZ]*C[M_YZ]), oo*(C[M_XZ]*C[M_YZ]-C[M_XY]*C[M_ZZ]), oo*(C[M_XY]*C[M_YZ]-C[M_XZ]*C[M_YY]), 
+						oo*(C[M_XX]*C[M_ZZ]-C[M_XZ]*C[M_XZ]), oo*(C[M_XY]*C[M_XZ]-C[M_XX]*C[M_YZ]), oo*(C[M_XX]*C[M_YY]-C[M_XY]*C[M_XY])};*/
+
+	getC_inv(C, J, C_inv);
+
+	/*
+	AL_1	=	0
+	AL_2	=	1
+	AL_11	=	2
+	AL_12	=	3
+	AL_22	=	4
+	*/
+	W_second_derivatives(I1C*pp, I2Cz*pppp, 0.0, alpha); //first and second derivatives TODO:I3 == 0?????
+	
+	double A[] = {I[0]-_13I1C*C_inv[0], I[1]-_13I1C*C_inv[1], I[2]-_13I1C*C_inv[2], 
+					I[3]-_13I1C*C_inv[3], I[4]-_13I1C*C_inv[4], I[5]-_13I1C*C_inv[5]};
+	double B[] = {I1C*I[0]-C[0]-_23I2C*C_inv[0], I1C*I[1]-C[1]-_23I2C*C_inv[1], I1C*I[2]-C[2]-_23I2C*C_inv[2],
+					I1C*I[3]-C[3]-_23I2C*C_inv[3], I1C*I[4]-C[4]-_23I2C*C_inv[4], I1C*I[5]-C[5]-_23I2C*C_inv[5]};
+					
+	double IIt[6][6] = {{-C_inv[M_XX]*C_inv[M_XX], -C_inv[M_XX]*C_inv[M_XY], -C_inv[M_XX]*C_inv[M_XZ], -C_inv[M_XY]*C_inv[M_XY], -C_inv[M_XY]*C_inv[M_XZ], -C_inv[M_XZ]*C_inv[M_XZ]},
+		// 1211 = 11*12, 1212 = 0.5*(11*22 + 12*12), 1213 = 0.5*(11*23+13*12), 1222 = 12*22, 1223 = 0.5*(12*23+13*22), 1233 = 13*23
+		 {-C_inv[M_XX]*C_inv[M_XY], -0.5*(C_inv[M_XX]*C_inv[M_YY]+C_inv[M_XY]*C_inv[M_XY]), -0.5*(C_inv[M_XX]*C_inv[M_YZ]+C_inv[M_XZ]*C_inv[M_XY]), -C_inv[M_XY]*C_inv[M_YY], -0.5*(C_inv[M_XY]*C_inv[M_YZ]+C_inv[M_XZ]*C_inv[M_YY]), -C_inv[M_XZ]*C_inv[M_YZ]},
+		// 1311 = 11*13, 1312 = 0.5*(11*23+12*13), 1313 = 0.5*(11*33+13*13), 1322 = 12*23, 1323 = 0.5*(12*33+13*23), 1333 = 13*33
+		 {-C_inv[M_XX]*C_inv[M_XZ], -0.5*(C_inv[M_XX]*C_inv[M_YZ]+C_inv[M_XY]*C_inv[M_XZ]), -0.5*(C_inv[M_XX]*C_inv[M_ZZ]+C_inv[M_XZ]*C_inv[M_XZ]), -C_inv[M_XY]*C_inv[M_YZ],  -0.5*(C_inv[M_XY]*C_inv[M_ZZ]+C_inv[M_XZ]*C_inv[M_YZ]), -C_inv[M_XZ]*C_inv[M_ZZ]},
+		// 2211 = 12*12, 2212 = 12*22, 2213 = 12*23, 2222 = 22*22, 2223 = 22*23, 2233 = 23*23
+		 {-C_inv[M_XY]*C_inv[M_XY], -C_inv[M_XY]*C_inv[M_YY], -C_inv[M_XY]*C_inv[M_YZ], -C_inv[M_YY]*C_inv[M_YY], -C_inv[M_YY]*C_inv[M_YZ], -C_inv[M_YZ]*C_inv[M_YZ]},
+		// 2311 = 12*13, 2312 = 0.5*(12*23+22*13), 2313 = 0.5*(12*33+23*13), 2322 = 22*23, 2323 = 0.5*(22*33+23*23), 2333 = 23*33
+		 {-C_inv[M_XY]*C_inv[M_XZ], -0.5*(C_inv[M_XY]*C_inv[M_YZ]+C_inv[M_YY]*C_inv[M_XZ]), -0.5*(C_inv[M_XY]*C_inv[M_ZZ]+C_inv[M_YZ]*C_inv[M_XZ]), -C_inv[M_YY]*C_inv[M_YZ], -0.5*(C_inv[M_YY]*C_inv[M_ZZ]+C_inv[M_YZ]*C_inv[M_YZ]), -C_inv[M_YZ]*C_inv[M_ZZ]},
+		// 3311 = 13*13, 3312 = 13*23, 3313 = 13*33, 3322 = 23*23, 3323 = 23*33, 3333 = 33*33
+		 {-C_inv[M_XZ]*C_inv[M_XZ], -C_inv[M_XZ]*C_inv[M_YZ], -C_inv[M_XZ]*C_inv[M_ZZ], -C_inv[M_YZ]*C_inv[M_YZ], -C_inv[M_YZ]*C_inv[M_ZZ], -C_inv[M_ZZ]*C_inv[M_ZZ]}
+		};
+					
+	tensorComponents ij;
+	tensorComponents kl;
+	for (uint16 i=0; i < ncomp; i++)
+	{
+		ij = comps[i];
+		for (uint16 j=i; j < ncomp; j++)
+		{
+			
+			kl = comps[j];
+			Dd(i,j) = 4.0*alpha[AL_11]*pppp*A[ij]*A[kl]+4.0*alpha[AL_12]*oo*(B[ij]*A[kl]+A[ij]*B[kl])+4.0*alpha[AL_22]*pppp*pppp*B[ij]*B[kl] - 
+						4.0/3.0*alpha[AL_1]*pp*(C_inv[ij]*A[kl]+A[ij]*C_inv[kl]+_13I1C*C_inv[ij]*C_inv[kl]+I1C*IIt[ij][kl]) -
+						8.0/3.0*alpha[AL_2]*pppp*(C_inv[ij]*B[kl]+B[ij]*C_inv[kl]+_23I2C*C_inv[ij]*C_inv[kl]-3.0/2.0*I[ij]*I[kl]+3.0/2.0*II[ij][kl]+I2Cz*IIt[ij][kl])+
+						press*J*(C_inv[ij]*C_inv[kl]+2*IIt[ij][kl]);
+			Dd(i,j) /= 2.0;
+		}
+		Dp(i,0) = J*C_inv[ij];
 	}
 }
 

@@ -7,6 +7,7 @@ class ElementFactory {
     NOT_DEFINED,
     PLANE41,
     SOLID81,
+    SOLID80,
     LAST
   };
 

@@ -1,13 +1,13 @@
 #include "elements/SOLID81.h"
 
-const tensorComponents ElementSOLID81::components[6] = {M_XX, M_YY, M_ZZ, M_XY, M_YZ, M_XZ};
+const tensorComponents ElementSOLID81::components[6] = {M_XX, M_XY, M_XZ, M_YY, M_YZ, M_ZZ};
 const uint16 ElementSOLID81::num_components = 6;
 
 
 void ElementSOLID81::pre()
 {
 	S.assign(npow(n_int(),n_dim()), Vec<6>(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
-	C.assign(npow(n_int(),n_dim()), Vec<6>(1.0, 1.0, 1.0, 0.0, 0.0, 0.0));
+	C.assign(npow(n_int(),n_dim()), Vec<6>(1.0, 0.0, 0.0, 1.0, 0.0, 1.0));
 	O.assign(npow(n_int(),n_dim()), Vec<9>(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
 
 	if (det.size()==0) {
@@ -24,90 +24,72 @@ void ElementSOLID81::build()
 	double Kpp = 0.0;
 	double Fp = 0.0;
 	
-	Vec<24> Kup;
-	Vec<24> Fu; //вектор узловых сил элемента
-	Vec<24> F_ext; //вектор внешних сил (пока не подсчитывается)
+  //Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor, 25, 25> Ke(25, 25);
+  //Eigen::Matrix<double, Eigen::Dynamic, 1, Eigen::RowMajor, 25, 1> Fe(25, 1);
+  Eigen::MatrixXd Ke(25, 25);
+  Eigen::MatrixXd Fe(25, 1);
+
+  Eigen::Matrix<double, 6, 6> matD_d;
+  Eigen::Matrix<double, 6, 1> vecD_p;
+
+  Eigen::Matrix<double, 6,24> matB;
+  Eigen::Matrix<double, 9, 9> matS; //this is symmetric matrix
+  Eigen::Matrix<double, 6, 9> matO;
+  Eigen::Matrix<double, 9,24> matB_NL;
+
   Mat_Hyper_Isotrop_General* mat = dynamic_cast<Mat_Hyper_Isotrop_General*> ((Material*)GlobStates.getptr(States::PTR_CURMATER));
   if (mat == NULL) {
     error("SOLLID81::build: material is not derived from Mat_Hyper_Isotrop_General");
   }
 	double k = mat->getK();
-	MatSym<6> matD_d;
-	Vec<6> vecD_p;
-	Vec<6> vecC;
-
-	Mat2<6,24> matB;
-	MatSym<9> matS;
-	Mat2<6,9> matO;
-	Mat2<9,24> matB_NL;
-	MatSym<24> Kuu; //матрица жесткости перед вектором перемещений
 	double p_e = storage->get_qi_n(-(int32)getElNum(), 0);
 	GlobStates.setdouble(States::DOUBLE_HYDPRES, p_e);
 	double dWt; //множитель при суммировании квадратур Гаусса
-
-	Kuu.zeros();
+  Ke.setZero();
+  Fe.setZero();
 	for (uint16 nPoint=0; (int32) nPoint < npow(Element::n_int(),n_dim()); nPoint++)
 	{
 		GlobStates.setuint16(States::UI16_CURINTPOINT, nPoint);
 		dWt = g_weight(nPoint);
 
-		//C[0] - C11	C[1] - C22	C[2] - C33	C[3] - C12	C[4] - C23	C[5] - C13
-		vecC[M_XX] = C[nPoint][0];
-		vecC[M_YY] = C[nPoint][1];
-		vecC[M_ZZ] = C[nPoint][2];
-		vecC[M_XY] = C[nPoint][3];
-		vecC[M_YZ] = C[nPoint][4];
-		vecC[M_XZ] = C[nPoint][5];
-		mat->getDdDp_UP(num_components, components, vecC.ptr(), matD_d.ptr(), vecD_p.ptr());
-		double J = Material::getJ(vecC.ptr());
-		//Mat<6,6> matE_c = storage->getMaterial().mat_E_c(ANALYSIS_3D, C[nPoint].ptr(), p_e).toMat<6,6>();
-		//Mat<6,1> matE_p;
-		//matE_p = storage->getMaterial().mat_E_p(ANALYSIS_3D, C[nPoint].ptr()).toVec<6>();
-		matB.zeros();
-		matS.zeros();
-		matO.zeros();
-		matB_NL.zeros();
+		mat->getDdDp_UP(6, defaultTensorComponents, C[nPoint].ptr(), matD_d, vecD_p);
+		double J = Material::getJ(C[nPoint].ptr());
+		matB.setZero();
+		matS.setZero();
+		matO.setZero();
+		matB_NL.setZero();
 
 		make_B_L(nPoint, matB);
-		make_S(nPoint, matS); //матрица S для матричного умножения
+		make_S(nPoint, matS); //matrix 9x9 with 3x3 stress tenros blocks
 		make_Omega(nPoint, matO);
 		make_B_NL(nPoint, matB_NL);
-		matABprod(matO, matB_NL, 2.0, matB);
-		//Mat<6,9> matO = make_Omega(nPoint);
-		//Mat<9,24> matB_NL = make_B_NL(nPoint);
-		//was: Mat<6,24> matB_L1 = matO * matB_NL * 2;
-		//Mat2<6,24> matB_L1;
-		//was: Mat<6,24> matB = matB_L + matB_L1; //складываем матрицы распределения лин. деф.
-		//was: Kuu += (matB.transpose() * matE_c * matB * 0.5 + matB_NL.transpose() * matS * matB_NL)*dWt;
-		matBTDBprod(matB, matD_d, 0.5*dWt, Kuu);
-		matBTDBprod(matB_NL, matS, dWt, Kuu);
+    matB += matO * matB_NL * 2.0;
+    Ke.topLeftCorner<24,24>().triangularView<Eigen::Upper>() += 
+    //Ke.topLeftCorner<24,24>() += 
+      matB.transpose() * matD_d.selfadjointView<Eigen::Upper>() * matB * (0.5*dWt) +
+      matB_NL.transpose() * matS.selfadjointView<Eigen::Upper>() * matB_NL * dWt;
+    Fe.topLeftCorner<24,1>() += matB.transpose() * Eigen::Map<Eigen::VectorXd> (S[nPoint].ptr(), 6, 1) * (-0.5*dWt);
+		Ke.topRightCorner<24,1>() += matB.transpose() *vecD_p * (0.5*dWt);
 
-		//was: Fu += (matB.transpose() * S[nPoint] * (dWt*(-0.5)));
-		matBTVprod(matB,S[nPoint], -0.5*dWt, Fu);
-
-		//was: Kup+= matB.transpose()*matE_p*(dWt*0.5);
-		matBTVprod(matB,vecD_p, 0.5*dWt, Kup);
-
-		Fp += -(J - 1 - p_e/k)*dWt;
-		Kpp += -1.0/k*dWt;
+		Fe(24) += -(J - 1 - p_e/k)*dWt;
+		Ke(24,24) += -1.0/k*dWt;
 	}//прошлись по всем точкам интегрирования
 	GlobStates.undefineuint16(States::UI16_CURINTPOINT);
 	GlobStates.undefinedouble(States::DOUBLE_HYDPRES);
-	assemble3(Kuu, Kup, Kpp, Fu,Fp);
+  //cout << "Ke = " << Ke << endl;
+  //cout << "Fe = " << Fe << endl;
+	assemble4(Ke, Fe);
 }
 
 
 void ElementSOLID81::update()
 {
-	Vec<25> Un; //вектор решений для степеней свобод элемента и его узлов
+	//Vec<25> Un; //вектор решений для степеней свобод элемента и его узлов
 	// получаем вектор перемещений элемента из общего решения
-	storage->get_q_e(getElNum(), Un.ptr());
-	Vec<24> U;
-	Mat2<9,24> B_NL;
-	Vec<6> vecC;
-	for (uint16 i=0;i<24;i++)
-		U[i] = Un[i];
-	double p_e = Un[24];
+  Eigen::VectorXd U(25);
+	storage->get_q_e(getElNum(), U.data());
+  Eigen::Matrix<double, 9,24> B_NL;
+	double p_e = U(24);
 	GlobStates.setdouble(States::DOUBLE_HYDPRES, p_e);
   Mat_Hyper_Isotrop_General* mat = dynamic_cast<Mat_Hyper_Isotrop_General*> ((Material*)GlobStates.getptr(States::PTR_CURMATER));
   if (mat == NULL) {
@@ -116,125 +98,95 @@ void ElementSOLID81::update()
 	for (uint16 nPoint=0; (int32) nPoint < npow(Element::n_int(),n_dim()); nPoint++)
 	{
 		GlobStates.setuint16(States::UI16_CURINTPOINT, nPoint);
-		B_NL.zeros();
+		B_NL.setZero();
 		make_B_NL(nPoint, B_NL);
-		O[nPoint].zeros();
-		matBVprod(B_NL, U, 1.0, O[nPoint]);
-		//O[nPoint] = make_B_NL(nPoint) * U;
-		C[nPoint][0] = 1.0+2*O[nPoint][0]+pow(O[nPoint][0],2)+pow(O[nPoint][3],2)+pow(O[nPoint][6],2);	//C11
-		C[nPoint][1] = 1.0+2*O[nPoint][4]+pow(O[nPoint][1],2)+pow(O[nPoint][4],2)+pow(O[nPoint][7],2);	//C22
-		C[nPoint][2] = 1.0+2*O[nPoint][8]+pow(O[nPoint][2],2)+pow(O[nPoint][5],2)+pow(O[nPoint][8],2);	//C33
-		C[nPoint][3] = O[nPoint][1]+O[nPoint][3]+O[nPoint][0]*O[nPoint][1]+O[nPoint][3]*O[nPoint][4]+O[nPoint][6]*O[nPoint][7];  //C12
-		C[nPoint][4] = O[nPoint][5]+O[nPoint][7]+O[nPoint][1]*O[nPoint][2]+O[nPoint][4]*O[nPoint][5]+O[nPoint][7]*O[nPoint][8];	//C23
-		C[nPoint][5] = O[nPoint][2]+O[nPoint][6]+O[nPoint][0]*O[nPoint][2]+O[nPoint][3]*O[nPoint][5]+O[nPoint][6]*O[nPoint][8];	//C13
+		//matBVprod(B_NL, U, 1.0, O[nPoint]);
+    Eigen::VectorXd tmp = B_NL*U.topLeftCorner<24,1>();
+    for (uint16 i = 0; i < tmp.rows(); i++)
+      O[nPoint][i] = tmp(i);
+		C[nPoint][M_XX] = 1.0+2*O[nPoint][0]+pow(O[nPoint][0],2)+pow(O[nPoint][3],2)+pow(O[nPoint][6],2);	//C11
+		C[nPoint][M_YY] = 1.0+2*O[nPoint][4]+pow(O[nPoint][1],2)+pow(O[nPoint][4],2)+pow(O[nPoint][7],2);	//C22
+		C[nPoint][M_ZZ] = 1.0+2*O[nPoint][8]+pow(O[nPoint][2],2)+pow(O[nPoint][5],2)+pow(O[nPoint][8],2);	//C33
+		C[nPoint][M_XY] = O[nPoint][1]+O[nPoint][3]+O[nPoint][0]*O[nPoint][1]+O[nPoint][3]*O[nPoint][4]+O[nPoint][6]*O[nPoint][7];  //C12
+		C[nPoint][M_YZ] = O[nPoint][5]+O[nPoint][7]+O[nPoint][1]*O[nPoint][2]+O[nPoint][4]*O[nPoint][5]+O[nPoint][7]*O[nPoint][8];	//C23
+		C[nPoint][M_XZ] = O[nPoint][2]+O[nPoint][6]+O[nPoint][0]*O[nPoint][2]+O[nPoint][3]*O[nPoint][5]+O[nPoint][6]*O[nPoint][8];	//C13
 		//восстановление напряжений Пиолы-Кирхгоффа из текущего состояния
-
-		vecC[M_XX] = C[nPoint][0];
-		vecC[M_YY] = C[nPoint][1];
-		vecC[M_ZZ] = C[nPoint][2];
-		vecC[M_XY] = C[nPoint][3];
-		vecC[M_YZ] = C[nPoint][4];
-		vecC[M_XZ] = C[nPoint][5];
-		mat->getS_UP (num_components, components, vecC.ptr(), S[nPoint].ptr());
+		mat->getS_UP (6, defaultTensorComponents, C[nPoint].ptr(), S[nPoint].ptr());
 	}
 	GlobStates.undefineuint16(States::UI16_CURINTPOINT);
 	GlobStates.undefinedouble(States::DOUBLE_HYDPRES);
 }
 
 
-void ElementSOLID81::make_B_L (uint16 nPoint, Mat2<6,24> &B)
-{
-	double *B_L = B.ptr();
-	for (uint16 i=0; i < 8; i++)
-	{
-		B_L[0*24+(i*3+0)] += 2*NjXi[nPoint][0][i];
-		B_L[1*24+(i*3+1)] += 2*NjXi[nPoint][1][i];
-		B_L[2*24+(i*3+2)] += 2*NjXi[nPoint][2][i];
-		B_L[3*24+(i*3+0)] += 2*NjXi[nPoint][1][i];
-		B_L[3*24+(i*3+1)] += 2*NjXi[nPoint][0][i];
-		B_L[4*24+(i*3+1)] += 2*NjXi[nPoint][2][i];
-		B_L[4*24+(i*3+2)] += 2*NjXi[nPoint][1][i];
-		B_L[5*24+(i*3+0)] += 2*NjXi[nPoint][2][i];
-		B_L[5*24+(i*3+2)] += 2*NjXi[nPoint][0][i];
+void ElementSOLID81::make_B_L (uint16 nPoint, Eigen::Ref<Eigen::MatrixXd> B) {
+//was Mat2<6,24> &B
+	for (uint16 i=0; i < 8; i++) {
+		B(0,i*3+0) += 2*NjXi[nPoint][0][i];//exx
+		B(1,i*3+0) += 2*NjXi[nPoint][1][i];//exy
+		B(1,i*3+1) += 2*NjXi[nPoint][0][i];//exy
+		B(2,i*3+0) += 2*NjXi[nPoint][2][i];//exz
+		B(2,i*3+2) += 2*NjXi[nPoint][0][i];//exz
+		B(3,i*3+1) += 2*NjXi[nPoint][1][i];//eyy
+		B(4,i*3+1) += 2*NjXi[nPoint][2][i];//eyz
+		B(4,i*3+2) += 2*NjXi[nPoint][1][i];//eyz
+		B(5,i*3+2) += 2*NjXi[nPoint][2][i];//ezz
 	}
 }
 
 
-void ElementSOLID81::make_B_NL (uint16 nPoint,  Mat2<9,24> &B)
-{
-	double *B_NL = B.ptr();
-	for (uint16 i=0; i < 8; i++)
-	{
-		B_NL[0*24+(i*3+0)] += NjXi[nPoint][0][i];
-		B_NL[1*24+(i*3+0)] += NjXi[nPoint][1][i];
-		B_NL[2*24+(i*3+0)] += NjXi[nPoint][2][i];
-		B_NL[3*24+(i*3+1)] += NjXi[nPoint][0][i];
-		B_NL[4*24+(i*3+1)] += NjXi[nPoint][1][i];
-		B_NL[5*24+(i*3+1)] += NjXi[nPoint][2][i];
-		B_NL[6*24+(i*3+2)] += NjXi[nPoint][0][i];
-		B_NL[7*24+(i*3+2)] += NjXi[nPoint][1][i];
-		B_NL[8*24+(i*3+2)] += NjXi[nPoint][2][i];
+void ElementSOLID81::make_B_NL (uint16 nPoint, Eigen::Ref<Eigen::MatrixXd> B) {
+	for (uint16 i=0; i < 8; i++) {
+		B(0,i*3+0) += NjXi[nPoint][0][i];
+		B(1,i*3+0) += NjXi[nPoint][1][i];
+		B(2,i*3+0) += NjXi[nPoint][2][i];
+		B(3,i*3+1) += NjXi[nPoint][0][i];
+		B(4,i*3+1) += NjXi[nPoint][1][i];
+		B(5,i*3+1) += NjXi[nPoint][2][i];
+		B(6,i*3+2) += NjXi[nPoint][0][i];
+		B(7,i*3+2) += NjXi[nPoint][1][i];
+		B(8,i*3+2) += NjXi[nPoint][2][i];
 	}
 }
 
 
 
-void ElementSOLID81::make_S (uint16 nPoint, MatSym<9> &B)
+void ElementSOLID81::make_S (uint16 nPoint, Eigen::Ref<Eigen::MatrixXd> SMat)
 {
-	double *Sp = B.ptr();
-	Sp[0]	+= S[nPoint][0];
-	Sp[1]	+= S[nPoint][3];
-	Sp[2]	+= S[nPoint][5];
-	Sp[9]	+= S[nPoint][1];
-	Sp[10]	+= S[nPoint][4];
-	Sp[17]	+= S[nPoint][2];
+  SMat(0,0) += S[nPoint][M_XX];
+  SMat(0,1) += S[nPoint][M_XY];
+  SMat(0,2) += S[nPoint][M_XZ];
+  SMat(1,1) += S[nPoint][M_YY];
+  SMat(1,2) += S[nPoint][M_YZ];
+  SMat(2,2) += S[nPoint][M_ZZ];
 
-	Sp[24]	+= S[nPoint][0];
-	Sp[25]	+= S[nPoint][3];
-	Sp[26]	+= S[nPoint][5];
-	Sp[30]	+= S[nPoint][1];
-	Sp[31]	+= S[nPoint][4];
-	Sp[35]	+= S[nPoint][2];
+  SMat(3+0,3+0) += S[nPoint][M_XX];
+  SMat(3+0,3+1) += S[nPoint][M_XY];
+  SMat(3+0,3+2) += S[nPoint][M_XZ];
+  SMat(3+1,3+1) += S[nPoint][M_YY];
+  SMat(3+1,3+2) += S[nPoint][M_YZ];
+  SMat(3+2,3+2) += S[nPoint][M_ZZ];
 
-	Sp[39]	+= S[nPoint][0];
-	Sp[40]	+= S[nPoint][3];
-	Sp[41]	+= S[nPoint][5];
-	Sp[42]	+= S[nPoint][1];
-	Sp[43]	+= S[nPoint][4];
-	Sp[44]	+= S[nPoint][2];
-
-	/*Mat<9,9> matS;
-	for (uint16 i=0; i < 3; i++)
-	{
-		matS[i*3+0][i*3+0] = S[nPoint][0];
-		matS[i*3+0][i*3+1] = S[nPoint][3];
-		matS[i*3+0][i*3+2] = S[nPoint][5];
-		matS[i*3+1][i*3+0] = S[nPoint][3];
-		matS[i*3+1][i*3+1] = S[nPoint][1];
-		matS[i*3+1][i*3+2] = S[nPoint][4];
-		matS[i*3+2][i*3+0] = S[nPoint][5];
-		matS[i*3+2][i*3+1] = S[nPoint][4];
-		matS[i*3+2][i*3+2] = S[nPoint][2];
-	}
-	return matS;*/
+  SMat(6+0,6+0) += S[nPoint][M_XX];
+  SMat(6+0,6+1) += S[nPoint][M_XY];
+  SMat(6+0,6+2) += S[nPoint][M_XZ];
+  SMat(6+1,6+1) += S[nPoint][M_YY];
+  SMat(6+1,6+2) += S[nPoint][M_YZ];
+  SMat(6+2,6+2) += S[nPoint][M_ZZ];
 }
 
 
-void ElementSOLID81::make_Omega (uint16 nPoint, Mat2<6,9> &B)
-{
-	double *Omega = B.ptr();
-
-	for (uint16 i=0; i < 3; i++)
-	{
-		Omega[0*9+(i*3+0)] = O[nPoint][0+i*3];
-		Omega[1*9+(i*3+1)] = O[nPoint][1+i*3];
-		Omega[2*9+(i*3+2)] = O[nPoint][2+i*3];
-		Omega[3*9+(i*3+0)] = O[nPoint][1+i*3];
-		Omega[3*9+(i*3+1)] = O[nPoint][0+i*3];
-		Omega[4*9+(i*3+1)] = O[nPoint][2+i*3];
-		Omega[4*9+(i*3+2)] = O[nPoint][1+i*3];
-		Omega[5*9+(i*3+0)] = O[nPoint][2+i*3];
-		Omega[5*9+(i*3+2)] = O[nPoint][0+i*3];
+void ElementSOLID81::make_Omega (uint16 nPoint, Eigen::Ref<Eigen::MatrixXd> Omega) {
+//was:Mat2<6,9> &B
+	for (uint16 i=0; i < 3; i++) {
+    Omega(0,i*3+0) = O[nPoint][0+i*3];//exx
+    Omega(1,i*3+0) = O[nPoint][1+i*3];//exy
+    Omega(1,i*3+1) = O[nPoint][0+i*3];//exy
+    Omega(2,i*3+0) = O[nPoint][2+i*3];//exz
+    Omega(2,i*3+2) = O[nPoint][0+i*3];//exz
+    Omega(3,i*3+1) = O[nPoint][1+i*3];//eyy
+    Omega(4,i*3+1) = O[nPoint][2+i*3];//eyz
+    Omega(4,i*3+2) = O[nPoint][1+i*3];//eyz
+    Omega(5,i*3+2) = O[nPoint][2+i*3];//ezz
 	}
 }
 
@@ -329,3 +281,30 @@ void  ElementSOLID81::getTensor(MatSym<3>& tensor, el_tensor code, uint16 gp, co
       error("ElementSOLID81::getTensor: no data for code %d", code);
 	}
 }
+void ElementSOLID81::assemble4(Eigen::Ref<Eigen::MatrixXd> Ke, Eigen::Ref<Eigen::MatrixXd> Fe) {
+	assert (Element::n_nodes()*Node::n_dofs() + Element::n_dofs() == Ke.cols());
+	assert (Element::n_dofs() == 1);
+
+	for (uint16 i=0; i < Element::n_nodes(); i++)
+		for (uint16 di=0; di < Node::n_dofs(); di++)
+      for (uint16 j=i; j < Element::n_nodes(); j++)
+				for (uint16 dj=0; dj < Node::n_dofs(); dj++) {
+					if ((i==j) && (dj<di)) {
+            continue;
+          } else {
+						storage->Kij_add(nodes[i],di,nodes[j],dj, Ke(i*3+di,j*3+dj));
+					}
+				}
+	//upper diagonal process for nodes-el dofs
+	for (uint16 i=0; i < Element::n_nodes(); i++)
+		for(uint16 di=0; di < Node::n_dofs(); di++)
+				storage->Kij_add(nodes[i],di, -(int32)getElNum(), 0, Ke(i*3+di, 24));
+	//upper diagonal process for el-el dofs
+			storage->Kij_add(-(int32)getElNum(), 0, -(int32)getElNum(), 0, Ke(24,24));
+
+	for (uint16 i=0; i < Element::n_nodes(); i++)
+		for (uint16 di=0; di < Node::n_dofs(); di++)
+			storage->Fi_add(nodes[i],di, Fe(i*3+di,0));
+  storage->Fi_add(-(int32)getElNum(), 0, Fe(24,0));
+}
+

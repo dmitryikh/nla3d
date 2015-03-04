@@ -18,15 +18,15 @@ Reaction_proc::Reaction_proc(FE_Storage *st, string _filename) : Post_proc(st)
 void Reaction_proc::pre(uint16 qLoadstep)
 {
 	if (nodes.size() == 0 || dofs.size() == 0 || dofs.size() != nodes.size()) {
-    warning("Reaction_proc::pre: can't work. No nodes and/or dofs. Processor name = %s", name); 
+    warning("Reaction_proc::pre: can't work. No nodes and/or dofs. Processor name = %s", name.c_str()); 
 		active = false;
   }
 	if (!active) return;
   if (filename.length() > 0) {
-    ofstream file(filename,ios::trunc);
+    ofstream file(filename.c_str(),ios::trunc);
     if (!file)
     {
-      warning("Reaction_proc::pre: Can't create a file with name %s", filename);
+      warning("Reaction_proc::pre: Can't create a file with name %s", filename.c_str());
       return;
     }
     file << 0.0 << endl;
@@ -44,10 +44,10 @@ void Reaction_proc::process (uint16 curLoadstep, uint16 qLoadstep)
 	for (uint32 i=0; i < nodes.size(); i++)
 		force += storage->get_reaction_force(nodes[i],dofs[i]);
   if (filename.length() > 0) {
-    ofstream file(filename,ios::app);
+    ofstream file(filename.c_str(),ios::app);
     if (!file)
     {
-      warning("Reaction_proc::pre: Can't create a file with name %s", filename);
+      warning("Reaction_proc::pre: Can't create a file with name %s", filename.c_str());
       return;
     }
     file << force << endl;

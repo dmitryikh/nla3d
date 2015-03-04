@@ -400,10 +400,11 @@ void Solution::run (bool multi_thread)
 	status = SOL_SOLVING;
 	stopit = false;
 	//TODO: кастыль
-	if (multi_thread)
-		_beginthread(fork,0,this);
-	else
+	if (multi_thread) {
+		//_beginthread(fork,0,this);
+  } else {
 		main_process();
+  }
 }
 
 void Solution::fork (void *ptr)

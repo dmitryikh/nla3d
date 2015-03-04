@@ -1,10 +1,12 @@
 #include "elements/element_factory.h"
 #include "elements/PLANE41.h"
 #include "elements/SOLID81.h"
+#include "elements/SOLID80.h"
 
 const char* const ElementFactory::elTypeLabels[]={"UNDEFINED",
   "PLANE41",
   "SOLID81",
+  "SOLID80",
 };
 
 ElementFactory::elTypes ElementFactory::elName2elType (string elName) {
@@ -27,6 +29,11 @@ void ElementFactory::createElements (elTypes elId, const uint32 n, vector<Elemen
     case ElementFactory::SOLID81:
       for (uint32 i = 0; i < n; i++) {
         ptr.push_back(new ElementSOLID81());
+      }
+      break;
+    case ElementFactory::SOLID80:
+      for (uint32 i = 0; i < n; i++) {
+        ptr.push_back(new ElementSOLID80());
       }
       break;
     default:

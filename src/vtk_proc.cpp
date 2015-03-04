@@ -21,7 +21,7 @@ Vtk_proc::~Vtk_proc()
 void Vtk_proc::pre(uint16 qLoadstep)
 {
 	string cur_fn = file_name +  IntToStr(0) + ".vtk";
-	ofstream file(cur_fn, ios::trunc);
+	ofstream file(cur_fn.c_str(), ios::trunc);
 	write_header(file);
 	write_geometry(file, false);
 	write_point_data(file, true);
@@ -32,7 +32,7 @@ void Vtk_proc::pre(uint16 qLoadstep)
 void Vtk_proc::process (uint16 curLoadstep, uint16 qLoadstep)
 {
 	string cur_fn = file_name +  IntToStr(curLoadstep) + ".vtk";
-	ofstream file(cur_fn, ios::trunc);
+	ofstream file(cur_fn.c_str(), ios::trunc);
 	write_header(file);
 	write_geometry(file, false);
 	write_point_data(file, false);
@@ -99,7 +99,6 @@ void Vtk_proc::write_geometry(ofstream &file, bool def)
 
 void Vtk_proc::write_point_data(ofstream &file, bool zero)
 {
-	double val, tmp;
 	file << "POINT_DATA " << storage->getNumNode() << endl;
 	char* ux_labels[] = {"ux", "uy", "uz"};
 	for (uint16 i=0; i < Element::n_dim(); i++) //TODO: alawys write 3 coordinates

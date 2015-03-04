@@ -1,5 +1,5 @@
 #pragma once
-#include "..\sys.h"
+#include "sys.h"
 
 class Mat_band_rm;
 class Mat_band_cm;

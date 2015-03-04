@@ -1,7 +1,11 @@
 #pragma once
-#include "..\sys.h"
+#include "sys.h"
 #include <iostream>
-#include "Vec.h"
+#include "math/Vec.h"
+
+#ifdef NLA3D_USE_BLAS
+  #include <mkl.h>
+#endif
 
 template<uint16 dimM, uint16 dimN>
 class Mat
@@ -44,13 +48,14 @@ public:
 	string toString ();
 	//double* ptr ();
 	//friend функции
-	friend std::ostream& operator<< <dimM,dimN> (std::ostream& stream, const Mat<dimM,dimN> &obj);
-	template <uint16 dimM, uint16 dimN, uint16 dimM2, uint16 dimN2> 
-    friend Mat<dimM,dimN2> operator* (const Mat<dimM,dimN> &op1, const Mat<dimM2,dimN2> &op2);
-	template <uint16 dimM, uint16 dimN, uint16 dimM2> 
-    friend Vec<dimM> operator* (const Mat<dimM,dimN> &op1, const Vec<dimM2> &op2);
-  template<uint16 dimM, uint16 dimN>
-    friend bool matCompare (Mat<dimM, dimN>& mat1, Mat<dimM, dimN>& mat2, double eps);
+	template <uint16 dimM1, uint16 dimN1> 
+	friend std::ostream& operator<< (std::ostream& stream, const Mat<dimM1,dimN1> &obj);
+	template <uint16 dimM1, uint16 dimN1, uint16 dimM2, uint16 dimN2> 
+    friend Mat<dimM1,dimN2> operator* (const Mat<dimM1,dimN1> &op1, const Mat<dimM2,dimN2> &op2);
+	template <uint16 dimM1, uint16 dimN1, uint16 dimM2> 
+    friend Vec<dimM1> operator* (const Mat<dimM1,dimN1> &op1, const Vec<dimM2> &op2);
+  template<uint16 dimM1, uint16 dimN1>
+    friend bool matCompare (const Mat<dimM1, dimN>& mat1, const Mat<dimM1, dimN1>& mat2, const double eps);
 
 private:
 	Vec<dimN> data[dimM];
@@ -163,17 +168,17 @@ Mat<dimM,1>& Mat<dimM,dimN>::operator= (const Vec<dimM> &op)
 	return *this;
 }
 //----------operator*(Mat)---------------------------------------------------------
-template<uint16 dimM, uint16 dimN, uint16 dimM2, uint16 dimN2> Mat<dimM,dimN2> operator*(const Mat<dimM,dimN> &op1, const Mat<dimM2,dimN2> &op2) {
-	assert(dimN == dimM2);
-	Mat<dimM, dimN2> p;
+template<uint16 dimM1, uint16 dimN1, uint16 dimM2, uint16 dimN2> Mat<dimM1,dimN2> operator*(const Mat<dimM1,dimN1> &op1, const Mat<dimM2,dimN2> &op2) {
+	assert(dimN1 == dimM2);
+	Mat<dimM1, dimN2> p;
 	double element;
 	double *ptr1 = (double*) op1.data;
 	double *ptr2 = (double*) op2.data;
-	for (uint16 i=0; i < dimM; i++)
+	for (uint16 i=0; i < dimM1; i++)
 		for (uint16 j=0; j < dimN2; j++)
 		{
 			element=0.0f;
-			for (uint16 l=0; l < dimN; l++) element+=ptr1[i*dimN+l]*ptr2[l*dimN2+j];
+			for (uint16 l=0; l < dimN1; l++) element+=ptr1[i*dimN1+l]*ptr2[l*dimN2+j];
 				//(op1.data[i])[l]*(op2.data[l])[j];
 			p[i][j]=element;
 		}
@@ -193,14 +198,14 @@ template<uint16 dimM, uint16 dimN, uint16 dimM2, uint16 dimN2> Mat<dimM,dimN2> o
 	//return p;
 }
 //-----------operator*(Vec)---------------------------------------------------------
-template <uint16 dimM, uint16 dimN, uint16 dimM2> Vec<dimM> operator* (const Mat<dimM,dimN> &op1, const Vec<dimM2> &op2) {
-	assert(dimN==dimM2);
-	Vec<dimM> p;
+template <uint16 dimM1, uint16 dimN1, uint16 dimM2> Vec<dimM1> operator* (const Mat<dimM1,dimN1> &op1, const Vec<dimM2> &op2) {
+	assert(dimN1==dimM2);
+	Vec<dimM1> p;
 	double el;
-	for (uint16 i=0; i < dimM; i++)
+	for (uint16 i=0; i < dimM1; i++)
 	{
 		el = 0.0f;
-		for (uint16 j=0; j < dimN; j++)
+		for (uint16 j=0; j < dimN1; j++)
 			el += op1.data[i][j]*op2[j];
 		p[i] = el;
 	}
@@ -348,10 +353,10 @@ Vec<dimM>  Mat<dimM,dimN>::eigenvalues()
 //}
 
 
-template<uint16 dimM, uint16 dimN>
-bool matCompare (Mat<dimM, dimN>& mat1, Mat<dimM, dimN>& mat2, double eps = 1.0e-5) {
-  for (uint16 i = 0; i < dimM; i++) {
-    for (uint16 j = 0; j < dimM; j++) {
+template<uint16 dimM1, uint16 dimN1>
+bool matCompare (const Mat<dimM1, dimN1>& mat1, const Mat<dimM1, dimN1>& mat2, const double eps = 1.0e-5) {
+  for (uint16 i = 0; i < dimM1; i++) {
+    for (uint16 j = 0; j < dimM1; j++) {
       if (fabs(mat1[i][j] - mat2[i][j]) > eps) {
         return false;
       }
@@ -397,10 +402,10 @@ public:
 			resize(dim_m, dim_n);
 	}
 	dMat(uint16 dim_m, uint16 dim_n, double first, ...) : dimM(0),dimN(0),data(NULL) {
+    va_list argp;
 		if (dim_m && dim_n)
 		{
 			resize(dim_m, dim_n);
-			va_list argp;
 			va_start(argp, first);
 			data[0] = first;
 			for (uint16 i=1; i < dimM*dimN; i++)
@@ -408,7 +413,7 @@ public:
 			va_end(argp);
 		}
 	}
-	dMat(dMat &from) : dimM(0),dimN(0),data(NULL)
+	dMat(const dMat &from) : dimM(0),dimN(0),data(NULL)
 	{
 		operator=(from);
 	}
@@ -542,6 +547,7 @@ public:
 		memset((void*) data, 0, sizeof(double)*dimM*dimN);
 	}
 	void simple_read (std::istream &st);
+  void print ();
 	bool compare (Mat2<dimM,dimN> &B, double eps = 0.00001);
 	double* ptr() {
 		return (double*)data;
@@ -574,6 +580,7 @@ bool Mat2<dimM,dimN>::compare (Mat2<dimM,dimN> &B, double eps)
 		for (uint16 j=0;j<dimN;j++)
 		{
 			if (fabs(*Dp-*Bp) > eps) {
+        echolog("Mat[%d][%d]: %f != %f",i,j,*Dp, *Bp);
 				return false;
 			}
 			Dp++;
@@ -581,6 +588,16 @@ bool Mat2<dimM,dimN>::compare (Mat2<dimM,dimN> &B, double eps)
 		}
 	}
 	return true;
+}
+
+template<uint16 dimM, uint16 dimN>
+void Mat2<dimM,dimN>::print () {
+	for (uint16 i=0;i<dimM;i++) {
+		for (uint16 j=0;j<dimN;j++) {
+      cout << " " << data[i][j];
+    }
+    cout << endl;
+  }
 }
 //-------------------------------------------------------------
 //	MatSym
@@ -725,47 +742,57 @@ void matBTDBprod (Mat2<dimM,dimN> &B, MatSym<dimM> &D, double coef, MatSym<dimN>
 
 }
 
+
 template<uint16 dimM,uint16 dimN>
 void matBTVprod(Mat2<dimM,dimN> &B, Vec<dimM> &V, double coef, Vec<dimN> &R)
 {
+#ifndef NLA3D_USE_BLAS
 	double *Bp = B.ptr();
 	uint16 i,j;
 	for (i=0;i<dimN;i++)
 		for (j=0;j<dimM;j++)
 			R[i] += Bp[j*dimN+i]*V[j]*coef;
+#else
+  cblas_dgemv(CblasRowMajor, CblasTrans, dimM, dimN, coef, B.ptr(), dimN, V.ptr(), 1, 0.0, R.ptr(), 1);
+#endif
 }
 
 template<uint16 dimM,uint16 dimN>
 void matBVprod(Mat2<dimM,dimN> &B,Vec<dimN> &V, double coef, Vec<dimM> &R) {
+#ifndef NLA3D_USE_BLAS
 	double *Bp = B.ptr();
 	uint16 i,j;
 	for (i=0;i<dimM;i++)
 		for (j=0;j<dimN;j++)
 			R[i] += Bp[i*dimN+j]*V[j]*coef;
+#else
+  cblas_dgemv(CblasRowMajor, CblasNoTrans, dimM, dimN, coef, B.ptr(), dimN, V.ptr(), 1, 0.0, R.ptr(), 1);
+#endif
 }
 
 
 template<uint16 dimM1,uint16 dimN1,uint16 dimN2>
-void matABprod(Mat2<dimM1,dimN1> &A, Mat2<dimN1,dimN2> &B, const double coef, Mat2<dimM1,dimN2> &R) 
-{
+void matABprod(Mat2<dimM1,dimN1> &A, Mat2<dimN1,dimN2> &B, const double coef, Mat2<dimM1,dimN2> &R) {
+#ifndef NLA3D_USE_BLAS
 	uint16 i,j,k;
 	double *Rp = R.ptr();
 	double *Ap = A.ptr();
 	double *Bp = B.ptr();
-	for (i=0;i<dimM1;i++)
-	{
-		for (j=0;j<dimN2;j++)
-		{
+	for (i=0;i<dimM1;i++) {
+		for (j=0;j<dimN2;j++) {
 			for (k=0;k<dimN1;k++)
 				*Rp += Ap[i*dimN1+k]*Bp[k*dimN2+j]*coef;
 			Rp++;
 		}
 	}
+#else
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dimM1, dimN2, dimN1, coef, A.ptr(), dimN1, B.ptr(), dimN2, 0.0, R.ptr(), dimN2);
+#endif
 }
 
 template<uint16 dimM1,uint16 dimN1,uint16 dimN2>
-void matATBprod(Mat2<dimM1,dimN1> &A, Mat2<dimM1,dimN2> &B, const double coef, Mat2<dimN1,dimN2> &R) 
-{
+void matATBprod(Mat2<dimM1,dimN1> &A, Mat2<dimM1,dimN2> &B, const double coef, Mat2<dimN1,dimN2> &R)  {
+#ifndef NLA3D_USE_BLAS
 	uint16 i,j,k;
 	double *Rp = R.ptr();
 	double *Ap = A.ptr();
@@ -779,5 +806,8 @@ void matATBprod(Mat2<dimM1,dimN1> &A, Mat2<dimM1,dimN2> &B, const double coef, M
 			Rp++;
 		}
 	}
+#else
+  cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, dimN1, dimN2, dimM1, coef, A.ptr(), dimN1, B.ptr(), dimN2, 0.0, R.ptr(), dimN2);
+#endif
 }
 

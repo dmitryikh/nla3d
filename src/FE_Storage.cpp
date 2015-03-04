@@ -500,6 +500,10 @@ bool read_ans_data(const char *filename, FE_Storage *storage)
 			{
 				file.getline(buf, 1024);
 				uint16 len=strlen(buf);
+//TODO: not a good thing.. It seems that getline keep windows line ending
+#ifdef linux
+        len--;
+#endif
         //TODO: check that n_nodes and provided number of nodes are the same
         if (len != 11*frmt+frmt*Element::n_nodes())
           warning("read_ans_data: in EBLOCK for element %d the number of nodes provided is not equal to %d", i, Element::n_nodes());
@@ -530,7 +534,7 @@ bool read_ans_data(const char *filename, FE_Storage *storage)
         file.getline(buf, 1024);
         vector<string> vec = read_tokens(buf);
         uint16 place = 6;
-        for (int i=0; i < max(n_terms, 2); i++) 
+        for (int i=0; i < max((uint16) n_terms, (uint16) 2); i++) 
         {
           uint32 node = atoi(vec[place].c_str());
           uint16 dof = str2dof(vec[place+2]);

@@ -6,7 +6,7 @@
 
 dMat test_func_dmat()
 {
-	return dMat(3,3,1.1,4.4,7.7,5.5,2.2,8.8,6.6,9.9,3.3);
+	return dMat((uint16) 3, (uint16) 3, (double) 1.1f, 4.4f, 7.7f, 5.5f, 2.2f, 8.8f, 6.6f, 9.9f, 3.3f);
 }
 
 bool compare_double(double d1, double d2) {
@@ -16,7 +16,7 @@ bool compare_double(double d1, double d2) {
   return true;
 } 
 
-void main()
+int main()
 {
 	Mat<3,3> mat(1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f);
   //test1

@@ -1,5 +1,5 @@
 #pragma once
-#include "..\sys.h"
+#include "sys.h"
 #include <map>
 struct Value_Description
 {

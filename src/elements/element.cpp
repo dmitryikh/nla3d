@@ -66,24 +66,24 @@ Element& Element::operator= (const Element& from)
 void Element::change_node_dofs_num (uint16 ndof,...)
 {
 	Node::number_of_dofs = ndof;
-	if (Node::dof_types.size() == 0)
-	{
-		va_list vlist;
+  va_list vlist;
+	if (Node::dof_types.size() == 0) {
 		va_start(vlist, ndof);
-		for (uint16 i=0; i < ndof; i++)
-			Node::dof_types.push_back(va_arg(vlist,Dof_Type));
+		for (uint16 i=0; i < ndof; i++) {
+      cout << "i = " << i << endl;
+			Node::dof_types.push_back((Dof_Type)va_arg(vlist, int));
+    }
 	}
 }
 void Element::change_el_dofs_num (uint16 ndof, ...)
 {
 	//TODO: должно выполнятся один раз!
 	Element::number_of_dofs = ndof;
-	if (Element::dof_types.size() == 0)
-	{
-		va_list vlist;
+  va_list vlist;
+	if (Element::dof_types.size() == 0) {
 		va_start(vlist, ndof);
 		for (uint16 i=0; i < ndof; i++)
-			Element::dof_types.push_back(va_arg(vlist,Dof_Type));
+			Element::dof_types.push_back((Dof_Type)va_arg(vlist, int));
 	}
 }
 

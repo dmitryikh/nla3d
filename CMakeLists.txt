@@ -2,48 +2,73 @@ cmake_minimum_required (VERSION 2.6)
 
 project (NLA3D)
 
-# Turn on the ability to create folders to organize projects (.vcproj)
-# It creates "CMakePredefinedTargets" folder by default and adds CMake
-# defined projects like INSTALL.vcproj and ZERO_CHECK.vcproj
-#set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+#options
 
-# Set compiler flags and options. 
-# Here it is setting the Visual Studio warning level to 4
-# set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+set (nla3d_multithreaded OFF)
+set (nla3d_debug OFF)
+#NOTE: now SOLID80 can use blas, but results not converged.. need to fix
+set (nla3d_blas OFF)
+set(MKL_STATIC 1)
 
-# Command to output information to the console
-# Useful for displaying errors, warnings, and debugging
-message ("cxx Flags: " ${CMAKE_CXX_FLAGS})
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/modules)
 
+if (nla3d_multithreaded)
+  if(UNIX)
+    find_package(Threads)
+  endif()
+  set(MKL_MULTI_THREADED ON)
+  find_package(OpenMP)
+  if (OPENMP_FOUND)
+      set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+      set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+  endif()
+else()
+  set(MKL_MULTI_THREADED OFF)
+endif() #nla3d_multithreaded
+
+if (nla3d_debug)
+  if(UNIX) 
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+  endif()
+  #todo make config=Debug by default for MSVC
+else()
+  if(UNIX) 
+    # in case of release under linux use -O2 option
+    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -O2 -msse2")
+  endif()
+endif()
+
+if (nla3d_blas)
+  add_definitions( -DNLA3D_USE_BLAS)
+endif()
+
+if(WIN32)
+  #this settings works for me.. But for you it needs to be changed
+  set(MKL_ARCH "em64t")
+else()
+  set(MKL_ARCH "em64t")
+endif()
+
+find_package(MKL)
+if (MKL_FOUND)
+  include_directories(${MKL_INCLUDE_DIRS})
+  link_directories(${MKL_LIBRARY_DIRS})
+else()
+  message(WARNING "Can't find MKL")
+endif()
+
+
+SET(CMAKE_COLOR_MAKEFILE ON)
 enable_testing()
 
-#now it's hardcoded because I don't know how to do it more flexible
-#TODO: use findMKL.cmake
-set(MKL_PATH "C:/Documents and Settings/admin/My Documents/10.0.2.019/10.0.2.019")
-include_directories (${MKL_PATH}/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/eigen)
 include_directories (src)
-
-#MKL libraries that needed to link with nla3d
-add_library(mkl_intel_c STATIC IMPORTED)
-set_property(TARGET mkl_intel_c PROPERTY IMPORTED_LOCATION ${MKL_PATH}/ia32/lib/mkl_intel_c.lib)
-
-add_library(mkl_intel_thread STATIC IMPORTED)
-set_property(TARGET mkl_intel_thread PROPERTY IMPORTED_LOCATION ${MKL_PATH}/ia32/lib/mkl_intel_thread.lib)
-
-add_library(libiomp5md STATIC IMPORTED)
-set_property(TARGET libiomp5md PROPERTY IMPORTED_LOCATION ${MKL_PATH}/ia32/lib/libiomp5md.lib)
-
-add_library(mkl_core STATIC IMPORTED)
-set_property(TARGET mkl_core PROPERTY IMPORTED_LOCATION ${MKL_PATH}/ia32/lib/mkl_core.lib)
-
-add_library(mkl_solver STATIC IMPORTED)
-set_property(TARGET mkl_solver PROPERTY IMPORTED_LOCATION ${MKL_PATH}/ia32/lib/mkl_solver.lib)
-
 
 add_subdirectory (src/math)
 add_subdirectory (test)
 
 
+#TODO: make recursively add
 file (GLOB NLA3D_LIB_SOURCES
 	  "src/*.cpp" "src/materials/*.cpp" "src/elements/*cpp")
 
@@ -54,12 +79,12 @@ list(REMOVE_ITEM NLA3D_LIB_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
 #collect all sources except main.cpp into a static link
 #this static link could be conviniently used for tests
 add_library(nla3d_lib STATIC ${NLA3D_LIB_SOURCES})
-target_link_libraries(nla3d_lib math mkl_intel_c mkl_intel_thread libiomp5md mkl_core mkl_solver)
+
+target_link_libraries(nla3d_lib math ${MKL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+
 
 #main executable of the project: nla3d.exe program
 add_executable(nla3d ${NLA3D_APP_SOURCES})
-# Properties->Linker->Input->Additional Dependencies
-
 target_link_libraries(nla3d nla3d_lib)
 
 
@@ -70,7 +95,5 @@ install (TARGETS nla3d
 # taken from stackoverflow: How to copy DLL files into the same folder as the executable using CMake
 add_custom_command(TARGET nla3d POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
-  ${MKL_PATH}/ia32/bin/libiomp5md.dll
+  ${MKL_IOMP5_RUNTIME_LIB}
   $<TARGET_FILE_DIR:nla3d>)
-
-

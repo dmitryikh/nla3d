@@ -1,6 +1,7 @@
 #include <fstream>
 #include "sys.h"
 #include "math/Mat.h"
+#include <Eigen/Dense>
 
 using namespace std;
 
@@ -8,6 +9,21 @@ const double eps = 0.000001;
 uint16 tn = 100;
 char* dir;
 
+template<typename M1, typename M2>
+bool eigen_compare(const Eigen::MatrixBase<M1>& ref, const Eigen::MatrixBase<M2>& res, double eps = 0.001) {
+  assert(ref.rows() == res.rows());
+  assert(ref.cols() == res.cols());
+  for (uint16 i = 0; i < ref.rows(); i++) {
+    for (uint16 j = 0; j < ref.cols(); j++) {
+      if (fabs(ref(i,j) - res(i,j)) > eps) {
+        error ("matrices are different");
+        return false;
+      }
+    }
+  }
+  return true;
+
+}
 bool test_matBVprod ()
 {
 	std::ifstream in;
@@ -18,6 +34,11 @@ bool test_matBVprod ()
 	Vec<_M> V;
 	Vec<_N> Rf;
 	Vec<_N> R;
+
+  Eigen::MatrixXd e_B;
+  Eigen::VectorXd e_V;
+  Eigen::VectorXd e_R;
+
   sprintf_s(filename,100,"%s/matBVprod_%02d%02d",dir,_N,_M);
   in.open(filename);
 	for (uint16 gg=1;gg<=tn;gg++)
@@ -33,9 +54,15 @@ bool test_matBVprod ()
 
 		matBVprod(B, V, 1.0, R);
 
+    e_B = Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> > (B.ptr(), _N, _M);
+    e_V = Eigen::Map<Eigen::VectorXd> (V.ptr(), _M, 1);
+
+    e_R = e_B*e_V;
+
 		if (!R.compare(Rf, eps)) {
 			error("test_matBVprod: n=%d", gg);
 		}
+    eigen_compare(Eigen::Map<Eigen::MatrixXd> (Rf.ptr(),_N,1),e_R);
 		debug("test_matBVprod: case %d checked successfuly!", gg);
 	}
   in.close();
@@ -52,6 +79,11 @@ bool test_matBTVprod ()
 	Vec<_N> V;
 	Vec<_M> Rf;
 	Vec<_M> R;
+
+  Eigen::MatrixXd e_B;
+  Eigen::VectorXd e_V;
+  Eigen::VectorXd e_R;
+
   sprintf_s(filename,100, "%s/matBTVprod_%02d%02d", dir, _N, _M);
   in.open(filename);
 	for (uint16 gg=1;gg<=tn;gg++)
@@ -67,9 +99,15 @@ bool test_matBTVprod ()
 
 		matBTVprod(B, V, 1.0, R);
 
+    e_B = Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> > (B.ptr(), _N, _M);
+    e_V = Eigen::Map<Eigen::VectorXd> (V.ptr(), _N, 1);
+
+    e_R = e_B.transpose()*e_V;
+
 		if (!R.compare(Rf, eps)) {
 			error("test_matBTVprod: n=%d", gg);
 		}
+    eigen_compare(Eigen::Map<Eigen::MatrixXd > (Rf.ptr(),_M,1), e_R);
 		debug("test_matBTVprod: case %d checked successfuly!", gg);
 	}
   in.close();
@@ -87,6 +125,7 @@ std::ifstream in;
 	Mat2<_M,_M2> B;
 	Mat2<_N,_M2> R;
 	Mat2<_N,_M2> Rf;
+  Eigen::MatrixXd e_A, e_B, e_R;
   sprintf_s(filename,100, "%s/matABprod_%02d%02d%02d", dir, _N, _M, _M2);
   in.open(filename);
 	for (uint16 gg=1;gg<=tn;gg++)
@@ -102,9 +141,14 @@ std::ifstream in;
 
 		matABprod(A, B, 1.0, R);
 
+    e_A = Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> > (A.ptr(), _N, _M);
+    e_B = Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> > (B.ptr(), _M, _M2);
+    e_R = e_A * e_B;
 		if (!R.compare(Rf, eps)) {
 			error("test_matABprod: n=%d", gg);
 		}
+    eigen_compare(Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> > (Rf.ptr(),_N, _M2),
+       e_R);
 		debug("test_matABprod: case %d checked successfuly!", gg);
 	}
   in.close();
@@ -122,6 +166,8 @@ std::ifstream in;
 	Mat2<_M,_N2> B;
 	Mat2<_N,_N2> R;
 	Mat2<_N,_N2> Rf;
+
+  Eigen::MatrixXd e_A, e_B, e_R;
   sprintf_s(filename,100, "%s/matATBprod_%02d%02d%02d", dir, _M, _N, _N2);
   in.open(filename);
 	for (uint16 gg=1;gg<=tn;gg++)
@@ -136,9 +182,16 @@ std::ifstream in;
 		Rf.simple_read(in);
 
 		matATBprod(A, B, 1.0, R);
+
+
+    e_A = Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> > (A.ptr(), _M, _N);
+    e_B = Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> > (B.ptr(), _M, _N2);
+    e_R = e_A.transpose() * e_B;
 		if (!R.compare(Rf, eps)) {
 			error("test_matATBprod: n=%d", gg);
 		}
+    eigen_compare(Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> > (Rf.ptr(),_N, _N2),
+       e_R);
 		debug("test_matATBprod: case %d checked successfuly!", gg);
 	}
   in.close();
@@ -155,6 +208,7 @@ std::ifstream in;
 	MatSym<_M> D;
 	MatSym<_N> R;
 	MatSym<_N> Rf;
+  Eigen::MatrixXd e_D, e_B, e_R;
   sprintf_s(filename,100, "%s/matBTDBprod_%02d%02d", dir, _M, _N);
   in.open(filename);
 	for (uint16 gg=1;gg<=tn;gg++)
@@ -170,6 +224,32 @@ std::ifstream in;
 
 		matBTDBprod(B, D, 1.0, R);
 
+
+    e_D.resize(_M,_M);
+    uint16 c = 0;
+    for (uint16 i = 0; i < _M; i++) {
+      for (uint16 j = i; j < _M; j++) {
+        e_D(i,j) = D.data[c];
+        c++;
+      }
+    }
+    //cout << "e_D = " << endl << e_D << endl;
+    //Eigen::MatrixXd tmp = e_D.selfadjointView<Eigen::Upper>();
+    //cout << "e_D.symmetric_view = " << endl << tmp;
+    e_B = Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> > (B.ptr(), _M, _N);
+    e_R = e_B.transpose() *  e_D.selfadjointView<Eigen::Upper>() * e_B;
+    Eigen::MatrixXd e_Rf(_N, _N);
+    c = 0;
+    for (uint16 i = 0; i < _N; i++) {
+      for (uint16 j = i; j < _N; j++) {
+        e_Rf(i,j) = Rf.data[c];
+        c++;
+      }
+    }
+    e_Rf = e_Rf.selfadjointView<Eigen::Upper>();
+    cout << "e_Rf.rows = " << e_Rf.rows() << ",e_Rf.cols = " << e_Rf.cols() << endl;
+    cout << "e_R.rows = " << e_R.rows() << ",e_R.cols = " << e_R.cols() << endl;
+    eigen_compare(e_Rf, e_R);
 		if (!R.compare(Rf, eps)) {
 			error("test_matBTDBprod: n=%d", gg);
 		}

@@ -1,5 +1,5 @@
 #pragma once
-#include "..\sys.h"
+#include "sys.h"
 #include <iostream>
 #include <string>
 
@@ -41,8 +41,10 @@ public:
 	bool compare (Vec<dim>& V, double eps = 0.00005);
 	void simple_read(std::istream& st);
 	double operator* (const Vec<dim> &op);
-	friend std::ostream& operator<< <dim>(std::ostream& stream,const Vec<dim>& obj);
-	friend Vec operator* (const double op1, const Vec<dim> &op2);
+  template <uint16 dim1>
+    friend std::ostream& operator<< (std::ostream& stream,const Vec<dim1>& obj);
+  template <uint16 dim1>
+    friend Vec operator* (const double op1, const Vec<dim1> &op2);
 	double* ptr ();
 private:
 	double data[dim];
@@ -121,9 +123,9 @@ double Vec<dim>::lenght() {
 	return sqrt(qlenght());
 }
 //---------operator*----------------------------------------------------
-template<uint16 dim> Vec<dim> operator*(const double op1, const Vec<dim> &op2) {
-	Vec<dim> p;
-	for (uint16 i=0; i < dim; i++) p[i]=op2.data[i]*op1;
+template<uint16 dim1> Vec<dim1> operator*(const double op1, const Vec<dim1> &op2) {
+	Vec<dim1> p;
+	for (uint16 i=0; i < dim1; i++) p[i]=op2.data[i]*op1;
 	return p;
 }
 //--------operator=------------------------------------------------------
@@ -133,10 +135,10 @@ template<uint16 dim> Vec<dim>& Vec<dim>::operator= (const Vec<dim> &op)
 	return *this;
 }
 //---------operator<<----------------------------------------------------
-template<uint16 dim> std::ostream &operator<<(std::ostream &stream, const Vec<dim> &obj) {
-	for (uint16 i = 0; i < dim; i++) {
+template<uint16 dim1> std::ostream &operator<<(std::ostream &stream, const Vec<dim1> &obj) {
+	for (uint16 i = 0; i < dim1; i++) {
 		stream << obj.data[i];
-		if (i < dim-1) stream << " "; //TODO: delimeter?
+		if (i < dim1-1) stream << " "; //TODO: delimeter?
 	}
 	return stream;
 }
@@ -164,7 +166,7 @@ template<uint16 dim> bool Vec<dim>::compare (Vec<dim>& V, double eps)
 	double *Vp = V.ptr();
 	for (uint16 j=0;j<dim;j++)
 	{
-		if (fabs(*Dp-*Vp) > eps) {
+		if (fabs((double)*Dp-*Vp) > eps) {
 			return false;
 		}
 		Dp++;

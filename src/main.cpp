@@ -1,4 +1,3 @@
-#include <conio.h>
 #include "sys.h"
 #include "FE_Storage.h"
 #include "vtk_proc.h"
@@ -106,12 +105,8 @@ int main (int argc, char* argv[])
 	sol.setqIterat(it_num);
 	sol.setqLoadstep(ls_num);
   if (is_vtk) {
-    char _jobname[100];
-    char dummy[1000];
     //obtain job name from path of a FE model file
-    //_splitpath is OS dependent (MS VS)
-    _splitpath(model_filename.c_str(), dummy, dummy, _jobname, dummy);
-    string jobname(_jobname);
+    string jobname = getFileNameFromPath(model_filename);
     Vtk_proc* vtk = new Vtk_proc(&storage, jobname);
   }
   prepeare_processors(storage); 

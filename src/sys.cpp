@@ -6,112 +6,132 @@ static Log_opts log_opts;
 
 void warning(const char* logline, ...)
 {
-	WaitForSingleObject( log_opts.output_lock, INFINITE );
+  //TODO: mutex
+	//WaitForSingleObject( log_opts.output_lock, INFINITE );
 	ofstream file(log_file_name,ios::app);
 	va_list argList;
 	char buffer[1024];
 	va_start(argList, logline);
-	vsnprintf_s(buffer, 1024,_TRUNCATE, logline, argList); 
+	//vsnprintf_s(buffer, 1024,_TRUNCATE, logline, argList); 
+	vsnprintf(buffer, 1024, logline, argList); 
 	va_end(argList);
 	if (!file)
 	{
 		cout << "Warning: Can't open log file: " << log_file_name <<endl;
 		cout << "Warning: " << buffer <<endl;
-		ReleaseMutex( log_opts.output_lock );
+    //TODO: mutex
+    //ReleaseMutex( log_opts.output_lock );
 		return;
 	}
 	cout << "Warning: " << buffer <<endl;
 	file << "Warning: " << buffer <<endl;
 	file.close();
-	ReleaseMutex( log_opts.output_lock );
+  //TODO: mutex
+	//ReleaseMutex( log_opts.output_lock );
 }
 
 void debug(const char* logline, ...)
 {
 	if (!debug_mode) return;
-	WaitForSingleObject( log_opts.output_lock, INFINITE );
+  //TODO: mutex
+	//WaitForSingleObject( log_opts.output_lock, INFINITE );
 	ofstream file(log_file_name,ios::app);
 	va_list argList;
 	char buffer[1024];
 	va_start(argList, logline);
-	vsnprintf_s(buffer, 1024,_TRUNCATE, logline, argList);
+//	vsnprintf_s(buffer, 1024,_TRUNCATE, logline, argList);
+	vsnprintf(buffer, 1024, logline, argList); 
 	va_end(argList);
 	if (!file)
 	{
 		cout << "Warning: Can't open log file: " << log_file_name <<endl;
 		cout << "DEBUG: " << buffer <<endl;
-		ReleaseMutex( log_opts.output_lock );
+    //TODO: mutex
+    //ReleaseMutex( log_opts.output_lock );
 		return;
 	}
 	cout  << "DEBUG: "<< buffer <<endl;
 	file  << "DEBUG: "<< buffer <<endl;
 	file.close();
-	ReleaseMutex( log_opts.output_lock );
+  //TODO: mutex
+	//ReleaseMutex( log_opts.output_lock );
 }
 
 void debug (string &str)
 {
-	WaitForSingleObject( log_opts.output_lock, INFINITE );
+  //TODO: mutex
+	//WaitForSingleObject( log_opts.output_lock, INFINITE );
 	ofstream file(log_file_name,ios::app);
 	if (!file)
 	{
 		cout << "Warning: Can't open log file: " << log_file_name <<endl;
 		cout <<  str <<endl;
-		ReleaseMutex( log_opts.output_lock );
+    //TODO: mutex
+    //ReleaseMutex( log_opts.output_lock );
 		return;
 	}
 	cout  << "DEBUG: "<< str <<endl;
 	file  << "DEBUG: "<< str <<endl;
 	file.close();
-	ReleaseMutex( log_opts.output_lock );
+  //TODO: mutex
+	//ReleaseMutex( log_opts.output_lock );
 
 }
 
 void log(string &str)
 {
-	WaitForSingleObject( log_opts.output_lock, INFINITE );
+  //TODO: mutex
+	//WaitForSingleObject( log_opts.output_lock, INFINITE );
 	ofstream file(log_file_name,ios::app);
 	if (!file)
 	{
 		cout << "Warning: Can't open log file: " << log_file_name <<endl;
 		cout << str <<endl;
-		ReleaseMutex( log_opts.output_lock );
+    //TODO: mutex
+    //ReleaseMutex( log_opts.output_lock );
 		return;
 	}
 	file << str <<endl;
 	file.close();
-	ReleaseMutex( log_opts.output_lock );
+  //TODO: mutex
+	//ReleaseMutex( log_opts.output_lock );
 }
 
 void log(const char* logline, ...)
 {
-	WaitForSingleObject( log_opts.output_lock, INFINITE );
+  //TODO: mutex
+	//WaitForSingleObject( log_opts.output_lock, INFINITE );
 	ofstream file(log_file_name,ios::app);
 	va_list argList;
 	char buffer[1024];
 	va_start(argList, logline);
-	vsnprintf_s(buffer, 1024,_TRUNCATE, logline, argList);
+	//vsnprintf_s(buffer, 1024,_TRUNCATE, logline, argList);
+	vsnprintf(buffer, 1024, logline, argList); 
 	va_end(argList);
 	if (!file)
 	{
 		cout << "Warning: Can't open log file: " << log_file_name <<endl;
 		cout << buffer <<endl;
-		ReleaseMutex( log_opts.output_lock );
+    //TODO: mutex
+    //ReleaseMutex( log_opts.output_lock );
 		return;
 	}
 	file << buffer <<endl;
 	file.close();
-	ReleaseMutex( log_opts.output_lock );
+  //TODO: mutex
+	//ReleaseMutex( log_opts.output_lock );
 }
 
 void error(const char* logline, ...)
 {
-	WaitForSingleObject( log_opts.output_lock, INFINITE );
+  //TODO: mutex
+	//WaitForSingleObject( log_opts.output_lock, INFINITE );
 	ofstream file(log_file_name,ios::app);
 	va_list argList;
 	char buffer[1024];
 	va_start(argList, logline);
-	vsnprintf_s(buffer, 1024,_TRUNCATE, logline, argList);
+	//vsnprintf_s(buffer, 1024,_TRUNCATE, logline, argList);
+	vsnprintf(buffer, 1024, logline, argList); 
 	va_end(argList);
 
 
@@ -119,48 +139,57 @@ void error(const char* logline, ...)
 	{
 		cout << "Warning: Can't open log file: " << log_file_name <<endl;
 		cout << "Error: " << buffer <<endl;
-		ReleaseMutex( log_opts.output_lock );
+    //TODO: mutex
+    //ReleaseMutex( log_opts.output_lock );
 		return;
 	}
 	cout << "Error: " << buffer <<endl;
 	file << "Error: " << buffer <<endl;
 	file.close();
-	ReleaseMutex( log_opts.output_lock );
+  //TODO: mutex
+	//ReleaseMutex( log_opts.output_lock );
 	exit(1);
 }
 
 void echo(const char* logline, ...)
 {
-	WaitForSingleObject( log_opts.output_lock, INFINITE );
+  //TODO: mutex
+	//WaitForSingleObject( log_opts.output_lock, INFINITE );
 	va_list argList;
 	char buffer[1024];
 	va_start(argList, logline);
-	vsnprintf_s(buffer, 1024,_TRUNCATE, logline, argList);
+	//vsnprintf_s(buffer, 1024,_TRUNCATE, logline, argList);
+	vsnprintf(buffer, 1024, logline, argList); 
 	va_end(argList);
 	cout << buffer <<endl;
-	ReleaseMutex( log_opts.output_lock );
+  //TODO: mutex
+	//ReleaseMutex( log_opts.output_lock );
 }
 
 void echolog(const char* logline, ...)
 {
-	WaitForSingleObject( log_opts.output_lock, INFINITE );
+  //TODO: mutex
+	//WaitForSingleObject( log_opts.output_lock, INFINITE );
 	ofstream file(log_file_name,ios::app);
 	va_list argList;
 	char buffer[1024];
 	va_start(argList, logline);
-	vsnprintf_s(buffer, 1024,_TRUNCATE, logline, argList);
+	//vsnprintf_s(buffer, 1024,_TRUNCATE, logline, argList);
+	vsnprintf(buffer, 1024, logline, argList); 
 	va_end(argList);
 	if (!file)
 	{
 		cout << "Warning: Can't open log file: " << log_file_name <<endl;
 		cout << buffer <<endl;
-		ReleaseMutex( log_opts.output_lock );
+    //TODO: mutex
+    //ReleaseMutex( log_opts.output_lock );
 		return;
 	}
 	cout << buffer <<endl;
 	file << buffer <<endl;
 	file.close();
-	ReleaseMutex( log_opts.output_lock );
+  //TODO: mutex
+	//ReleaseMutex( log_opts.output_lock );
 }
 
 uint32 tick()
@@ -259,7 +288,7 @@ uint16 str2dof (string dof_name)
   }
   else
   {
-    warning("str2dof: unknown dof key: %s", dof_name);
+    warning("str2dof: unknown dof key: %s", dof_name.c_str());
     dof = 0; //TODO: what we need to return in this case??
   }
   return dof;
@@ -289,4 +318,13 @@ vector<char*> getCmdManyOptions(char ** begin, char ** end, const std::string & 
 
 bool cmdOptionExists(char** begin, char** end, const std::string& option) {
     return std::find(begin, end, option) != end;
+}
+
+
+string getFileNameFromPath(const string filename) {
+    std::string::const_reverse_iterator pivot = 
+          std::find( filename.rbegin(), filename.rend(), '.' );
+    return pivot == filename.rend()
+        ? filename
+        : std::string( filename.begin(), pivot.base() - 1 );
 }

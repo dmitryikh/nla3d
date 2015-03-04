@@ -3,7 +3,7 @@
 #include "math\Sparse_Matrix.h"
 
 //TODO: undone! (see commented lines below)
-void main()
+int main()
 {
 	int n = 8;
 	Sparse_Matrix_SUR spmat(8);

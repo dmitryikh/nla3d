@@ -1,18 +1,25 @@
 
 #pragma once
-#include <windows.h>
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <strstream>
 #include <stdarg.h>
-#include <process.h>
 #include <assert.h>
 #include <time.h>
 #include <sstream>
 #include <vector>
 #include <algorithm>
 #include <stdlib.h>
+#ifdef linux
+  #include <string.h>
+  #include <math.h>
+#endif
+
+// MSVC doen's support C99 standard
+#ifdef linux
+  #define sprintf_s snprintf
+#endif
 
 using namespace std;
 //#ifdef VC_COMPILER
@@ -123,12 +130,14 @@ class Log_opts
 public:
 	Log_opts() 
 	{
-		output_lock=CreateMutex(NULL, FALSE, NULL);
+    //TODO: mutex
+		//output_lock=CreateMutex(NULL, FALSE, NULL);
 		ofstream file(log_file_name,ios::trunc);
 		file.close();
 		
 	};
-	HANDLE output_lock;
+	//TODO: mutex 
+  //HANDLE output_lock;
 };
 
 void warning(const char* logline, ...);
@@ -180,3 +189,12 @@ char* getCmdOption(char ** begin, char ** end, const std::string & option);
 bool cmdOptionExists(char** begin, char** end, const std::string& option);
 vector<char*> getCmdManyOptions(char ** begin, char ** end, const std::string & option); 
 
+struct MatchPathSeparator
+{
+    bool operator()( char ch ) const
+    {
+        return ch == '\\' || ch == '/';
+    }
+};
+
+string getFileNameFromPath(const string filename);

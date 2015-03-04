@@ -10,7 +10,7 @@ bool compare_double(double d1, double d2) {
   return true;
 } 
 
-void main() {
+int main() {
 	int n = 5;
 	int kd = 2;
 	int ldab = kd+1;
