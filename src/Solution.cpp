@@ -1,6 +1,12 @@
+// This file is a part of nla3d project. For information about authors and
+// licensing go to project's repository on github:
+// https://github.com/dmitryikh/nla3d 
+
 #include "Solution.h"
 
+namespace nla3d {
 
+using namespace ::nla3d::math;
 
 bool Solution::setInit ()
 {
@@ -73,14 +79,14 @@ void Solution::main_process ()
 		return;
 	}
 
-	for (uint16 i=0; i < storage->getNumPostProc(); i++)
-		storage->getPostProc(i).pre(qLoadstep);
 
   //TODO: this is temporary. 
   //We need to have a material table (different materials for different elements)
 	GlobStates.setptr(States::PTR_CURMATER, (void*) &(storage->getMaterial()));
 	for (uint32 el = 1; el <= storage->getNumElement(); el++)
 				storage->getElement(el).pre();
+	for (size_t i=0; i < storage->getNumPostProc(); i++)
+		storage->getPostProc(i).pre(qLoadstep);
 	echolog("Preporation time: %4.2f sec.", sol.stop());
 	curCriteria = 0.0f;
 	double dF_par;
@@ -183,7 +189,7 @@ void Solution::main_process ()
 		echolog("LS %d completed with %d IT", curLoadstep, curIterat-1);
 		if (curLoadstep == 1)
 			sol.start();
-		for (uint16 i=0; i < storage->getNumPostProc(); i++)
+		for (size_t i = 0; i < storage->getNumPostProc(); i++)
 			storage->getPostProc(i).process(curLoadstep, qLoadstep);
 		if (curLoadstep == 1)
 			echolog("PostProc's processing time: %4.2f sec.", sol.stop());
@@ -192,7 +198,7 @@ void Solution::main_process ()
 	storage->setStatus(ST_SOLVED);
 	status = SOL_WAIT;
 	echolog("****SOLVED****  (Total solution time: %4.2f sec.)", overall.stop());
-	for (uint16 i=0; i < storage->getNumPostProc(); i++)
+	for (size_t i = 0; i < storage->getNumPostProc(); i++)
 			storage->getPostProc(i).post(curLoadstep, qLoadstep);
 }
 uint16 Solution::solve_wrap ()
@@ -279,7 +285,7 @@ uint16 Solution::solveSAE_Bunch ()
 
 uint16 Solution::solveSAE_DSS ()
 {
-	int n = storage->get_solve_mat().get_n_rows();
+	int n = storage->get_solve_mat().getNumberOfRows();
 	Timer sol_timer;
 	int nrhs = 1; // кол-во правых частей
 	int mtype = -2; //real symmetric undifinite defined matrix
@@ -313,7 +319,7 @@ uint16 Solution::solveSAE_DSS ()
 		// all memory that is necessary for the factorization
 		phase = 11;
 		PARDISO(pt, &maxfct, &mnum, &mtype,&phase,
-			&n, storage->get_solve_mat().get_values_array(), (int*) storage->get_solve_mat().get_iofeir_array(), (int*) storage->get_solve_mat().get_columns_array(), 
+			&n, storage->get_solve_mat().getValuesArray(), (int*) storage->get_solve_mat().getIofeirArray(), (int*) storage->get_solve_mat().getColumnsArray(), 
 			NULL, &nrhs, iparm, &msglvl, NULL, NULL, &error);
 		if (error != 0)
 		{
@@ -327,7 +333,7 @@ uint16 Solution::solveSAE_DSS ()
 	// Numerical factorization
 	phase = 22;
 	PARDISO(pt, &maxfct, &mnum, &mtype,&phase,
-			&n, storage->get_solve_mat().get_values_array(), (int*) storage->get_solve_mat().get_iofeir_array(), (int*) storage->get_solve_mat().get_columns_array(),
+			&n, storage->get_solve_mat().getValuesArray(), (int*) storage->get_solve_mat().getIofeirArray(), (int*) storage->get_solve_mat().getColumnsArray(),
 			NULL, &nrhs, iparm, &msglvl, NULL, NULL, &error);
 	if (error != 0)
 	{
@@ -339,7 +345,7 @@ uint16 Solution::solveSAE_DSS ()
 	phase = 33;
 	iparm[7] = 2; //max num of iterative refiment
 	PARDISO(pt, &maxfct, &mnum, &mtype,&phase,
-			&n, storage->get_solve_mat().get_values_array(), (int*) storage->get_solve_mat().get_iofeir_array(), (int*) storage->get_solve_mat().get_columns_array(),
+			&n, storage->get_solve_mat().getValuesArray(), (int*) storage->get_solve_mat().getIofeirArray(), (int*) storage->get_solve_mat().getColumnsArray(),
 			NULL, &nrhs, iparm, &msglvl, storage->get_solve_rhs(), storage->get_solve_result_vector(), &error);
 	if (error != 0)
 	{
@@ -354,7 +360,7 @@ uint16 Solution::solveSAE_DSS ()
 	//Termination and release of memory
 	//phase = 1;
 	//PARDISO(pt, &maxfct, &mnum, &mtype,&phase,
-	//		&n, NULL, (int*) storage->getMatK().get_iofeir_array(), (int*) storage->getMatK().get_columns_array(),
+	//		&n, NULL, (int*) storage->getMatK().getIofeirArray(), (int*) storage->getMatK().getColumnsArray(),
 	//		NULL, &nrhs, iparm, &msglvl, NULL, NULL, &error);
 
 	//echolog("\nSolve completed ... ");
@@ -378,7 +384,7 @@ void Solution::bound (double dF_par)
 	//}
 }
 
-void Solution::attach (FE_Storage *st)
+void Solution::attach (FEStorage *st)
 {
 	assert(st);
 	if (status == SOL_SOLVING)
@@ -411,7 +417,10 @@ void Solution::fork (void *ptr)
 {
 	((Solution*)ptr)->main_process();
 }
+
 void Solution::stop ()
 {
 	stopit = true;
 }
+
+} // namespace nla3d

@@ -1,10 +1,14 @@
+// This file is a part of nla3d project. For information about authors and
+// licensing go to project's repository on github:
+// https://github.com/dmitryikh/nla3d 
 
 #include "States.h"
 
+namespace nla3d {
+
 States GlobStates;
 
-States::States ()
-{
+States::States () {
 	uint16 i;
 	for (i=0; i < UI16_LASTID; i++) {
 			if_def_UI16[i] = false;
@@ -106,3 +110,5 @@ void States::undefineptr (t_PTR id) {
 		assert(id < PTR_LASTID);
 		if_def_PTR[id] = false;
 }
+
+} // namespace nla3d

@@ -1,68 +1,84 @@
+// This file is a part of nla3d project. For information about authors and
+// licensing go to project's repository on github:
+// https://github.com/dmitryikh/nla3d 
+
 #include "sys.h"
-#include "FE_Storage.h"
-#include "vtk_proc.h"
+#include "FEStorage.h"
+#include "VtkProcessor.h"
 #include "Solution.h"
 #include "Reaction_proc.h"
-#include "materials/material_factory.h"
+#include "materials/MaterialFactory.h"
 
-void prepeare_processors (FE_Storage& storage);
+using namespace nla3d;
+
+void prepeareProcessors (FEStorage& storage);
+std::vector<double> readRefCurveData (std::string fileRefCurve); 
+double compareCurves (const std::vector<double>& refCurve, const std::vector<double>& curCurve);
 
 // Here is defaults values for command line options
 // For command line format see usage() below
-uint16 it_num_default = 15;
-uint16 ls_num_default = 10;
-string mat_name_default = "Compressible Neo-Hookean";
-ElementFactory::elTypes elTypeDefault = ElementFactory::SOLID81;
-//TODO: how to initialize vector<double> whithin declaration..
-vector<double> mat_Ci_default;
-bool is_vtk_default = true;
+namespace options {
+  uint16 numberOfIterations = 15;
+  uint16 numberOfLoadsteps = 10;
+  std::string materialName = "";
+  ElementFactory::elTypes elementType = ElementFactory::SOLID81;
+  bool useVtk = true;
+  std::string modelFilename = "";
+  std::vector<double> materialConstants;
+  std::string refCurveFilename = ""; 
+  double curveCompareThreshold = 0.0;
+  std::string reactionComponentName = "";
+};
 
-bool parse_args (int argc, char* argv[], string& model_filename, uint16& it_num, uint16& ls_num, string& mat_name, vector<double>& mat_Ci, bool& is_vtk, ElementFactory::elTypes& elType) {
+bool parse_args (int argc, char* argv[]) {
   if (argc < 2) {
     return false;
   }
-  model_filename = argv[1];
+  options::modelFilename = argv[1];
   argv = argv + 2;
   argc = argc - 2;
   if(cmdOptionExists(argv, argv+argc, "-novtk")) {
-    is_vtk = false;
-  } else {
-    is_vtk = is_vtk_default;
+    options::useVtk = false;
   }
 
   char* tmp = getCmdOption(argv, argv + argc, "-iterations");
   if (tmp) {
-    it_num = atoi(tmp);
-  } else {
-    it_num = it_num_default;
+    options::numberOfIterations = atoi(tmp);
   }
 
   tmp = getCmdOption(argv, argv + argc, "-loadsteps");
   if (tmp) {
-    ls_num = atoi(tmp);
-  } else {
-    ls_num = ls_num_default;
+    options::numberOfLoadsteps = atoi(tmp);
   }
 
   tmp = getCmdOption(argv, argv + argc, "-element");
   if (tmp) {
-    elType = ElementFactory::elName2elType(tmp);
-  } else {
-    elType = elTypeDefault;
+    options::elementType = ElementFactory::elName2elType(tmp);
   }
 
-  vector<char*> vtmp = getCmdManyOptions(argv, argv + argc, "-material");
+  std::vector<char*> vtmp = getCmdManyOptions(argv, argv + argc, "-material");
   if (vtmp.size() == 0) {
-    mat_name = mat_name_default;
-    //TODO: how to initialize vector<double> whithin declaration..
-    mat_Ci.push_back(30.0);
-    mat_Ci.push_back(0.499);
-    //mat_Ci = mat_Ci_default;
+    error("Please point a material model. Use -material keyword.");
   } else {
-    mat_name = vtmp[0];
+    options::materialName = vtmp[0];
     for (uint16 i = 1; i < vtmp.size(); i++) {
-      mat_Ci.push_back(atof(vtmp[i]));
+      options::materialConstants.push_back(atof(vtmp[i]));
     }
+  }
+
+  tmp = getCmdOption(argv, argv + argc, "-refcurve");
+  if (tmp) {
+    options::refCurveFilename = tmp;
+  }
+
+  tmp = getCmdOption(argv, argv + argc, "-threshold");
+  if (tmp) {
+    options::curveCompareThreshold = atof(tmp);
+  }
+
+  tmp = getCmdOption(argv, argv + argc, "-reaction");
+  if (tmp) {
+    options::reactionComponentName = tmp;
   }
 
   return true;
@@ -74,65 +90,132 @@ void usage () {
 
 int main (int argc, char* argv[])
 {
-  uint16 it_num;
-  uint16 ls_num;
-  string mat_name;
-  string model_filename;
-  bool is_vtk;
-  vector<double> mat_Ci;
-  ElementFactory::elTypes elType;
 
+  std::vector<double> refCurve;
+  std::vector<double> curCurve;
+
+  Reaction_proc* reactProc;
 	echolog("---=== WELCOME TO NLA PROGRAM ===---");
-  if (!parse_args(argc, argv, model_filename, it_num, ls_num, mat_name, mat_Ci, is_vtk, elType)) {
+  if (!parse_args(argc, argv)) {
     usage();
     exit(1);
   }
-	Timer pre_solve(true);
-	FE_Storage storage;
-  storage.elType = elType;
-  if (!read_ans_data(model_filename.c_str(), &storage)) {
-    error("Can't read FE info from %s file. exiting..", model_filename.c_str());
+
+  // Load and show reference curve. This is used for automatic tests
+  // and optimization (curve fitting) purpose.
+  if (options::refCurveFilename.length() > 0) {
+    if (options::reactionComponentName.length() == 0) {
+      error("Reference curve is obtained, but no component name provided to \
+          calculate reactions from analysis. Use -reaction option");
+    }
+    refCurve = readRefCurveData(options::refCurveFilename);
+    for (size_t i = 0; i < refCurve.size(); i++) {
+      echolog("refCurve[%d] = %f", i, refCurve[i]);
+    }
   }
-  Material* mat = MaterialFactory::createMaterial(mat_name);
-  if (mat->getNumC() != mat_Ci.size())
-    error("Material %s needs exactly %d constants (%d were provided)", mat_name.c_str(), mat->getNumC(), mat_Ci.size());
-  for (uint16 i = 0; i < mat->getNumC(); i++) 
-    mat->Ci(i) = mat_Ci[i];
+
+	Timer pre_solve(true);
+	FEStorage storage;
+  storage.elType = options::elementType;
+  if (!read_ans_data(options::modelFilename.c_str(), &storage)) {
+    error("Can't read FE info from %s file. exiting..", options::modelFilename.c_str());
+  }
+  Material* mat = MaterialFactory::createMaterial(options::materialName);
+  if (mat->getNumC() != options::materialConstants.size())
+    error("Material %s needs exactly %d constants (%d were provided)", options::materialName.c_str(),
+        mat->getNumC(), options::materialConstants.size());
+  for (uint16 i = 0; i < mat->getNumC(); i++) {
+    mat->Ci(i) = options::materialConstants[i];
+  }
 	storage.material = mat;
+  echolog("Material: %s", mat->toString().c_str());
+
+  std::stringstream ss;
+  ss << "Loaded components:" << std::endl;
+  storage.listFEComponents(ss);
+  echolog(ss.str().c_str());
 
 	Solution sol;
 	sol.attach(&storage);
-	sol.setqIterat(it_num);
-	sol.setqLoadstep(ls_num);
-  if (is_vtk) {
+	sol.setqIterat(options::numberOfIterations);
+	sol.setqLoadstep(options::numberOfLoadsteps);
+  if (options::useVtk) {
     //obtain job name from path of a FE model file
-    string jobname = getFileNameFromPath(model_filename);
-    Vtk_proc* vtk = new Vtk_proc(&storage, jobname);
+    std::string jobname = getFileNameFromPath(options::modelFilename);
+    VtkProcessor* vtk = new VtkProcessor (&storage, jobname);
   }
-  prepeare_processors(storage); 
+
+  reactProc = NULL;
+  if (options::reactionComponentName.length() > 0) {
+    reactProc = new Reaction_proc(&storage);
+    FEComponent* feComp = storage.getFEComponent(options::reactionComponentName);
+    if (feComp->type != FEComponent::NODES) {
+      error("To calculate reactions it's needed to provide a component with nodes");
+    }
+
+    echolog("Component for measuring a reaction: %s", options::reactionComponentName.c_str());
+    for (size_t i = 0; i < feComp->list.size(); i++) {
+      reactProc->nodes.push_back(feComp->list[i]);
+      reactProc->dofs.push_back(1);
+    }
+  }
 
 	echolog("Preprocessor time: %f sec.", pre_solve.stop());
 	sol.run();
+
+  if (reactProc) {
+    curCurve = reactProc->getReactions(); 
+    for (size_t i = 0; i < curCurve.size(); i++) {
+      echolog("curCurve[%d] = %f", i, curCurve[i]);
+    }
+    if (refCurve.size() > 0) {
+      double _error = compareCurves (refCurve, curCurve);
+      echolog("Error between reference loading curve and current is %f", _error);
+      if (options::curveCompareThreshold > 0.0) {
+        if (_error > options::curveCompareThreshold) {
+          error("To big error! (upper bound is %f)", options::curveCompareThreshold);
+        } else {
+          echolog("Error is less that the threshold. %f < %f", _error, options::curveCompareThreshold);
+        }
+      }
+    }
+  }
+
 	return 0;
 }
 
-//while performing an analysis we need to process and store some results data
-//here is a mechanism of processors to deal with it
-//but it needs a lot of options to setup it
-//now it's needed to hardcode initialization and setup of a such processors
-void prepeare_processors (FE_Storage& storage) {
-	Reaction_proc* proc = new Reaction_proc(&storage, "loading_force.txt");
-	list<BC_dof_constraint> &lst = storage.get_dof_const_BC_list();
 
-	list<BC_dof_constraint>::iterator bc_dof = lst.begin();
-	while (bc_dof != lst.end())
-	{
-		if (fabs(bc_dof->value) > 0)
-		{
-			proc->nodes.push_back(bc_dof->node);
-			proc->dofs.push_back(bc_dof->node_dof);
-		}
-		bc_dof++;
-	}
+double compareCurves (const std::vector<double>& refCurve, const std::vector<double>& curCurve) {
+  if (refCurve.size() != curCurve.size()) {
+    error("curves: tabular data size should be the same for reference curve \
+        and for current curve. (got refCurve.size() = %d, curCurve.size() = %d",
+        refCurve.size(), curCurve.size());
+  }
+  double _error = 0.0;
+  size_t lenCurve = curCurve.size(); 
+  for (size_t i = 0; i < lenCurve; i++) {
+    _error += fabs(refCurve[i]-curCurve[i])/lenCurve;
+  }
+  return _error;
 }
 
+std::vector<double> readRefCurveData (std::string fileRefCurve) {
+  std::ifstream file(fileRefCurve.c_str());
+  std::string dummy;
+  double tmp;
+  double pre_tmp = -1.0;
+  std::vector<double> res;
+  file >> dummy >> dummy >> dummy;
+  if (dummy.compare("force") != 0) {
+    error("readRefCurveData: Expecting third column to a force column");
+  }
+  while (!file.eof()) {
+    file >> dummy >> dummy >> tmp;
+    if (tmp != pre_tmp) {
+      res.push_back(tmp);
+      pre_tmp = tmp;
+    }
+  }
+  file.close();
+  return res;
+}

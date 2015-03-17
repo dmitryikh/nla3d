@@ -1,14 +1,20 @@
+// This file is a part of nla3d project. For information about authors and
+// licensing go to project's repository on github:
+// https://github.com/dmitryikh/nla3d 
+
 #pragma once
 #include "sys.h"
 #include <vector>
 #include <math.h>
+#include "query.h" 
 #include "math\Vec.h"
 #include "math\Mat.h"
-//#include "FE_Storage.h"
+
+namespace nla3d {
 
 //pre-defines
 class Material;
-class FE_Storage;
+class FEStorage;
 
 enum Dof_Type {
 	UX,
@@ -52,25 +58,25 @@ public:
 	void display (uint32 nn) {
 		echo("N %d: %f\t%f\t%f", nn, pos[0], pos[1], pos[2]);
 	}
-	string toString()	{
-		string str;
+	std::string toString()	{
+		std::string str;
 		char buff[100];
 		sprintf_s(buff,100,"%f %f %f",pos[0], pos[1], pos[2]);
 		str+=buff;
 		return str; //TODO: do it easy
 	}
-	void read_from_stream(istream &str) {
+	void read_from_stream(std::istream &str) {
 		str >> pos[0];
 		str >> pos[1];
 		str >> pos[2]; //TODO: process wrong input
 	}
 
-	Vec<3> pos;
+  math::Vec<3> pos;
 
 	friend class Element;
 private:
 	static uint16 number_of_dofs; //only class Element can change it
-	static vector<Dof_Type> dof_types; //only class Element can change it
+	static std::vector<Dof_Type> dof_types; //only class Element can change it
 };
 
 //----------------------------------------------//
@@ -118,25 +124,25 @@ public:
 	static uint16 n_nodes_per_face();
 	static Face& get_face(uint16 fn);
 	static Dof_Type dof_type(uint16 dof);
-  static FE_Storage& getStorage();
+  static FEStorage& getStorage();
 
   // hear of the element class
 	virtual void pre()=0;
 	virtual void build()=0;
 	virtual void update()=0;
-	virtual void getScalar(double& scalar, el_component code, uint16 gp = GP_MEAN, const double scale = 1.0)=0;
-	virtual void getTensor(MatSym<3>& tensor, el_tensor code, uint16 gp = GP_MEAN, const double scale = 1.0)=0;
+	virtual void getScalar(double& scalar, query::scalarQuery code, uint16 gp = query::GP_MEAN, const double scale = 1.0)=0;
+	virtual void getVector(double* vector, query::vectorQuery code, uint16 gp = query::GP_MEAN, const double scale = 1.0)=0;
+	virtual void getTensor(math::MatSym<3>& tensor, query::tensorQuery code, uint16 gp = query::GP_MEAN, const double scale = 1.0)=0;
 
 	Element& operator= (const Element& from);
 
   uint32 getElNum();
 
 	//in-out operation:
-	void read_from_stream (istream &str);
-	void display (uint32 en);
-	string toString();
+	void read_from_stream (std::istream& str);
+	void print (std::ostream& out);
 
-  friend class FE_Storage;
+  friend class FEStorage;
 protected:
 
 	void change_node_dofs_num (uint16 ndof,...);
@@ -145,13 +151,13 @@ protected:
 
 	static uint16 number_of_nodes;
 	static uint16 number_of_dimensions;
-	static vector<Face> faces;
+	static std::vector<Face> faces;
 	static uint16 number_of_integration_points;	// number of int points per coordinate
 	static uint16 number_of_dofs;
-	static vector<Dof_Type> dof_types;
+	static std::vector<Dof_Type> dof_types;
 	uint32 *nodes;
   uint32 elNum;
-  static FE_Storage* storage;
+  static FEStorage* storage;
 };
 
 //----------------------------------------------//
@@ -242,7 +248,7 @@ inline uint16 Element::get_central_gp()
 }
 inline uint16 Element::n_face()
 {
-	return faces.size();
+	return static_cast<uint16> (faces.size());
 }
 inline uint16 Element::n_nodes_per_face()
 {
@@ -263,7 +269,7 @@ inline Dof_Type Element::dof_type(uint16 dof)
 	return dof_types[dof];
 }
 
-inline FE_Storage& Element::getStorage() {
+inline FEStorage& Element::getStorage() {
   return *storage;
 }
 
@@ -271,4 +277,4 @@ inline uint32 Element::getElNum() {
   return elNum;
 }
 
-
+} // namespace nla3d

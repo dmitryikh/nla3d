@@ -1,7 +1,14 @@
+// This file is a part of nla3d project. For information about authors and
+// licensing go to project's repository on github:
+// https://github.com/dmitryikh/nla3d 
+
 #pragma once
 #include "elements/element.h"
 #include "elements/element_lagrange.h"
-#include "FE_Storage.h"
+#include "FEStorage.h"
+#include "solidmech.h"
+
+namespace nla3d {
 
 //-------------------------------------------------------
 //-------------------ElementPLANE41----------------------
@@ -23,32 +30,33 @@ public:
 	void pre();
 	void build();
 	void update ();
-	Mat<3,8> make_B (uint16 nPoint);	//функция создает линейную матрицу [B]
-	Mat<4,8> make_Bomega (uint16 nPoint);	//функция создает линейную матрицу [Bomega]
+	math::Mat<3,8> make_B (uint16 nPoint);	//функция создает линейную матрицу [B]
+	math::Mat<4,8> make_Bomega (uint16 nPoint);	//функция создает линейную матрицу [Bomega]
 
   //postproc procedures
-	void getScalar(double& scalar, el_component code, uint16 gp, const double scale);
-	void getTensor(MatSym<3>& tensor, el_tensor code, uint16 gp, const double scale);
+	void getScalar(double& scalar, query::scalarQuery code, uint16 gp, const double scale);
+	void getVector(double* vector, query::vectorQuery code, uint16 gp, const double scale);
+	void getTensor(math::MatSym<3>& tensor, query::tensorQuery code, uint16 gp, const double scale);
 
   // internal element data
 	// S[0] - Sx	S[1] - Sy	S[2] - Sxy
-	vector<Vec<3> > S; //S[номер т. интегр.][номер напряжения] - напряжения Пиолы-Кирхгоффа
+	std::vector<math::Vec<3> > S; //S[номер т. интегр.][номер напряжения] - напряжения Пиолы-Кирхгоффа
 	// C[0] - C11	C[1] - C22	C[2] - C12
-	vector<Vec<3> > C; //C[номер т. интегр.][номер деформ.] - компоненты матрицы меры деформации
+	std::vector<math::Vec<3> > C; //C[номер т. интегр.][номер деформ.] - компоненты матрицы меры деформации
 	// O[0] - dU/dx	O[1] - dU/dy	O[2] - dV/dx	O[3] - dV/dy
-	vector<Vec<4> > O; //S[номер т. интегр.][номер омеги]
+	std::vector<math::Vec<4> > O; //S[номер т. интегр.][номер омеги]
 
   // addition data
-	static const tensorComponents components[3];
+	static const solidmech::tensorComponents components[3];
 	static const uint16 num_components;
 
 
 	template <uint16 el_dofs_num>
-	void assemble (const Mat<el_dofs_num,el_dofs_num> &Ke, const Vec<el_dofs_num> &Qe);
+	void assemble (const math::Mat<el_dofs_num,el_dofs_num> &Ke, const math::Vec<el_dofs_num> &Qe);
 };
 
 template <uint16 el_dofs_num>
-void ElementPLANE41::assemble (const Mat<el_dofs_num,el_dofs_num> &Ke, const Vec<el_dofs_num> &Qe)
+void ElementPLANE41::assemble (const math::Mat<el_dofs_num,el_dofs_num> &Ke, const math::Vec<el_dofs_num> &Qe)
 {
 	uint16 eds = Element::n_nodes()*Node::n_dofs(); // el's dofs start number
 	assert(el_dofs_num == eds+Element::n_dofs());
@@ -78,3 +86,4 @@ void ElementPLANE41::assemble (const Mat<el_dofs_num,el_dofs_num> &Ke, const Vec
 		storage->Fi_add(-(int32)getElNum(), di, Qe[eds+di]);
 }
 
+} // namespace nla3d 

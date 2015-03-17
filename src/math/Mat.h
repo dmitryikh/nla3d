@@ -1,3 +1,7 @@
+// This file is a part of nla3d project. For information about authors and
+// licensing go to project's repository on github:
+// https://github.com/dmitryikh/nla3d 
+
 #pragma once
 #include "sys.h"
 #include <iostream>
@@ -6,6 +10,9 @@
 #ifdef NLA3D_USE_BLAS
   #include <mkl.h>
 #endif
+
+namespace nla3d {
+namespace math {
 
 template<uint16 dimM, uint16 dimN>
 class Mat
@@ -811,3 +818,5 @@ void matATBprod(Mat2<dimM1,dimN1> &A, Mat2<dimM1,dimN2> &B, const double coef, M
 #endif
 }
 
+} // namespace math
+} // namespace nla3d

@@ -1,14 +1,19 @@
+// This file is a part of nla3d project. For information about authors and
+// licensing go to project's repository on github:
+// https://github.com/dmitryikh/nla3d 
+
 #include "sys.h"
-#include "FE_Storage.h"
+#include "FEStorage.h"
+
+namespace nla3d {
 
 static Log_opts log_opts;
-
 
 void warning(const char* logline, ...)
 {
   //TODO: mutex
 	//WaitForSingleObject( log_opts.output_lock, INFINITE );
-	ofstream file(log_file_name,ios::app);
+	std::ofstream file(log_file_name,std::ios::app);
 	va_list argList;
 	char buffer[1024];
 	va_start(argList, logline);
@@ -17,14 +22,14 @@ void warning(const char* logline, ...)
 	va_end(argList);
 	if (!file)
 	{
-		cout << "Warning: Can't open log file: " << log_file_name <<endl;
-		cout << "Warning: " << buffer <<endl;
+		std::cout << "Warning: Can't open log file: " << log_file_name <<std::endl;
+		std::cout << "Warning: " << buffer <<std::endl;
     //TODO: mutex
     //ReleaseMutex( log_opts.output_lock );
 		return;
 	}
-	cout << "Warning: " << buffer <<endl;
-	file << "Warning: " << buffer <<endl;
+	std::cout << "Warning: " << buffer <<std::endl;
+	file << "Warning: " << buffer <<std::endl;
 	file.close();
   //TODO: mutex
 	//ReleaseMutex( log_opts.output_lock );
@@ -35,7 +40,7 @@ void debug(const char* logline, ...)
 	if (!debug_mode) return;
   //TODO: mutex
 	//WaitForSingleObject( log_opts.output_lock, INFINITE );
-	ofstream file(log_file_name,ios::app);
+	std::ofstream file(log_file_name,std::ios::app);
 	va_list argList;
 	char buffer[1024];
 	va_start(argList, logline);
@@ -44,54 +49,54 @@ void debug(const char* logline, ...)
 	va_end(argList);
 	if (!file)
 	{
-		cout << "Warning: Can't open log file: " << log_file_name <<endl;
-		cout << "DEBUG: " << buffer <<endl;
+		std::cout << "Warning: Can't open log file: " << log_file_name <<std::endl;
+		std::cout << "DEBUG: " << buffer <<std::endl;
     //TODO: mutex
     //ReleaseMutex( log_opts.output_lock );
 		return;
 	}
-	cout  << "DEBUG: "<< buffer <<endl;
-	file  << "DEBUG: "<< buffer <<endl;
+	std::cout  << "DEBUG: "<< buffer <<std::endl;
+	file  << "DEBUG: "<< buffer <<std::endl;
 	file.close();
   //TODO: mutex
 	//ReleaseMutex( log_opts.output_lock );
 }
 
-void debug (string &str)
+void debug (std::string &str)
 {
   //TODO: mutex
 	//WaitForSingleObject( log_opts.output_lock, INFINITE );
-	ofstream file(log_file_name,ios::app);
+	std::ofstream file(log_file_name,std::ios::app);
 	if (!file)
 	{
-		cout << "Warning: Can't open log file: " << log_file_name <<endl;
-		cout <<  str <<endl;
+		std::cout << "Warning: Can't open log file: " << log_file_name <<std::endl;
+		std::cout <<  str <<std::endl;
     //TODO: mutex
     //ReleaseMutex( log_opts.output_lock );
 		return;
 	}
-	cout  << "DEBUG: "<< str <<endl;
-	file  << "DEBUG: "<< str <<endl;
+	std::cout  << "DEBUG: "<< str <<std::endl;
+	file  << "DEBUG: "<< str <<std::endl;
 	file.close();
   //TODO: mutex
 	//ReleaseMutex( log_opts.output_lock );
 
 }
 
-void log(string &str)
+void log(std::string &str)
 {
   //TODO: mutex
 	//WaitForSingleObject( log_opts.output_lock, INFINITE );
-	ofstream file(log_file_name,ios::app);
+	std::ofstream file(log_file_name,std::ios::app);
 	if (!file)
 	{
-		cout << "Warning: Can't open log file: " << log_file_name <<endl;
-		cout << str <<endl;
+		std::cout << "Warning: Can't open log file: " << log_file_name <<std::endl;
+		std::cout << str <<std::endl;
     //TODO: mutex
     //ReleaseMutex( log_opts.output_lock );
 		return;
 	}
-	file << str <<endl;
+	file << str <<std::endl;
 	file.close();
   //TODO: mutex
 	//ReleaseMutex( log_opts.output_lock );
@@ -101,7 +106,7 @@ void log(const char* logline, ...)
 {
   //TODO: mutex
 	//WaitForSingleObject( log_opts.output_lock, INFINITE );
-	ofstream file(log_file_name,ios::app);
+	std::ofstream file(log_file_name,std::ios::app);
 	va_list argList;
 	char buffer[1024];
 	va_start(argList, logline);
@@ -110,13 +115,13 @@ void log(const char* logline, ...)
 	va_end(argList);
 	if (!file)
 	{
-		cout << "Warning: Can't open log file: " << log_file_name <<endl;
-		cout << buffer <<endl;
+		std::cout << "Warning: Can't open log file: " << log_file_name <<std::endl;
+		std::cout << buffer <<std::endl;
     //TODO: mutex
     //ReleaseMutex( log_opts.output_lock );
 		return;
 	}
-	file << buffer <<endl;
+	file << buffer <<std::endl;
 	file.close();
   //TODO: mutex
 	//ReleaseMutex( log_opts.output_lock );
@@ -126,7 +131,7 @@ void error(const char* logline, ...)
 {
   //TODO: mutex
 	//WaitForSingleObject( log_opts.output_lock, INFINITE );
-	ofstream file(log_file_name,ios::app);
+	std::ofstream file(log_file_name,std::ios::app);
 	va_list argList;
 	char buffer[1024];
 	va_start(argList, logline);
@@ -137,14 +142,14 @@ void error(const char* logline, ...)
 
 	if (!file)
 	{
-		cout << "Warning: Can't open log file: " << log_file_name <<endl;
-		cout << "Error: " << buffer <<endl;
+		std::cout << "Warning: Can't open log file: " << log_file_name <<std::endl;
+		std::cout << "Error: " << buffer <<std::endl;
     //TODO: mutex
     //ReleaseMutex( log_opts.output_lock );
 		return;
 	}
-	cout << "Error: " << buffer <<endl;
-	file << "Error: " << buffer <<endl;
+	std::cout << "Error: " << buffer <<std::endl;
+	file << "Error: " << buffer <<std::endl;
 	file.close();
   //TODO: mutex
 	//ReleaseMutex( log_opts.output_lock );
@@ -161,7 +166,7 @@ void echo(const char* logline, ...)
 	//vsnprintf_s(buffer, 1024,_TRUNCATE, logline, argList);
 	vsnprintf(buffer, 1024, logline, argList); 
 	va_end(argList);
-	cout << buffer <<endl;
+	std::cout << buffer <<std::endl;
   //TODO: mutex
 	//ReleaseMutex( log_opts.output_lock );
 }
@@ -170,7 +175,7 @@ void echolog(const char* logline, ...)
 {
   //TODO: mutex
 	//WaitForSingleObject( log_opts.output_lock, INFINITE );
-	ofstream file(log_file_name,ios::app);
+	std::ofstream file(log_file_name,std::ios::app);
 	va_list argList;
 	char buffer[1024];
 	va_start(argList, logline);
@@ -179,14 +184,14 @@ void echolog(const char* logline, ...)
 	va_end(argList);
 	if (!file)
 	{
-		cout << "Warning: Can't open log file: " << log_file_name <<endl;
-		cout << buffer <<endl;
+		std::cout << "Warning: Can't open log file: " << log_file_name <<std::endl;
+		std::cout << buffer <<std::endl;
     //TODO: mutex
     //ReleaseMutex( log_opts.output_lock );
 		return;
 	}
-	cout << buffer <<endl;
-	file << buffer <<endl;
+	std::cout << buffer <<std::endl;
+	file << buffer <<std::endl;
 	file.close();
   //TODO: mutex
 	//ReleaseMutex( log_opts.output_lock );
@@ -197,13 +202,6 @@ uint32 tick()
 	return (uint32) clock();
 }
 
-string IntToStr (uint32 dig)
-{
-	stringstream ss;
-	ss << dig;
-	return ss.str();
-}
-
 int32 npow(int16 dig, uint16 power)
 {
 	int32 res=1; //TODO: if too big number?
@@ -212,10 +210,10 @@ int32 npow(int16 dig, uint16 power)
 	return res;
 }
 
-vector<string> read_tokens(char *input)
+std::vector<std::string> read_tokens(char *input)
 {
-	vector<string> vec;
-	string tmp("");
+	std::vector<std::string> vec;
+	std::string tmp("");
 	char delimeters[]="(),";
 	char *p=input;
 	char *start=p;
@@ -238,7 +236,7 @@ vector<string> read_tokens(char *input)
 			tmp.assign(start, (int16) (p-start));
 			del_spaces(tmp);
 			vec.push_back(tmp);
-			vec.push_back(string(delp,1));
+			vec.push_back(std::string(delp,1));
 			p++;
 			start=p;
 			continue;
@@ -251,7 +249,7 @@ vector<string> read_tokens(char *input)
 	return vec;
 }
 
-void del_spaces (string &str)
+void del_spaces (std::string &str)
 {
 	uint16 start = 0;
 	if (str.length()==0) return;
@@ -266,12 +264,12 @@ void del_spaces (string &str)
 	}
 	uint16 end = str.length()-1;
 	while (str[end] ==' ') end--;
-	str=string(str,start, end-start+1);
+	str=std::string(str,start, end-start+1);
 }
 
 
 //TODO: use Doftype
-uint16 str2dof (string dof_name)
+uint16 str2dof (std::string dof_name)
 {
   uint16 dof;
   if (!dof_name.compare("UX"))
@@ -302,11 +300,12 @@ char* getCmdOption(char ** begin, char ** end, const std::string & option) {
     return 0;
 }
 
-vector<char*> getCmdManyOptions(char ** begin, char ** end, const std::string & option) {
-    vector<char*> _vec;
+std::vector<char*> getCmdManyOptions(char ** begin, char ** end, const std::string & option) {
+    std::vector<char*> _vec;
     char ** itr = std::find(begin, end, option);
     if (itr != end && ++itr != end) {
-      while(*itr[0] != '-') {
+      //TODO: what if len(itr[0]) == 1 ?? momry corrupted?
+      while(!(itr[0][0] == '-' && (itr[0][1] < '0' || itr[0][1] > '9'))) {
         _vec.push_back(*itr);
         if (++itr == end) {
           break;
@@ -320,11 +319,14 @@ bool cmdOptionExists(char** begin, char** end, const std::string& option) {
     return std::find(begin, end, option) != end;
 }
 
-
-string getFileNameFromPath(const string filename) {
+//TODO: this functions only truncate file extension. 
+//But it was intended to leave only a file name (delete path and extension)
+std::string getFileNameFromPath(const std::string filename) {
     std::string::const_reverse_iterator pivot = 
           std::find( filename.rbegin(), filename.rend(), '.' );
     return pivot == filename.rend()
         ? filename
         : std::string( filename.begin(), pivot.base() - 1 );
 }
+
+} // namespace nla3d

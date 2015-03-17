@@ -1,4 +1,11 @@
+// This file is a part of nla3d project. For information about authors and
+// licensing go to project's repository on github:
+// https://github.com/dmitryikh/nla3d 
+
 #include "Mat.h"
+
+namespace nla3d {
+namespace math {
 
 //dMat dMat_tmp(1,1);
 
@@ -51,3 +58,6 @@ std::ostream &operator<<(std::ostream &stream, dMat &obj) {
 	}
 	return stream;
 }
+
+} // namespace math
+} // namespace nla3d

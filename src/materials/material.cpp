@@ -1,4 +1,10 @@
+// This file is a part of nla3d project. For information about authors and
+// licensing go to project's repository on github:
+// https://github.com/dmitryikh/nla3d 
+
 #include "materials/material.h"
+
+namespace nla3d {
 
 const double Material::I[6] = {1.0,0.0,0.0,1.0,0.0,1.0};
 
@@ -12,57 +18,41 @@ Material::Material (uint16 num_c)
 	MC = new double[num_c];
 }
 
-string Material::toString()
-{
-	//TODO: implement
-	//string str;
-	//str << getName() << ": ";
-	//for (uint16 i=0; i < getNumC(); i++)
-	//{
-	//	str << "C[" << i+1 << "]=" << C[i]
-	//	if (i+1 < numC)
-	//		str << ", ";
-	//}
-	return string();
+std::string Material::toString() {
+  std::string str;
+	str += getName();
+	for (size_t i=0; i < getNumC(); i++) {
+	  str += " " + MC_names[i] + " = " + toStr(MC[i]);
+  }
+	return str;
 }
 
 
-void Material::read_from_stream (istream &str)
-{
+void Material::read_from_stream (std::istream &str) {
 	for (uint16 i=0; i < getNumC(); i++)
 		str >> MC[i]; //TODO: check on errors
 }
 
-double& Material::getCstr (char* mname) {
-	error("nor now");
-	double dummy;
-	return dummy;
+double& Material::Ci (const std::string& nameConst) {
+  for (size_t i = 0; i < getNumC(); i++) {
+    if (nameConst.compare(MC_names[i]) == 0) {
+      return MC[i];
+    }
+  }
+	error("Material::Ci: can't find a material constant with name %s", nameConst.c_str());
 }
 
-//always 6 components!
-double Material::getJ(const double* C) {
-	double J = sqrt(C[M_XX]*(C[M_YY]*C[M_ZZ]-C[M_YZ]*C[M_YZ])-C[M_XY]*(C[M_XY]*C[M_ZZ]-C[M_YZ]*C[M_XZ])+C[M_XZ]*(C[M_XY]*C[M_YZ]-C[M_YY]*C[M_XZ]));
-	return J;
-}
-
-void Material::getC_inv(const double* C, const double J, double* C_inv) 
-{
-	double oo = 1.0/(J*J);
-	C_inv[M_XX] = oo*(C[M_YY]*C[M_ZZ]-C[M_YZ]*C[M_YZ]);
-	C_inv[M_XY] = oo*(C[M_XZ]*C[M_YZ]-C[M_XY]*C[M_ZZ]);
-	C_inv[M_XZ] = oo*(C[M_XY]*C[M_YZ]-C[M_XZ]*C[M_YY]); 
-	C_inv[M_YY] = oo*(C[M_XX]*C[M_ZZ]-C[M_XZ]*C[M_XZ]);
-	C_inv[M_YZ] = oo*(C[M_XY]*C[M_XZ]-C[M_XX]*C[M_YZ]);
-	C_inv[M_ZZ] = oo*(C[M_XX]*C[M_YY]-C[M_XY]*C[M_XY]);
-}
 
 void Material::register_mat_const(uint16 num, ...) {
 	numC = num;
 	va_list vlist;
 	va_start(vlist, num);
+  MC_names.clear();
+  MC_names.reserve(numC);
 	for (uint16 i=0; i < num; i++) {
 		MC_names.push_back(va_arg(vlist,char*));
 	}
 	MC = new double[num];
 }
 
+} // namespace nla3d

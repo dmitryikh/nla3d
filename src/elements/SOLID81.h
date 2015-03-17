@@ -1,16 +1,24 @@
+// This file is a part of nla3d project. For information about authors and
+// licensing go to project's repository on github:
+// https://github.com/dmitryikh/nla3d 
+
 #pragma once
 #include "elements/element.h"
 #include "elements/element_lagrange.h"
-#include "FE_Storage.h"
-#include <Eigen/Dense>
+#include "FEStorage.h"
+#include "solidmech.h"
+
+namespace nla3d {
 
 //-------------------------------------------------------
 //-------------------ElementSOLID81----------------------
 //-------------------------------------------------------
 //8-node brick nonlinear element based on mixed approach
-class ElementSOLID81 : public Element_SOLID8, public Element_Lagrange_Formulation<3,8> {
+class ElementSOLID81 : public Element_SOLID8, public Element_Lagrange_Formulation<3,8>
+{
 public:
-	ElementSOLID81 () {
+	ElementSOLID81 ()
+	{
 		change_node_dofs_num(3, UX, UY, UZ);
 		change_el_dofs_num(1,HYDRO_PRESSURE);
 	}
@@ -24,37 +32,32 @@ public:
 	void build();
 	void update();
 
-	void make_B_L (uint16 nPoint, Eigen::Ref<Eigen::MatrixXd> B);	//функция создает линейную матрицу [B]
-	void make_B_NL (uint16 nPoint, Eigen::Ref<Eigen::MatrixXd> B); //функция создает линейную матрицу [Bomega]
-	void make_S (uint16 nPoint, Eigen::Ref<Eigen::MatrixXd> SMat);
-	void make_Omega (uint16 nPoint, Eigen::Ref<Eigen::MatrixXd> Omega);
+	void make_B_L (uint16 nPoint, math::Mat2<6,24> &B);	//функция создает линейную матрицу [B]
+	void make_B_NL (uint16 nPoint,  math::Mat2<9,24> &B); //функция создает линейную матрицу [Bomega]
+	void make_S (uint16 nPoint, math::MatSym<9> &B);
+	void make_Omega (uint16 nPoint, math::Mat2<6,9> &B);
 
   //postproc procedures
-	void getScalar(double& scalar, el_component code, uint16 gp, const double scale);
-	void getTensor(MatSym<3>& tensor, el_tensor code, uint16 gp, const double scale);
+	void getScalar(double& scalar, query::scalarQuery code, uint16 gp, const double scale);
+	void getVector(double* vector, query::vectorQuery code, uint16 gp, const double scale);
+	void getTensor(math::MatSym<3>& tensor, query::tensorQuery code, uint16 gp, const double scale);
 
   // internal element data
 	//S[M_XX], S[M_XY], S[M_XZ], S[M_YY], S[M_YZ], S[M_ZZ]
-	vector<Vec<6> > S; //S[номер т. интегр.][номер напряжения] - напряжения Пиолы-Кирхгоффа
+	std::vector<math::Vec<6> > S; //S[номер т. интегр.][номер напряжения] - напряжения Пиолы-Кирхгоффа
 	//C[M_XX], C[M_XY], C[M_XZ], C[M_YY], C[M_YZ], C[M_ZZ]
-	vector<Vec<6> > C; //C[номер т. интегр.][номер деформ.] - компоненты тензора меры деформации
+	std::vector<math::Vec<6> > C; //C[номер т. интегр.][номер деформ.] - компоненты тензора меры деформации
 	// O[0]-dU/dx	O[1]-dU/dy	O[2]-dU/dz	O[3]-dV/dx	O[4]-dV/dy	O[5]-dV/dz	O[6]-dW/dx	O[7]-dW/dy	O[8]-dW/dz
-	vector<Vec<9> > O; //S[номер т. интегр.][номер омеги]
-
-  // addition data
-	static const tensorComponents components[6];
-	static const uint16 num_components;
-
+	std::vector<math::Vec<9> > O; //S[номер т. интегр.][номер омеги]
 
 	template <uint16 dimM, uint16 dimN>
-	void assemble2(MatSym<dimM> &Kuu, Mat2<dimM,dimM> &Kup, Mat2<dimN,dimN> &Kpp, Vec<dimM> &Fu, Vec<dimN> &Fp);
+	void assemble2(math::MatSym<dimM> &Kuu, math::Mat2<dimM,dimM> &Kup, math::Mat2<dimN,dimN> &Kpp, math::Vec<dimM> &Fu, math::Vec<dimN> &Fp);
 	template <uint16 dimM>
-	void assemble3(MatSym<dimM> &Kuu, Vec<dimM> &Kup, double Kpp, Vec<dimM> &Fu, double Fp);
-  void assemble4(Eigen::Ref<Eigen::MatrixXd> Ke, Eigen::Ref<Eigen::MatrixXd> Fe);
+	void assemble3(math::MatSym<dimM> &Kuu, math::Vec<dimM> &Kup, double Kpp, math::Vec<dimM> &Fu, double Fp);
 };
 
 template <uint16 dimM, uint16 dimN>
-void ElementSOLID81::assemble2(MatSym<dimM> &Kuu, Mat2<dimM,dimM> &Kup, Mat2<dimN,dimN> &Kpp, Vec<dimM> &Fu, Vec<dimN> &Fp) 
+void ElementSOLID81::assemble2(math::MatSym<dimM> &Kuu, math::Mat2<dimM,dimM> &Kup, math::Mat2<dimN,dimN> &Kpp, math::Vec<dimM> &Fu, math::Vec<dimN> &Fp) 
 {
 	assert (Element::n_nodes()*Node::n_dofs() == dimM);
 	assert (Element::n_dofs() == dimN);
@@ -103,7 +106,7 @@ void ElementSOLID81::assemble2(MatSym<dimM> &Kuu, Mat2<dimM,dimM> &Kup, Mat2<dim
 }
 
 template <uint16 dimM>
-void ElementSOLID81::assemble3(MatSym<dimM> &Kuu, Vec<dimM> &Kup, double Kpp, Vec<dimM> &Fu, double Fp) 
+void ElementSOLID81::assemble3(math::MatSym<dimM> &Kuu, math::Vec<dimM> &Kup, double Kpp, math::Vec<dimM> &Fu, double Fp) 
 {
 	assert (Element::n_nodes()*Node::n_dofs() == dimM);
 	assert (Element::n_dofs() == 1);
@@ -144,3 +147,4 @@ void ElementSOLID81::assemble3(MatSym<dimM> &Kuu, Vec<dimM> &Kup, double Kpp, Ve
 		storage->Fi_add(-(int32)getElNum(), 0, Fp);
 }
 
+} // namespace nla3d

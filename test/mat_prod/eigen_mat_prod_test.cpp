@@ -4,6 +4,8 @@
 #include <Eigen/Dense>
 
 using namespace std;
+using namespace nla3d;
+using namespace nla3d::math;
 
 const double eps = 0.000001;
 uint16 tn = 100;

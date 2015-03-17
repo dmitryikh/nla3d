@@ -1,6 +1,14 @@
+// This file is a part of nla3d project. For information about authors and
+// licensing go to project's repository on github:
+// https://github.com/dmitryikh/nla3d 
+
 #include "elements/PLANE41.h"
 
-const tensorComponents ElementPLANE41::components[3] = {M_XX, M_YY, M_XY};
+namespace nla3d {
+using namespace math;
+using namespace solidmech;
+
+const solidmech::tensorComponents ElementPLANE41::components[3] = {M_XX, M_YY, M_XY};
 const uint16 ElementPLANE41::num_components = 3;
 
 //------------------ElementPLANE41--------------------
@@ -14,6 +22,7 @@ void ElementPLANE41::pre() {
 		make_Jacob(getElNum(), nodes_p);
 	}
 }
+
 void ElementPLANE41::build () {
 //построение матрицы жесткости и вектора нагрузки для элемента
 	Mat<8,8> Kuu; //матрица жесткости элемента
@@ -23,12 +32,6 @@ void ElementPLANE41::build () {
 	double Fp = 0.0;
 	Vec<8> Qe; //вектор узловых сил элемента
 	Vec<9> Fe;
-//M_XX =  0,
-//M_XY =  1,
-//M_XZ =  2,
-//M_YY =  3,
-//M_YZ =  4,
-//M_ZZ =  5
   Vec<6> CVec;
   CVec[M_XZ] = 0.0;
   CVec[M_YZ] = 0.0;
@@ -57,7 +60,7 @@ void ElementPLANE41::build () {
     matE_p[0][0] = vecD_p[0];
     matE_p[1][0] = vecD_p[1];
     matE_p[2][0] = vecD_p[2];
-		double J = Material::getJ(CVec.ptr());
+		double J = solidmech::J_C(CVec.ptr());
 
 		Mat<3,8> matB = make_B(nPoint);
 		//матрица S для матричного умножения
@@ -117,9 +120,8 @@ Mat<4,8> ElementPLANE41::make_Bomega(uint16 nPoint)
 										0.0f, NjXi[nPoint][1][0], 0.0f, NjXi[nPoint][1][1], 0.0f, NjXi[nPoint][1][2], 0.0f, NjXi[nPoint][1][3]);
 	return Bomega;
 }
-//
-void ElementPLANE41::update()
-{
+
+void ElementPLANE41::update() {
 	Vec<9> U; //вектор перемещений элемента
 	// получаем вектор перемещений элемента из общего решения
 	storage->get_q_e(getElNum(), U.ptr());
@@ -156,10 +158,10 @@ void ElementPLANE41::update()
 	GlobStates.undefinedouble(States::DOUBLE_HYDPRES);
 }
 
-void ElementPLANE41::getScalar(double& scalar, el_component code, uint16 gp, const double scale) {
+void ElementPLANE41::getScalar(double& scalar, query::scalarQuery code, uint16 gp, const double scale) {
 	//see codes in sys.h
 	//gp - needed gauss point 
-  if (gp == GP_MEAN) { //need to average result over the element
+  if (gp == query::GP_MEAN) { //need to average result over the element
     double dWtSum = volume();
     double dWt;
     for (uint16 nPoint = 0; nPoint < npow(n_int(),n_dim()); nPoint ++) {
@@ -170,7 +172,7 @@ void ElementPLANE41::getScalar(double& scalar, el_component code, uint16 gp, con
   }
 	assert (npow(n_int(),n_dim()));
   switch (code) {
-		case S_P:
+    case query::SCALAR_SP:
 			scalar += storage->get_qi_n(-(int32)getElNum(), 0) * scale;
 			break;
     default:
@@ -178,9 +180,12 @@ void ElementPLANE41::getScalar(double& scalar, el_component code, uint16 gp, con
   }
 }
 
+void ElementPLANE41::getVector(double* vector, query::vectorQuery code, uint16 gp, const double scale) {
+    error ("Not now"); //TODO
+}
 //return a tensor in a global coordinate system
-void  ElementPLANE41::getTensor(MatSym<3>& tensor, el_tensor code, uint16 gp, const double scale) {
-  if (gp == GP_MEAN) { //need to average result over the element
+void  ElementPLANE41::getTensor(math::MatSym<3>& tensor, query::tensorQuery code, uint16 gp, const double scale) {
+  if (gp == query::GP_MEAN) { //need to average result over the element
     double dWtSum = volume();
     double dWt;
     for (uint16 nPoint = 0; nPoint < npow(n_int(),n_dim()); nPoint ++) {
@@ -203,20 +208,9 @@ void  ElementPLANE41::getTensor(MatSym<3>& tensor, el_tensor code, uint16 gp, co
   CVec[M_XX] = C[gp][0];
   CVec[M_YY] = C[gp][1];
   CVec[M_XY] = C[gp][2];
-  //was
-  //matS[0][0] = S[gp][0]; //SX
-  //matS[0][1] = S[gp][2]; //SXY
-  //matS[0][2] = 0.0;
-  //matS[1][0] = S[gp][2]; //SXY
-  //matS[1][1] = S[gp][1]; //SYY
-  //matS[1][2] = 0.0;
-  //matS[2][0] = 0.0;
-  //matS[2][1] = 0.0;
-  //matS[2][2] = 0.0;//it's worng. Actually we have SZZ
-	//matT = matX * matS * matX.transpose() * (1.0f/matX.det());
 
 	switch (code) {
-    case TENS_COUCHY:
+    case query::TENSOR_COUCHY:
 
       matF.zeros();
       matF.data[0][0] = 1+O[gp][0]; //11
@@ -236,15 +230,15 @@ void  ElementPLANE41::getTensor(MatSym<3>& tensor, el_tensor code, uint16 gp, co
       if (mat == NULL) {
         error("ElementPLANE41::getTensor: material is not derived from Mat_Hyper_Isotrop_General");
       }
-      mat->getS_UP (6, defaultTensorComponents, CVec.ptr(), matS.data);
+      mat->getS_UP (6, solidmech::defaultTensorComponents, CVec.ptr(), matS.data);
       matBTDBprod (matF, matS, 1.0/J, tensor); //Symmetric Couchy tensor
       break;
-    case TENS_PK2:
+    case query::TENSOR_PK2:
       mat = dynamic_cast<Mat_Hyper_Isotrop_General*> (&storage->getMaterial());
       if (mat == NULL) {
         error("ElementPLANE41::getTensor: material is not derived from Mat_Hyper_Isotrop_General");
       }
-      mat->getS_UP (6, defaultTensorComponents, CVec.ptr(), matS.data);
+      mat->getS_UP (6, solidmech::defaultTensorComponents, CVec.ptr(), matS.data);
       tensor.data[0] += matS.data[0]*scale;
       tensor.data[1] += matS.data[1]*scale;
       tensor.data[2] += matS.data[2]*scale;
@@ -252,7 +246,7 @@ void  ElementPLANE41::getTensor(MatSym<3>& tensor, el_tensor code, uint16 gp, co
       tensor.data[4] += matS.data[4]*scale;
       tensor.data[5] += matS.data[5]*scale;
       break;
-    case TENS_C:
+    case query::TENSOR_C:
       tensor.data[0] += CVec[M_XX]*scale;
       tensor.data[1] += CVec[M_XY]*scale;
       tensor.data[2] += CVec[M_XZ]*scale;
@@ -260,7 +254,7 @@ void  ElementPLANE41::getTensor(MatSym<3>& tensor, el_tensor code, uint16 gp, co
       tensor.data[4] += CVec[M_YZ]*scale;
       tensor.data[5] += CVec[M_ZZ]*scale;
       break;
-    case TENS_E:
+    case query::TENSOR_E:
       tensor.data[0] += (CVec[M_XX]-1.0)*0.5*scale;
       tensor.data[1] += CVec[M_XY]*0.5*scale;
       tensor.data[2] += CVec[M_XZ]*0.5*scale;
@@ -272,3 +266,5 @@ void  ElementPLANE41::getTensor(MatSym<3>& tensor, el_tensor code, uint16 gp, co
       error("ElementPLANE41::getTensor: no data for code %d", code);
 	}
 }
+
+} // namespace nla3d

@@ -1,9 +1,14 @@
+// This file is a part of nla3d project. For information about authors and
+// licensing go to project's repository on github:
+// https://github.com/dmitryikh/nla3d 
+
 #pragma once
 #include <mkl.h>
 #include "sys.h"
-#include "FE_Storage.h"
-#include "post_proc.h"
-/* класс содержит все механизмы для составления СЛАУ и Решения */
+#include "FEStorage.h"
+#include "PostProcessor.h"
+
+namespace nla3d {
 
 #define SOL_WAIT 1
 #define SOL_SOLVING 2
@@ -11,8 +16,8 @@
 #define SAE_CHOLESKY 1
 #define SAE_BUNCH 2
 #define SAE_DSS 3
-//class FE_Storage;
 
+/* класс содержит все механизмы для составления СЛАУ и Решения */
 class Solution
 {
 public:
@@ -26,7 +31,7 @@ public:
 		solver_type = SAE_CHOLESKY;
 		if_solver_first_time = true;
 	};
-	void attach (FE_Storage *st);
+	void attach (FEStorage *st);
 	void run (bool multi_thread = false); // запустить решение задачи
 	void stop (); // остановить решение задачи
 
@@ -60,7 +65,7 @@ private:
 	uint16 solveSAE_Cholesky();
 	uint16 solveSAE_DSS ();
 	static void fork (void *ptr);
-	FE_Storage* storage;
+	FEStorage* storage;
 	void main_process (); //главный процесс решения, вызывается после отделения процесса
 };
 
@@ -80,3 +85,5 @@ inline uint16 Solution::getStatus ()
 {
 	return status;
 }
+
+} // namespace nla3d

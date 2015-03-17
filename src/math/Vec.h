@@ -1,8 +1,14 @@
+// This file is a part of nla3d project. For information about authors and
+// licensing go to project's repository on github:
+// https://github.com/dmitryikh/nla3d 
+
 #pragma once
 #include "sys.h"
 #include <iostream>
 #include <string>
 
+namespace nla3d {
+namespace math {
 
 using namespace std;
 
@@ -136,9 +142,9 @@ template<uint16 dim> Vec<dim>& Vec<dim>::operator= (const Vec<dim> &op)
 }
 //---------operator<<----------------------------------------------------
 template<uint16 dim1> std::ostream &operator<<(std::ostream &stream, const Vec<dim1> &obj) {
-	for (uint16 i = 0; i < dim1; i++) {
-		stream << obj.data[i];
-		if (i < dim1-1) stream << " "; //TODO: delimeter?
+    stream << obj.data[0];
+	for (uint16 i = 1; i < dim1; i++) {
+		stream << " " << obj.data[i];
 	}
 	return stream;
 }
@@ -184,3 +190,6 @@ template<uint16 dim> void Vec<dim>::simple_read(std::istream& st)
 		Dp++;
 	}
 }
+
+} // namespace math
+} // namespace nla3d

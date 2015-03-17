@@ -1,22 +1,20 @@
+// This file is a part of nla3d project. For information about authors and
+// licensing go to project's repository on github:
+// https://github.com/dmitryikh/nla3d 
+
 #pragma once
 #include <string>
 #include "math\Vec.h"
 #include "math\Mat.h"
 #include "States.h"
 
+namespace nla3d {
+
 class MaterialFactory;
 
 // Material must have named material constants
 class Material {
 public:
-	enum mat_func_deriv {
-		AL_1	=	0,
-		AL_2	=	1,
-		AL_11	=	2,
-		AL_12	=	3,
-		AL_22	=	4
-	};
-
 	Material () : MC(NULL), numC(0), code(0) { 
 	}
 	Material (uint16 num_c);
@@ -26,32 +24,31 @@ public:
 		MC = NULL;
 	}
 
-	virtual string toString();
+	virtual std::string toString();
 
-	string getName();
+	std::string getName();
 	uint16 getCode ();
+  // constants getters
 	double& Ci (uint16 i);
-	double& getCstr (char* mname);
+	double& Ci (const std::string& nameConst);
 	uint16 getNumC ();
-	void read_from_stream (istream &str);
+	void read_from_stream (std::istream &str);
 
-	static double getJ(const double* C);
-	static void getC_inv(const double* C, const double J, double* C_inv);
 	static const double I[6];
 
   friend class MaterialFactory;
 protected:
 	void register_mat_const(uint16 num, ...);
 	double* MC;
-	vector<string> MC_names;
+	std::vector<std::string> MC_names;
 	uint16 numC;
 	uint16 code;
-	string name;
+	std::string name;
 };
 
 
 // ---=== FUNCTIONS ===--- //
-inline string Material::getName()
+inline std::string Material::getName()
 {
 	return name;
 }
@@ -72,3 +69,4 @@ inline uint16 Material::getNumC ()
 	return numC;
 }
 
+} // namespace nla3d

@@ -1,15 +1,19 @@
-#include "elements/element_factory.h"
+// This file is a part of nla3d project. For information about authors and
+// licensing go to project's repository on github:
+// https://github.com/dmitryikh/nla3d 
+
+#include "elements/ElementFactory.h"
 #include "elements/PLANE41.h"
 #include "elements/SOLID81.h"
-#include "elements/SOLID80.h"
+
+namespace nla3d {
 
 const char* const ElementFactory::elTypeLabels[]={"UNDEFINED",
   "PLANE41",
   "SOLID81",
-  "SOLID80",
 };
 
-ElementFactory::elTypes ElementFactory::elName2elType (string elName) {
+ElementFactory::elTypes ElementFactory::elName2elType (std::string elName) {
   for (uint16 i = 1; i < (uint16) ElementFactory::LAST; i++) {
     if (elName.compare(ElementFactory::elTypeLabels[i]) == 0) {
       return (ElementFactory::elTypes) i;
@@ -17,7 +21,7 @@ ElementFactory::elTypes ElementFactory::elName2elType (string elName) {
   }
   return ElementFactory::NOT_DEFINED;
 }
-void ElementFactory::createElements (elTypes elId, const uint32 n, vector<Element*>& ptr) {
+void ElementFactory::createElements (elTypes elId, const uint32 n, std::vector<Element*>& ptr) {
   if (elId == ElementFactory::NOT_DEFINED)
     error("ElementFactory::createElements: element type %s is undefined");
   switch (elId) {
@@ -31,14 +35,9 @@ void ElementFactory::createElements (elTypes elId, const uint32 n, vector<Elemen
         ptr.push_back(new ElementSOLID81());
       }
       break;
-    case ElementFactory::SOLID80:
-      for (uint32 i = 0; i < n; i++) {
-        ptr.push_back(new ElementSOLID80());
-      }
-      break;
     default:
       error("ElementFactory::createElements: don't have an element with id %d", elId);
   }
 }
 
-
+} // namespace nla3d

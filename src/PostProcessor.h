@@ -1,20 +1,23 @@
-#pragma once
-#include <string>
-#include "sys.h"
-#include "FE_Storage.h"
+// This file is a part of nla3d project. For information about authors and
+// licensing go to project's repository on github:
+// https://github.com/dmitryikh/nla3d 
 
-class Def_Scene;
-class FE_Storage;
+#pragma once
+#include "sys.h"
+#include "FEStorage.h"
+
+namespace nla3d {
+
+class FEStorage;
 //Data_Processor
-class Post_proc 
-{
+class PostProcessor {
 public:
-	Post_proc(FE_Storage *st);
-	~Post_proc() { };
+	PostProcessor(FEStorage *st);
+	~PostProcessor() { };
 	virtual void pre (uint16 qLoadstep)=0;
 	virtual void process (uint16 curLoadstep, uint16 qLoadstep)=0;
 	virtual void post (uint16 curLoadstep, uint16 qLoadstep)=0;
-	string getStatus ();
+	std::string getStatus ();
 	uint16 getnPost_num () {
 		return nPost_proc;
 	}
@@ -36,12 +39,13 @@ public:
 	{
 		return nPost_proc;
 	}
-	friend class FE_Storage;
+	friend class FEStorage;
 protected:
-	FE_Storage *storage;
+	FEStorage *storage;
 	uint16 nPost_proc;
-	string name;
+	std::string name;
 	bool active;
 	bool failed;
 };
 
+} // namespace nla3d

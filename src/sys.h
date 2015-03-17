@@ -1,3 +1,6 @@
+// This file is a part of nla3d project. For information about authors and
+// licensing go to project's repository on github:
+// https://github.com/dmitryikh/nla3d 
 
 #pragma once
 #include <string>
@@ -8,20 +11,23 @@
 #include <assert.h>
 #include <time.h>
 #include <sstream>
+#include <iostream>
 #include <vector>
 #include <algorithm>
 #include <stdlib.h>
+
+#define _USE_MATH_DEFINES
+#include <math.h>
+
 #ifdef linux
   #include <string.h>
-  #include <math.h>
 #endif
 
-// MSVC doen's support C99 standard
+// MSVC doent's support C99 standard
 #ifdef linux
   #define sprintf_s snprintf
 #endif
 
-using namespace std;
 //#ifdef VC_COMPILER
 #define int8 char //-127 to +127
 #define uint8 unsigned char //0 to +255
@@ -36,94 +42,14 @@ using namespace std;
 //#error Dont know integers types
 //#endif
 
-#define M_PI       3.14159265358979323846
+namespace nla3d {
 
-enum el_component 
-{
-	COMP_UNDEF,
-
-	E_X,
-	E_Y,
-	E_Z,
-	E_XY,
-	E_XZ,
-	E_YZ,
-	E_VOL,
-	E_1,
-	E_2,
-	E_3,
-
-	S_X,
-	S_Y,
-	S_Z,
-	S_XY,
-	S_XZ,
-	S_YZ,
-	S_P,
-	S_1,
-	S_2,
-	S_3,
-
-	U_X,
-	U_Y,
-	U_Z,
-
-	POS_X,
-	POS_Y,
-	POS_Z,
-
-	COMP_LAST
-};
-
-const char* const el_component_labels[]={"UNDEFINED","E_X","E_Y","E_Z","E_XY","E_XZ","E_YZ","E_VOL","E_1","E_2","E_3","S_X","S_Y","S_Z","S_XY","S_XZ","S_YZ","S_P","S_1","S_2","S_3","U_X","U_Y","U_Z","POS_X","POS_Y","POS_Z","COMP_LAST"};
-
-enum el_tensor
-{
-	TENS_UNDEF,
-	TENS_COUCHY,
-  TENS_PK2, // second Piola-Kirchgoff stress tensor (symmetric 3x3)
-  TENS_E,
-  TENS_C
-};
-
-const char* const el_tensor_labels[]={"UNDEFINED","COUCHY"};
-
-// use it in material matrix creator
-#define ANALYSIS_3D 1
-#define ANALYSIS_2D_PLANE_STRESS 2
-#define ANALYSIS_2D_PLANE_STRAIN 3
-#define ANALYSIS_2D_AXISYMMETRIC 4
-
-#define GP_MEAN 100 //среднее значение по элементу
-
-//ключ закрепления != 0  !
-#define D_UX 1
-#define D_UY 2
-#define D_UZ 3
-
-#define F_X 4
-#define F_Y 5
-#define F_Z 6
-
-
-// TODO: need to wrap this enum into some namespace
-enum tensorComponents {
-	M_XX =  0,
-	M_XY =  1,
-	M_XZ =  2,
-	M_YY =  3,
-	M_YZ =  4,
-	M_ZZ =  5
-};
-// TODO: need to wrap somewhere
-const tensorComponents defaultTensorComponents[6] = {M_XX, M_XY, M_XZ, M_YY, M_YZ, M_ZZ};
-
-const char SYS_VERSION[] = "1.1";
-const char SYS_DATA[] = "30.01.12";
-const char log_file_name[]="log.txt";
+const char SYS_VERSION[] = "1.3";
+const char SYS_DATA[] = "16.03.15";
+const char log_file_name[] = "log.txt";
 const bool debug_mode = true;
 
-class FE_Storage;
+//class FEStorage;
 
 class Log_opts 
 {
@@ -132,7 +58,7 @@ public:
 	{
     //TODO: mutex
 		//output_lock=CreateMutex(NULL, FALSE, NULL);
-		ofstream file(log_file_name,ios::trunc);
+    std::ofstream file(log_file_name, std::ios::trunc);
 		file.close();
 		
 	};
@@ -142,19 +68,34 @@ public:
 
 void warning(const char* logline, ...);
 void debug(const char* logline, ...);
-void debug(string &str);
-void log(string &str);
+void debug(std::string &str);
+void log(std::string &str);
 void log(const char* logline, ...);
 void error(const char* logline, ...);
 void echo (const char* logline, ...);
 void echolog(const char* logline, ...);
 uint32 tick();
 
-string IntToStr (uint32 dig);
+// template class to do convert from
+// different types (mainly numerical) 
+// to string. It should be just a wrapper
+// on C/C++ capabilities of conversation.
+// There are two options:
+// 1. use stringstream (C++ 03)
+// 2. use std::to_string() (C++ 11)
+// for more read here:
+// http://stackoverflow.com/questions/332111/how-do-i-convert-a-double-into-a-string-in-c
+template <class T>
+std::string toStr (const T& param) {
+  std::stringstream ss;
+  ss << param;
+  return ss.str();
+}
+
 int32 npow(int16 dig, uint16 power);
 
-vector<string> read_tokens(char *input);
-void del_spaces (string &str);
+std::vector<std::string> read_tokens(char *input);
+void del_spaces (std::string &str);
 
 class Timer
 {
@@ -183,11 +124,12 @@ private:
 	clock_t end_time;
 };
 
-uint16 str2dof (string dof_name);
+// this function is used by FEStorage::read_ans_data funciton
+uint16 str2dof (std::string dof_name);
 
-char* getCmdOption(char ** begin, char ** end, const std::string & option);
-bool cmdOptionExists(char** begin, char** end, const std::string& option);
-vector<char*> getCmdManyOptions(char ** begin, char ** end, const std::string & option); 
+char* getCmdOption (char** begin, char** end, const std::string& option);
+bool cmdOptionExists (char** begin, char** end, const std::string& option);
+std::vector<char*> getCmdManyOptions (char** begin, char** end, const std::string& option); 
 
 struct MatchPathSeparator
 {
@@ -197,4 +139,6 @@ struct MatchPathSeparator
     }
 };
 
-string getFileNameFromPath(const string filename);
+std::string getFileNameFromPath(const std::string filename);
+
+} // namespace nla3d

@@ -1,6 +1,12 @@
+// This file is a part of nla3d project. For information about authors and
+// licensing go to project's repository on github:
+// https://github.com/dmitryikh/nla3d 
+
 #pragma once
 #include "sys.h"
 #include "elements/element.h"
+
+namespace nla3d {
 
 // dim - смысл размерности геометрии элемента
 // квадратичные фф??? надо реализовать
@@ -8,32 +14,32 @@ template <uint32 dim, uint32 nodes_num>
 class Element_Lagrange_Formulation
 {
 public:
-	static vector<Vec<nodes_num> > gN; // calculated form function on ecah int point
-	vector<Mat<dim,dim> > Jacob;	//Jacob inv matrix
-	vector<Mat<dim,nodes_num> > NjXi; //derivates form function / local coordinates
-	vector<double>	det;	//Jacobian
-	const static Mat<4,4> gPoint; //integration points & weights for Gauss integration
-	const static Mat<4,4> gWeight; // supported schemes 1x1x1 to 4x4x4
+	static std::vector<math::Vec<nodes_num> > gN; // calculated form function on ecah int point
+	std::vector<math::Mat<dim,dim> > Jacob;	//Jacob inv matrix
+	std::vector<math::Mat<dim,nodes_num> > NjXi; //derivates form function / local coordinates
+	std::vector<double>	det;	//Jacobian
+	const static math::Mat<4,4> gPoint; //integration points & weights for Gauss integration
+	const static math::Mat<4,4> gWeight; // supported schemes 1x1x1 to 4x4x4
 
 	void make_Jacob(uint32 el, Node** nodes);	//function to calculate all this staff above
 	void npoint_to_ii(uint16 nPoint, uint16 *ii); //by number of gauss point find indexes
 	void npoint_to_xi(uint16 nPoint, double *xi); //by number of gauss point find local coordinates
 	double g_weight(uint16 nPoint);
-  double volume();
+    double volume();
 
 	const static int16 _signs[8][3];
 };
 
 
-template <uint32 dim, uint32 nodes_num> const Mat<4,4> Element_Lagrange_Formulation<dim,nodes_num>::gPoint = Mat<4,4>(0.0f, 0.0f, 0.0f, 0.0f,
+template <uint32 dim, uint32 nodes_num> const math::Mat<4,4> Element_Lagrange_Formulation<dim,nodes_num>::gPoint = math::Mat<4,4>(0.0f, 0.0f, 0.0f, 0.0f,
 												-0.5773502691896f, +0.5773502691896f, 0.0f, 0.0f,
 												-0.7745966692415f, 0.0f, +0.7745966692415f, 0.0f,
 												-0.8611363115941f, -0.3399810435849f, +0.3399810435849f, +0.8611363115941f);
-template <uint32 dim, uint32 nodes_num> const Mat<4,4> Element_Lagrange_Formulation<dim,nodes_num>::gWeight = Mat<4,4>(2.0f, 0.0f, 0.0f, 0.0f,
+template <uint32 dim, uint32 nodes_num> const math::Mat<4,4> Element_Lagrange_Formulation<dim,nodes_num>::gWeight = math::Mat<4,4>(2.0f, 0.0f, 0.0f, 0.0f,
 												1.0f, 1.0f, 0.0f, 0.0f,
 												0.5555555555556f, 0.8888888888889f, 0.5555555555556f, 0.0f,
 												0.3478548451375f, 0.6521451548625f, 0.6521451548625f, 0.3478548451375f);
-template <uint32 dim, uint32 nodes_num> vector<Vec<nodes_num> > Element_Lagrange_Formulation<dim,nodes_num>::gN;
+template <uint32 dim, uint32 nodes_num> std::vector<math::Vec<nodes_num> > Element_Lagrange_Formulation<dim,nodes_num>::gN;
 
 template <uint32 dim, uint32 nodes_num>const  int16 Element_Lagrange_Formulation<dim,nodes_num>::_signs[8][3] = {-1,-1,-1,1,-1,-1,1,1,-1,-1,1,-1,-1,-1,1,1,-1,1,1,1,1,-1,1,1};
 
@@ -69,7 +75,7 @@ void Element_Lagrange_Formulation<dim,nodes_num>::make_Jacob(uint32 el, Node** n
 	//once fill up matrix of calculated function form 
 	if (gN.size()==0)
 	{
-		gN.assign(npow(Element::n_int(), dim), Vec<nodes_num>());
+		gN.assign(npow(Element::n_int(), dim), math::Vec<nodes_num>());
 		for (nPoint=0; (int32) nPoint < npow(Element::n_int(),dim); nPoint++)
 		{
 			npoint_to_xi(nPoint, xi);
@@ -79,14 +85,14 @@ void Element_Lagrange_Formulation<dim,nodes_num>::make_Jacob(uint32 el, Node** n
 	}
 
 	Jacob.clear();
-	Jacob.assign(npow(Element::n_int(),dim), Mat<dim,dim>());
+	Jacob.assign(npow(Element::n_int(),dim), math::Mat<dim,dim>());
 	det.clear();
 	det.assign(npow(Element::n_int(),dim), 0.0);
 	NjXi.clear();
-	NjXi.assign(npow(Element::n_int(),dim), Mat<dim,nodes_num>());
+	NjXi.assign(npow(Element::n_int(),dim), math::Mat<dim,nodes_num>());
 	double inv_det;
-	Mat<dim,nodes_num> dN; //производные функции формы
-	Mat<dim,dim> J;
+	math::Mat<dim,nodes_num> dN; //производные функции формы
+	math::Mat<dim,dim> J;
 	for (nPoint=0; (int32) nPoint < npow(Element::n_int(),dim); nPoint++)
 	{
 		for (uint16 der = 0; der < dim; der++)
@@ -138,3 +144,4 @@ double Element_Lagrange_Formulation<dim,nodes_num>::volume()
 	return volume;
 }
 
+} // namespace nla3d

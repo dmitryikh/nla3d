@@ -2,20 +2,19 @@
 #include "elements/element.h"
 #include "elements/element_lagrange.h"
 #include "FE_Storage.h"
+#include <Eigen/Dense>
 
 //-------------------------------------------------------
-//-------------------ElementSOLID80----------------------
+//-------------------ElementSOLID81----------------------
 //-------------------------------------------------------
 //8-node brick nonlinear element based on mixed approach
-class ElementSOLID80 : public Element_SOLID8, public Element_Lagrange_Formulation<3,8>
-{
+class ElementSOLID81 : public Element_SOLID8, public Element_Lagrange_Formulation<3,8> {
 public:
-	ElementSOLID80 ()
-	{
+	ElementSOLID81 () {
 		change_node_dofs_num(3, UX, UY, UZ);
 		change_el_dofs_num(1,HYDRO_PRESSURE);
 	}
-	ElementSOLID80 (const ElementSOLID80& from)
+	ElementSOLID81 (const ElementSOLID81& from)
 	{
 		operator=(from);
 	}
@@ -25,19 +24,20 @@ public:
 	void build();
 	void update();
 
-	void make_B_L (uint16 nPoint, Mat2<6,24> &B);	//функция создает линейную матрицу [B]
-	void make_B_NL (uint16 nPoint,  Mat2<9,24> &B); //функция создает линейную матрицу [Bomega]
-	void make_S (uint16 nPoint, MatSym<9> &B);
-	void make_Omega (uint16 nPoint, Mat2<6,9> &B);
+	void make_B_L (uint16 nPoint, Eigen::Ref<Eigen::MatrixXd> B);	//функция создает линейную матрицу [B]
+	void make_B_NL (uint16 nPoint, Eigen::Ref<Eigen::MatrixXd> B); //функция создает линейную матрицу [Bomega]
+	void make_S (uint16 nPoint, Eigen::Ref<Eigen::MatrixXd> SMat);
+	void make_Omega (uint16 nPoint, Eigen::Ref<Eigen::MatrixXd> Omega);
 
   //postproc procedures
 	void getScalar(double& scalar, el_component code, uint16 gp, const double scale);
+    void getVector(double* vector, el_vector code, uint16 gp, const double scale);
 	void getTensor(MatSym<3>& tensor, el_tensor code, uint16 gp, const double scale);
 
   // internal element data
-	// S[0] - Sx	S[1] - Sy	S[2] - Sz	S[3] - Sxy	S[4] - Syz	S[5] - Sxz
+	//S[M_XX], S[M_XY], S[M_XZ], S[M_YY], S[M_YZ], S[M_ZZ]
 	vector<Vec<6> > S; //S[номер т. интегр.][номер напряжения] - напряжения Пиолы-Кирхгоффа
-	// C[0] - C11	C[1] - C22	C[2] - C33	C[3] - C12	C[4] - C23	C[5] - C[5]
+	//C[M_XX], C[M_XY], C[M_XZ], C[M_YY], C[M_YZ], C[M_ZZ]
 	vector<Vec<6> > C; //C[номер т. интегр.][номер деформ.] - компоненты тензора меры деформации
 	// O[0]-dU/dx	O[1]-dU/dy	O[2]-dU/dz	O[3]-dV/dx	O[4]-dV/dy	O[5]-dV/dz	O[6]-dW/dx	O[7]-dW/dy	O[8]-dW/dz
 	vector<Vec<9> > O; //S[номер т. интегр.][номер омеги]
@@ -51,10 +51,11 @@ public:
 	void assemble2(MatSym<dimM> &Kuu, Mat2<dimM,dimM> &Kup, Mat2<dimN,dimN> &Kpp, Vec<dimM> &Fu, Vec<dimN> &Fp);
 	template <uint16 dimM>
 	void assemble3(MatSym<dimM> &Kuu, Vec<dimM> &Kup, double Kpp, Vec<dimM> &Fu, double Fp);
+  void assemble4(Eigen::Ref<Eigen::MatrixXd> Ke, Eigen::Ref<Eigen::MatrixXd> Fe);
 };
 
 template <uint16 dimM, uint16 dimN>
-void ElementSOLID80::assemble2(MatSym<dimM> &Kuu, Mat2<dimM,dimM> &Kup, Mat2<dimN,dimN> &Kpp, Vec<dimM> &Fu, Vec<dimN> &Fp) 
+void ElementSOLID81::assemble2(MatSym<dimM> &Kuu, Mat2<dimM,dimM> &Kup, Mat2<dimN,dimN> &Kpp, Vec<dimM> &Fu, Vec<dimN> &Fp) 
 {
 	assert (Element::n_nodes()*Node::n_dofs() == dimM);
 	assert (Element::n_dofs() == dimN);
@@ -103,7 +104,7 @@ void ElementSOLID80::assemble2(MatSym<dimM> &Kuu, Mat2<dimM,dimM> &Kup, Mat2<dim
 }
 
 template <uint16 dimM>
-void ElementSOLID80::assemble3(MatSym<dimM> &Kuu, Vec<dimM> &Kup, double Kpp, Vec<dimM> &Fu, double Fp) 
+void ElementSOLID81::assemble3(MatSym<dimM> &Kuu, Vec<dimM> &Kup, double Kpp, Vec<dimM> &Fu, double Fp) 
 {
 	assert (Element::n_nodes()*Node::n_dofs() == dimM);
 	assert (Element::n_dofs() == 1);
@@ -143,5 +144,4 @@ void ElementSOLID80::assemble3(MatSym<dimM> &Kuu, Vec<dimM> &Kup, double Kpp, Ve
 		}
 		storage->Fi_add(-(int32)getElNum(), 0, Fp);
 }
-
 

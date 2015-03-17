@@ -1,4 +1,10 @@
-#include "materials/material_factory.h"
+// This file is a part of nla3d project. For information about authors and
+// licensing go to project's repository on github:
+// https://github.com/dmitryikh/nla3d 
+
+#include "materials/MaterialFactory.h"
+
+namespace nla3d {
 
 const char* const MaterialFactory::matModelLabels[]={"UNDEFINED",
   "Neo-Hookean",
@@ -6,7 +12,7 @@ const char* const MaterialFactory::matModelLabels[]={"UNDEFINED",
   "Mooney-Rivlin"
 };
 
-MaterialFactory::matId MaterialFactory::matName2matId (string matName) {
+MaterialFactory::matId MaterialFactory::matName2matId (std::string matName) {
   for (uint16 i = 0; i < MaterialFactory::LAST; i++) {
     if (matName.compare(MaterialFactory::matModelLabels[i]) == 0) {
       return (MaterialFactory::matId) i;
@@ -15,7 +21,7 @@ MaterialFactory::matId MaterialFactory::matName2matId (string matName) {
   return MaterialFactory::NOT_DEFINED;
 }
 
-Material* MaterialFactory::createMaterial (string matName) {
+Material* MaterialFactory::createMaterial (std::string matName) {
   uint16 matId = matName2matId(matName);
   Material* mat;
   if (matId == MaterialFactory::NOT_DEFINED)
@@ -37,3 +43,4 @@ Material* MaterialFactory::createMaterial (string matName) {
   return mat;
 }
 
+} // namespace nla3d

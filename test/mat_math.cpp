@@ -1,8 +1,11 @@
 #include "sys.h"
 #include "math\Mat.h"
-#include "math\Mat_Band.h"
 
 //TODO: not all results are autochecked
+
+using namespace std;
+using namespace nla3d;
+using namespace nla3d::math;
 
 dMat test_func_dmat()
 {
@@ -115,37 +118,6 @@ int main()
     error("mat55.inv() is not correct");
   } 
   
-	cout << "Checking of the Mat_Band_*m class:" << endl;
-	Mat_Band_cm M_U(5,3);
-	M_U[1][1] = 10;
-	M_U[1][2] = 9;
-	M_U[1][3] = 8;
-	M_U[2][2] = 20;
-	M_U[2][3] = 5;
-	M_U[2][4] = 4;
-	//M_U[3][2] = 5;
-	M_U[3][3] = 30;
-	M_U[3][4] = 6;
-	M_U[3][5] = 3;
-	M_U[4][4] = 40;
-	M_U[4][5] = 1;
-	M_U[5][5] = 50;
-
-	cout << "upper defined M_U:" << endl << M_U << endl;
-	Mat_Band_cm M_L(5,3);
-	M_U[1][1] = 10;
-	M_U[2][1] = 9;
-	M_U[3][1] = 8;
-	M_U[2][2] = 20;
-	M_U[3][2] = 5;
-	M_U[4][2] = 4;
-	M_U[3][3] = 30;
-	M_U[4][3] = 6;
-	M_U[5][3] = 3;
-	M_U[4][4] = 40;
-	M_U[5][4] = 1;
-	M_U[5][5] = 50;
-	cout << "lower defined M_L:" << endl << M_U << endl;
 
 	Mat<3,6> MB(1.0f,2.0f,3.0f,4.0f,5.0f,6.0f,7.0f,8.0f,9.0f,10.0f,11.0f,12.0f,13.0f,14.0f,15.0f,16.0f,17.0f,18.0f);
 	Mat<3,3> D(11.0f,12.0f,13.0f,12.0f,22.0f,23.0f,13.0f,23.0f,33.0f);
