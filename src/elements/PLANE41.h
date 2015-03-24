@@ -16,13 +16,12 @@ namespace nla3d {
 //4-node 2D QUAD nonlinear element based on mixed approach
 class ElementPLANE41 : public Element_PLANE4, public Element_Lagrange_Formulation<2,4> {
 public:
-	ElementPLANE41 ()
-	{
-		change_node_dofs_num(2, UX, UY);
-		change_el_dofs_num(1,HYDRO_PRESSURE);
+	ElementPLANE41 () {
+    Node::registerDofType(Dof::UX);
+    Node::registerDofType(Dof::UY);
+    Element::registerDofType(Dof::HYDRO_PRESSURE);
 	}
-	ElementPLANE41 (const ElementPLANE41& from)
-	{
+	ElementPLANE41 (const ElementPLANE41& from) {
 		operator=(from);
 	}
 
@@ -58,32 +57,35 @@ public:
 template <uint16 el_dofs_num>
 void ElementPLANE41::assemble (const math::Mat<el_dofs_num,el_dofs_num> &Ke, const math::Vec<el_dofs_num> &Qe)
 {
-	uint16 eds = Element::n_nodes()*Node::n_dofs(); // el's dofs start number
-	assert(el_dofs_num == eds+Element::n_dofs());
+  uint16 dim = 2;
+  uint16 eds = 8;
+  Dof::dofType nodeDofVec[] = {Dof::UX, Dof::UY};
+  Dof::dofType elementDofVec[] = {Dof::HYDRO_PRESSURE};
+	assert(Element::n_nodes() * dim + Element::n_dofs() == el_dofs_num);
 	// upper diagonal process for nodal dofs
 	for (uint16 i=0; i < Element::n_nodes(); i++)
 		for (uint16 j=i; j < Element::n_nodes(); j++)
-			for (uint16 di=0; di < Node::n_dofs(); di++)
-				for (uint16 dj=0; dj < Node::n_dofs(); dj++)
+			for (uint16 di=0; di < dim; di++)
+				for (uint16 dj=0; dj < dim; dj++)
 					if ((i==j) && (dj>di)) continue;
 					else
-						storage->Kij_add(nodes[i],di,nodes[j],dj, Ke[i*Node::n_dofs()+di][j*Node::n_dofs()+dj]);
+						storage->Kij_add(nodes[i], nodeDofVec[di],nodes[j],nodeDofVec[dj], Ke[i*dim+di][j*dim+dj]);
 	//upper diagonal process for nodes-el dofs
 	for (uint16 i=0; i < Element::n_nodes(); i++)
-		for(uint16 di=0; di < Node::n_dofs(); di++)
+		for(uint16 di=0; di < dim; di++)
 			for (uint16 dj=0; dj < Element::n_dofs(); dj++)
-				storage->Kij_add(nodes[i],di, -(int32)getElNum(), dj, Ke[i*Node::n_dofs()+di][eds+dj]);
+				storage->Kij_add(nodes[i], nodeDofVec[di], -(int32)getElNum(), elementDofVec[dj], Ke[i*dim+di][eds+dj]);
 	//upper diagonal process for el-el dofs
 	for (uint16 di=0; di < Element::n_dofs(); di++)
 		for (uint16 dj=di; dj < Element::n_dofs(); dj++)
-			storage->Kij_add(-(int32)getElNum(), di, -(int32)getElNum(), dj,  Ke[eds+di][eds+dj]);
+			storage->Kij_add(-(int32)getElNum(), elementDofVec[di], -(int32)getElNum(), elementDofVec[dj],  Ke[eds+di][eds+dj]);
 
 	for (uint16 i=0; i < Element::n_nodes(); i++)
-		for (uint16 di=0; di < Node::n_dofs(); di++)
-			storage->Fi_add(nodes[i],di, Qe[i*Node::n_dofs()+di]);
+		for (uint16 di=0; di < dim; di++)
+			storage->Fi_add(nodes[i], nodeDofVec[di], Qe[i*dim+di]);
 
 	for (uint16 di=0; di < Element::n_dofs(); di++)
-		storage->Fi_add(-(int32)getElNum(), di, Qe[eds+di]);
+		storage->Fi_add(-(int32)getElNum(), elementDofVec[di], Qe[eds+di]);
 }
 
 } // namespace nla3d 

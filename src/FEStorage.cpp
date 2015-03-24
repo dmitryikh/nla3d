@@ -46,10 +46,11 @@ FEStorage::FEStorage()  {
 	vec_rhs_dof = NULL;
 	vec_rhs_mpc = NULL;
 
-	dof_array = NULL;
-	
 	status = ST_INIT;
   elType = ElementFactory::NOT_DEFINED;
+
+  numberOfElementDofs = 0;
+  numberOfNodeDofs = 0;
 };
 
 FEStorage::~FEStorage () {
@@ -70,13 +71,30 @@ FEStorage::~FEStorage () {
 	if (vec_F) delete[] vec_F;
 	if (vec_b) delete[] vec_b;
 	if (vec_rhs) delete[] vec_rhs;
-	if (dof_array) delete[] dof_array;
 
   for (size_t i = 0; i < feComponents.size(); i++) {
     delete feComponents[i];
   }
   feComponents.clear();
   clearMesh();
+
+  for (size_t i = 0; i < elementDofs.size(); i++) {
+    if (elementDofs[i] != NULL) {
+      delete elementDofs[i];
+    }
+  }
+  elementDofs.clear();
+
+  for (size_t i = 0; i < nodeDofs.size(); i++) {
+    if (nodeDofs[i] != NULL) {
+      delete nodeDofs[i];
+    }
+  }
+  nodeDofs.clear();
+
+  //TODO: we need to clear a memory after work 
+  // list_bc_MPC
+  // mpcCollections
 }
 
 bool FEStorage::prepare_for_solution () {
@@ -86,15 +104,18 @@ bool FEStorage::prepare_for_solution () {
 		return false;
 	}
   
-  // TODO: for now number of dofs per element are constans 
-  // until we have only one element type in a FE model.
-  // Therefore it's straightforward to calculate the total number of dofs
-	n_dofs = n_nodes*Node::n_dofs() + n_elements*Element::n_dofs(); //общее число степеней свободы
+  for (size_t i = 0; i < mpcCollections.size(); i++) {
+    mpcCollections[i]->pre();
+    mpcCollections[i]->registerMpcsInStorage();
+  }
+
+  // Total number of dofs (only registered by elements)
+	n_dofs = numberOfElementDofs + numberOfNodeDofs;
 
   //TODO: make it possible to work without any constrained dofs
   // (in case of only MPC)
-  n_constrained_dofs = list_bc_dof_constraint.size();
-	n_MPC_eqs = list_bc_MPC.size();
+  n_constrained_dofs = static_cast<uint32> (list_bc_dof_constraint.size());
+	n_MPC_eqs = static_cast<uint32> (list_bc_MPC.size());
 
   // n_solve_dofs - number of Dof need to be found on every step
 	n_solve_dofs = n_dofs - n_constrained_dofs;
@@ -130,22 +151,39 @@ bool FEStorage::prepare_for_solution () {
 	Kcs = new math::SparseMatrix(n_constrained_dofs, n_solve_dofs);
 	Kcc = new math::SparseSymmetricMatrix(n_constrained_dofs);
 
-	// заполняем массив степеней свободы
-	dof_array = new Dof[n_dofs];
+	// Fill elementsDofs and nodeDofs with isConstrained information
+  // and then give them an equation numbers
 	uint32 next_eq_solve = n_constrained_dofs+1;
 	uint32 next_eq_const = 1;
 	list<BC_dof_constraint>::iterator p = list_bc_dof_constraint.begin();
 	while (p != list_bc_dof_constraint.end()) {
-		dof_array[get_dof_num(p->node, p->node_dof)-1].is_constrained = true;
+    getDof(p->node, p->node_dof)->isConstrained = true;
 		p++;
 	}
-	for (uint32 i = 0; i < n_dofs; i++)	{
-		if (dof_array[i].is_constrained) {
-			dof_array[i].eq_number = next_eq_const++;
+	for (size_t i = 0; i < getNumberOfElements()*Element::getNumberOfDofs(); i++)	{
+    if (elementDofs[i] == NULL) {
+      continue;
+    }
+		if (elementDofs[i]->isConstrained) {
+			elementDofs[i]->eqNumber = next_eq_const++;
     } else {
-			dof_array[i].eq_number = next_eq_solve++;
+			elementDofs[i]->eqNumber = next_eq_solve++;
     }
 	}
+
+	for (size_t i = 0; i < getNumberOfNodes()*Node::getNumberOfDofs(); i++)	{
+    if (nodeDofs[i] == NULL) {
+      continue;
+    }
+		if (nodeDofs[i]->isConstrained) {
+			nodeDofs[i]->eqNumber = next_eq_const++;
+    } else {
+			nodeDofs[i]->eqNumber = next_eq_solve++;
+    }
+	}
+  assert(next_eq_const - 1 == n_constrained_dofs);
+  assert(next_eq_solve - 1 == n_dofs);
+
 	//настраеваем массивы значенийстепеней свободы {qc; qs; lambda}
 	vec_q_lambda = new double[n_dofs+n_MPC_eqs];
 	memset(vec_q_lambda, 0, sizeof(double)*(n_dofs+n_MPC_eqs));
@@ -180,6 +218,21 @@ bool FEStorage::prepare_for_solution () {
 	vec_rhs_dof = vec_rhs;
 	vec_rhs_mpc = &(vec_rhs[n_solve_dofs]);
 
+  std::stringstream ss;
+  ss << "Nodal DoF types:";
+  for (uint16 i = 0; i < Node::getNumberOfDofs(); i++) {
+    ss << " " << Dof::dofTypeLabels[Node::getDofType(i)];
+  }
+  ss << " Number of nodal DoFs: " << numberOfNodeDofs;
+  ss << std::endl;
+  ss << "Element DoF types:";
+  for (uint16 i = 0; i < Element::getNumberOfDofs(); i++) {
+    ss << " " << Dof::dofTypeLabels[Element::getDofType(i)];
+  }
+  ss << " Number of element DoFs: " << numberOfElementDofs;
+  ss << std::endl;
+
+  echolog(ss.str().c_str());
 	echolog("DoFs = %d, constrained DoFs = %d, MPC eq. = %d, TOTAL eq. = %d",
                 n_dofs, n_constrained_dofs, n_MPC_eqs, n_solve_dofs + n_MPC_eqs);
 
@@ -197,18 +250,20 @@ bool FEStorage::prepare_for_solution () {
 // solver we need to choose in which block (Kcc, Kcs, KssCsT)
 // the value should be added.
 // NOTE: nodes numbers are started from 1. And DoFs are started from 0.
-void FEStorage::Kij_add(int32 nodei, uint16 dofi, int32 nodej, uint16 dofj, double value) {
-	uint32 eq_row = get_dof_eq_num(nodei, dofi);
-	uint32 eq_col = get_dof_eq_num(nodej, dofj);
-	if (eq_row > eq_col) swap(eq_row, eq_col);
-	if (eq_row <= n_constrained_dofs) {
-		if (eq_col <= n_constrained_dofs) {
-			Kcc->addValue(eq_row, eq_col, value);
+void FEStorage::Kij_add(int32 nodei, Dof::dofType dofi, int32 nodej, Dof::dofType dofj, double value) {
+  Dof* rowDof = getDof(nodei, dofi);
+  Dof* colDof = getDof(nodej, dofj);
+	uint32 rowEq = rowDof->eqNumber;
+	uint32 colEq = colDof->eqNumber;
+	if (rowEq > colEq) swap(rowEq, colEq);
+	if (rowEq <= n_constrained_dofs) {
+		if (colEq <= n_constrained_dofs) {
+			Kcc->addValue(rowEq, colEq, value);
     } else {
-			Kcs->addValue(eq_row, eq_col - n_constrained_dofs, value);
+			Kcs->addValue(rowEq, colEq - n_constrained_dofs, value);
     }
   } else {
-		KssCsT->addValue(eq_row - n_constrained_dofs, eq_col - n_constrained_dofs, value);
+		KssCsT->addValue(rowEq - n_constrained_dofs, colEq - n_constrained_dofs, value);
   }
 }
 
@@ -217,10 +272,10 @@ void FEStorage::Kij_add(int32 nodei, uint16 dofi, int32 nodej, uint16 dofj, doub
 // matrix.
 // eq_num - number of MPC equation,
 // nodej, dofj - DoFs for which the coefficient to be set.
-void FEStorage::Cij_add(uint32 eq_num, int32 nodej, uint32 dofj, double coef) {
+void FEStorage::Cij_add(uint32 eq_num, int32 nodej, Dof::dofType dofj, double coef) {
 	assert(Cc);
 	assert(eq_num > 0 && eq_num <= n_MPC_eqs);
-	uint32 dof_col = get_dof_eq_num(nodej, dofj);
+	uint32 dof_col = getDofEqNumber(nodej, dofj);
 	if (dof_col <= n_constrained_dofs) {
 		Cc->addValue(eq_num, dof_col, coef);
   }	else {
@@ -232,9 +287,9 @@ void FEStorage::Cij_add(uint32 eq_num, int32 nodej, uint32 dofj, double coef) {
 // Fi_add is a function to add the value to a rhs of the global system of linear
 // equations. 
 // NOTE: nodes index starts from 1. DoF index starts with 0.
-void FEStorage::Fi_add(int32 nodei, uint16 dofi, double value) {
+void FEStorage::Fi_add(int32 nodei, Dof::dofType dofi, double value) {
 	assert(vec_F);
-	uint32 row = get_dof_eq_num(nodei, dofi);
+	uint32 row = getDofEqNumber(nodei, dofi);
 	assert(row <= n_dofs);
 	vec_F[row-1] += value;
 }
@@ -242,23 +297,23 @@ void FEStorage::Fi_add(int32 nodei, uint16 dofi, double value) {
 // zeroK function is used to set values in the global stiffnes matrix to zero.
 void FEStorage::zeroK() {
 	assert(KssCsT);
-  // now we set to zero only a block of KssCsT matrix because coefficients of
-  // the MPC equations are not goint to be changed.
-  // TODO: Don't forget if in future we will have a nonlinear MPC then
-  // coefficients should be updated on every step of solution.
-	KssCsT->zeroBlock(n_solve_dofs);
-  //was:
-	//KssCsT->zero();
+	KssCsT->zero();
 	Kcc->zero();
 	Kcs->zero();
+  if (Cc) {
+    Cc->zero();
+  }
 }
 
 // zeroF:
 // set zeros to a rhs vector of a global eq. system.
 void FEStorage::zeroF() {
 	assert(vec_F);
-	memset(vec_F, 0, sizeof(double)*n_dofs);
+	memset(vec_F, 0, sizeof(double)*(n_dofs));
 	memset(vec_dq_dlambda, 0, sizeof(double)*(n_dofs+n_MPC_eqs));
+  if (n_MPC_eqs > 0) {
+    memset(vec_b, 0, sizeof(double)*(n_MPC_eqs));
+  }
 }
 
 // get_solve_mat:
@@ -289,7 +344,7 @@ double* FEStorage::get_solve_rhs () {
 
 uint16 FEStorage::add_post_proc (PostProcessor *pp) {
 	assert(pp);
-	uint16 num = this->post_procs.size()+1;
+	uint16 num = static_cast<uint16> (this->post_procs.size()+1);
 	pp->nPost_proc = num;
 	post_procs.push_back(pp);
 	return num;
@@ -333,8 +388,7 @@ void FEStorage::nodes_reassign(uint32 _nn)
 }
 
 //elements_reassign(_en)
-void FEStorage::elements_reassign(uint32 _en)
-{
+void FEStorage::elements_reassign(uint32 _en) {
   deleteElements();
 	n_elements = _en;
   //TODO: catch if not enough memory
@@ -351,68 +405,93 @@ void FEStorage::elements_reassign(uint32 _en)
 // get_q_e(el, ptr) функция возвращает вектор узловых степеней свободы элемента,
 // вызывающая сторона должна предоставить массив ptr размерностью Element::n_nodes()*Node::n_dofs() + Element::n_dofs()
 // el начинается с 1
-void FEStorage::get_q_e(uint32 el, double* ptr)
-{
-	assert(el <= n_elements);
-	assert(vec_q_lambda);
-	for (uint16 i=0; i<Element::n_nodes(); i++)
-		for (uint16 j=0; j<Node::n_dofs(); j++)
-			ptr[i*Node::n_dofs()+j] = vec_q_lambda[get_dof_eq_num(elements[el-1]->node_num(i), j)-1];
-	for (uint16 i=0; i < Element::n_dofs(); i++)
-		ptr[Element::n_nodes()*Node::n_dofs()+i] = vec_q_lambda[get_dof_eq_num(-(int32)el, i)-1];
-}
-// get_dq_e см. выше
-void FEStorage::get_dq_e(uint32 el, double* ptr)
-{
-	assert(el <= n_elements);
-	assert(vec_dq_dlambda);
-	for (uint16 i=0; i<Element::n_nodes(); i++)
-		for (uint16 j=0; j<Node::n_dofs(); j++)
-			ptr[i*Node::n_dofs()+j] = vec_dq_dlambda[get_dof_eq_num(elements[el-1]->node_num(i), j)-1];
-	for (uint16 i=0; i < Element::n_dofs(); i++)
-		ptr[Element::n_nodes()*Node::n_dofs()+i] = vec_dq_dlambda[get_dof_eq_num(-(int32)el, i)-1];
+//void FEStorage::get_q_e(uint32 el, double* ptr)
+//{
+//	assert(el <= n_elements);
+//	assert(vec_q_lambda);
+//	for (uint16 i=0; i<Element::n_nodes(); i++)
+//		for (uint16 j=0; j<Node::n_dofs(); j++)
+//			ptr[i*Node::n_dofs()+j] = vec_q_lambda[getDofEqNumber(elements[el-1]->getNodeNumber(i), j)-1];
+//	for (uint16 i=0; i < Element::n_dofs(); i++)
+//		ptr[Element::n_nodes()*Node::n_dofs()+i] = vec_q_lambda[getDofEqNumber(-(int32)el, i)-1];
+//}
+//// get_dq_e см. выше
+//void FEStorage::get_dq_e(uint32 el, double* ptr)
+//{
+//	assert(el <= n_elements);
+//	assert(vec_dq_dlambda);
+//	for (uint16 i=0; i<Element::n_nodes(); i++)
+//		for (uint16 j=0; j<Node::n_dofs(); j++)
+//			ptr[i*Node::n_dofs()+j] = vec_dq_dlambda[getDofEqNumber(elements[el-1]->getNodeNumber(i), j)-1];
+//	for (uint16 i=0; i < Element::n_dofs(); i++)
+//		ptr[Element::n_nodes()*Node::n_dofs()+i] = vec_dq_dlambda[getDofEqNumber(-(int32)el, i)-1];
+//}
+
+double FEStorage::getDofSolution (int32 node, Dof::dofType dof) {
+  assert(vec_q_lambda);
+  return vec_q_lambda[getDofEqNumber(node, dof) - 1];
 }
 
-//get_q_n(n, ptr)
-// n начинается с 1
-void FEStorage::get_q_n(uint32 n, double* ptr)
-{
-	assert(n > 0 && n <= n_nodes);
-	assert(vec_q_lambda);
-	for (uint16 j=0; j<Node::n_dofs(); j++)
-		ptr[j] = vec_q[get_dof_eq_num(n, j)-1];
+double FEStorage::getDofSolutionDelta (int32 node, Dof::dofType dof) {
+  assert(vec_dq_dlambda);
+  return vec_dq_dlambda[getDofEqNumber(node, dof) - 1];
 }
 
-//void get_node_pos(uint32 n, double* ptr, bool def = false) double массим на 3 элемента!
-//n с 1
-void FEStorage::get_node_pos(uint32 n, double* ptr, bool def)
+bool FEStorage::isDofUsed (int32 node, Dof::dofType dof) {
+  Dof* ptr;
+  if (node < 0) {
+    if (!Element::isDofUsed(dof)) {
+      return false;
+    }
+    ptr = elementDofs[(node-1)*Element::getNumberOfDofs() +Element::getDofIndex(dof)];
+    if (ptr == NULL) {
+      return false;
+    }
+  } else {
+    if (!Node::isDofUsed(dof)) {
+      return false;
+    }
+    ptr = nodeDofs[(node-1)*Node::getNumberOfDofs() + Node::getDofIndex(dof)];
+    if (ptr == NULL) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// n starts from 1
+// prt array always has 3 elements
+void FEStorage::getNodePosition(uint32 n, double* ptr, bool deformed)
 {
 	assert(n > 0 && n <= n_nodes);
-	for (uint16 i=0; i<3; i++)
+	for (uint16 i = 0; i < 3; i++) {
 		ptr[i] = nodes[n-1].pos[i];
-	if (def)
-	{
-		for (uint16 i=0; i<Node::n_dofs(); i++)
-			switch(Node::dof_type(i))
-			{
-			case UX:
-				ptr[0] += get_qi_n(n, i);
-				break;
-			case UY:
-				ptr[1] += get_qi_n(n,i);
-				break;
-			case UZ:
-				ptr[2] += get_qi_n(n,i);
-			}
+  }
+	if (deformed) {
+    if (isDofUsed(n, Dof::UX)) {
+      ptr[0] += getDofSolution(n, Dof::UX);
+    }
+
+    if (isDofUsed(n, Dof::UY)) {
+      ptr[1] += getDofSolution(n, Dof::UY);
+    }
+
+    if (isDofUsed(n, Dof::UZ)) {
+      ptr[2] += getDofSolution(n, Dof::UZ);
+    }
 	}
 }
 
-double FEStorage::get_reaction_force(int32 n, uint16 dof) {
-	uint32 eq_num = get_dof_eq_num(n,dof);
-	assert(vec_reactions);
-	//assert(eq_num > 0 && eq_num <= n_constrained_dofs);
-  if (eq_num > 0 && eq_num <= n_constrained_dofs) {
-    return vec_reactions[eq_num-1];
+double FEStorage::getReaction(int32 n, Dof::dofType dof) {
+  if (isDofUsed(n, dof)) {
+    uint32 eq_num = getDofEqNumber(n,dof);
+    assert(vec_reactions);
+    //assert(eq_num > 0 && eq_num <= n_constrained_dofs);
+    if (eq_num > 0 && eq_num <= n_constrained_dofs) {
+      return vec_reactions[eq_num-1];
+    } else {
+      return 0.0;
+    }
   } else {
     return 0.0;
   }
@@ -430,8 +509,7 @@ void FEStorage::pre_first() {
 
 void FEStorage::post_first() {
 	//выключаем тренировку матриц
-	if (n_MPC_eqs) 
-	{
+	if (n_MPC_eqs) {
 		Cc->stopTraining();
 	}
 	KssCsT->stopTraining();
@@ -447,45 +525,44 @@ void FEStorage::process_solution()
 	// из вектора решения вытаскиваем все необходимое
 	//складываем решение
 
-	for (uint32 i=0; i < n_dofs; i++)
+	for (uint32 i=0; i < n_dofs; i++) {
 		vec_q[i] += vec_dq[i];
-	for (uint32 i=n_dofs; i < n_dofs+n_MPC_eqs; i++)
+  }
+	for (uint32 i=n_dofs; i < n_dofs+n_MPC_eqs; i++) {
 		vec_q_lambda[i] = vec_dq_dlambda[i];
+  }
 	
-	//cout << "q:"<<endl;
-	//for (uint32 i=0; i < n_nodes; i++)
-	//	for (uint16 j=0; j < Node::n_dofs(); j++)
-	//		cout << "N" <<i+1<<"("<<j<<")=" << get_qi_n(i+1, j) << endl; //DEBUG
-	//находим реакции
-	//cout << "reactions:"<<endl;
-	for (uint32 i=0; i < n_constrained_dofs; i++)
-	{
+	for (uint32 i = 0; i < n_constrained_dofs; i++) {
 		vec_reactions[i] = Kcs->mult_vec_i(vec_dqs,i+1) + Kcc->mult_vec_i(vec_dqc,i+1) - vec_Fc[i];
-		if (n_MPC_eqs && Cc->getNumberOfValues())
+		if (n_MPC_eqs && Cc->getNumberOfValues()) {
 			vec_reactions[i] += Cc->transpose_mult_vec_i(vec_dlambda,i+1);
-		//cout << vec_reactions[i] << endl; //DEBUG
+    }
 	}
 }
 
 
 void FEStorage::apply_BCs (uint16 curLoadstep, uint16 curIteration, double d_par, double cum_par) {
-	if (curLoadstep == 1 && curIteration == 1) {
-    // terms of MPCs: Cc Cs matricies and vec_b vector
-    // TODO: in case of non-linear MPC we need to update
-    // MPC coefficients every step
-		uint32 eq_num = 1;
-		list<BC_MPC>::iterator mpc = list_bc_MPC.begin();
-		while (mpc != list_bc_MPC.end()) {
-			vec_b[eq_num-1] = mpc->b;
-			list<MPC_token>::iterator token = mpc->eq.begin();
-			while (token != mpc->eq.end()) {
-				Cij_add(eq_num, token->node, token->node_dof, token->coef);
-				token++;
-			}
-			eq_num++;
-			mpc++;
-		}
-	}
+  // terms of MPCs: Cc Cs matricies and vec_b vector
+  // because of non-linear MPC we need to update
+  // MPC coefficients every step
+  //
+  for (size_t i = 0; i < mpcCollections.size(); i++) {
+    mpcCollections[i]->update();
+    //mpcCollections[i]->printEquations(std::cout);
+  }
+
+  uint32 eq_num = 1;
+  list<Mpc*>::iterator mpc = list_bc_MPC.begin();
+  while (mpc != list_bc_MPC.end()) {
+    vec_b[eq_num-1] = (*mpc)->b;
+    list<MpcTerm>::iterator token = (*mpc)->eq.begin();
+    while (token != (*mpc)->eq.end()) {
+      Cij_add(eq_num, token->node, token->node_dof, token->coef);
+      token++;
+    }
+    eq_num++;
+    mpc++;
+  }
 	
 	// fill nodal forces
 	list<BC_dof_force>::iterator bc_force = list_bc_dof_force.begin();
@@ -497,7 +574,7 @@ void FEStorage::apply_BCs (uint16 curLoadstep, uint16 curIteration, double d_par
 	// fill nodal displacements (kinematic constraints)
 	list<BC_dof_constraint>::iterator bc_dof = list_bc_dof_constraint.begin();
 	while (bc_dof != list_bc_dof_constraint.end()) {
-		uint32 eq_num = get_dof_eq_num(bc_dof->node, bc_dof->node_dof);//TODO: DEBUG stuff
+		uint32 eq_num = getDofEqNumber(bc_dof->node, bc_dof->node_dof);//TODO: DEBUG stuff
 		vec_dq[eq_num-1] = bc_dof->value*d_par;
 		bc_dof++;
 	}
@@ -536,8 +613,8 @@ bool read_ans_data(const char *filename, FEStorage *storage)
 			file.getline(buf, 1024);
       string buf_str(buf);
       // we need to take a format of columns "3i9"
-      uint16 start = buf_str.find("i")+1;
-      uint16 stop = buf_str.find(",");
+      size_t start = buf_str.find("i")+1;
+      size_t  stop = buf_str.find(",");
       string tmp;
       tmp.assign((char*) (buf + start), stop-start);
 			uint16 frmt = atoi(tmp.c_str());
@@ -546,7 +623,7 @@ bool read_ans_data(const char *filename, FEStorage *storage)
 			for (uint32 i=1; i<=n_number; i++)
 			{
 				file.getline(buf, 1024);
-				uint16 len=strlen(buf);
+				size_t len=strlen(buf);
 				for (uint16 j=0; j<3;j++)
 					if (len>=3*frmt+20*(j+1))
             //note that last column in NBLOCK table could be avoided if Z=0.0
@@ -569,15 +646,15 @@ bool read_ans_data(const char *filename, FEStorage *storage)
       // we need to take a format of columns "3i9"
       // in Ansys 12 here is 8 symbols per number (19i8), but in ansys 15 (19i9) is used. 
       string buf_str(buf);
-      uint16 start = buf_str.find("i")+1;
-      uint16 stop = buf_str.find(")");
+      size_t start = buf_str.find("i")+1;
+      size_t stop = buf_str.find(")");
       string tmp;
       tmp.assign((char*) (buf + start), stop-start);
 			uint16 frmt = atoi(tmp.c_str()); 
 			for (uint32 i=1; i<=en; i++)
 			{
 				file.getline(buf, 1024);
-				uint16 len=strlen(buf);
+				size_t len=strlen(buf);
         // TODO: here is a problem.. We need to work good with both dos and unix endings
 //        if (buf[len-1] == '\r') {
 //          len--;
@@ -592,7 +669,7 @@ bool read_ans_data(const char *filename, FEStorage *storage)
           warning("read_ans_data: in EBLOCK for element %d the number of nodes provided is not equal to %d", i, Element::n_nodes());
 				for (uint16 j=0; j<Element::n_nodes();j++)
 					if (len>=11*frmt+frmt*(j+1))
-						storage->getElement(i).node_num(j) = atoi(string((char*) (buf+11*frmt+frmt*j),frmt).c_str());
+						storage->getElement(i).getNodeNumber(j) = atoi(string((char*) (buf+11*frmt+frmt*j),frmt).c_str());
 			}
 		}//EBLOCK
 		else if (vec[0].find('D')!=vec[0].npos && vec[0].length()==1)
@@ -600,7 +677,7 @@ bool read_ans_data(const char *filename, FEStorage *storage)
 				BC_dof_constraint bnd;
 				bnd.node = atoi(vec[2].c_str());
 				bnd.value = atof(vec[6].c_str());
-        bnd.node_dof = str2dof(vec[4]);
+        bnd.node_dof = Dof::label2dofType(vec[4]);
         storage->add_bounds(bnd);
 		}//D
     else if (vec[0].compare("CE") == 0)
@@ -608,8 +685,8 @@ bool read_ans_data(const char *filename, FEStorage *storage)
       //How MPC looks like this in cdb file:
       //CE,R5.0,DEFI,       2,       1,  0.00000000    
       //CE,R5.0,NODE,      1700,UX  ,  1.00000000    ,      1700,UZ  ,  1.00000000  
-      BC_MPC mpc;
-      mpc.b = atoi(vec[10].c_str()); //rhs of MPC equation
+      Mpc* mpc = new Mpc;
+      mpc->b = atoi(vec[10].c_str()); //rhs of MPC equation
       uint16 n_terms = atoi(vec[6].c_str()); //number of terms in equation
       //debug("MPC link: %d terms, b = %f", n_terms, mpc.b);
       while (n_terms > 0)
@@ -620,10 +697,10 @@ bool read_ans_data(const char *filename, FEStorage *storage)
         for (int i=0; i < max((uint16) n_terms, (uint16) 2); i++) 
         {
           uint32 node = atoi(vec[place].c_str());
-          uint16 dof = str2dof(vec[place+2]);
+          Dof::dofType dof = Dof::label2dofType(vec[place+2]);
           double coef = atof(vec[place+4].c_str());
           //debug("%d term: node %d, dof %d, coef = %f", i, node, dof, coef);
-          mpc.eq.push_back(MPC_token(node,dof,coef));
+          mpc->eq.push_back(MpcTerm(node,dof,coef));
           place += 6;
           n_terms--;
         }
@@ -646,8 +723,8 @@ bool read_ans_data(const char *filename, FEStorage *storage)
         // we need to take a format of columns "8i10"
         // read how many records in a single row
         string buf_str(buf);
-        uint16 start = buf_str.find("(")+1;
-        uint16 stop = buf_str.find("i");
+        size_t start = buf_str.find("(")+1;
+        size_t stop = buf_str.find("i");
         string tmp;
         tmp.assign((char*) (buf + start), stop-start);
         uint16 numRangesInRow = atoi(tmp.c_str()); 
@@ -688,6 +765,7 @@ bool read_ans_data(const char *filename, FEStorage *storage)
             comp->list.push_back(rangesVec[all]);
           } else {
             for (size_t i = rangesVec[all-1] + 1; i < -rangesVec[all]+1; i++) {
+              //TODO: need assert for overflow
               comp->list.push_back(i);
             }
           }
@@ -704,17 +782,28 @@ bool read_ans_data(const char *filename, FEStorage *storage)
 }
 
 
-//I'd like to make this functions inline
 
-uint32 FEStorage::get_dof_num(int32 node, uint16 dof) {
-	// возвращает число от 1 до n_dofs
-	uint32 res = (node < 0)?((-node-1)*Element::n_dofs()+dof+1):(n_elements*Element::n_dofs()+(node-1)*Node::n_dofs()+dof+1);
-	return res; 
+uint32 FEStorage::getDofEqNumber(int32 node, Dof::dofType dof) {
+  return getDof(node, dof)->eqNumber;
 }
 
-uint32 FEStorage::get_dof_eq_num(int32 node, uint16 dof) {
-	assert(dof_array);
-	return dof_array[get_dof_num(node,dof)-1].eq_number;
+Dof* FEStorage::getElementDof (int32 el, Dof::dofType dof) {
+  Dof* ptr = elementDofs[(el-1)*Element::getNumberOfDofs() + Element::getDofIndex(dof)];
+  assert(ptr != NULL);
+  return ptr;
+}
+
+Dof* FEStorage::getNodeDof (int32 node, Dof::dofType dof) {
+  Dof* ptr = nodeDofs[(node-1)*Node::getNumberOfDofs() + Node::getDofIndex(dof)];
+  assert(ptr != NULL);
+  return ptr;
+}
+
+Dof* FEStorage::getDof (int32 node, Dof::dofType dof) {
+  if (node < 0) {
+    return getElementDof(-node, dof);
+  }
+  return getNodeDof(node, dof);
 }
 
 // element_nodes(el, node_ptr), вызывающая сторона должна предоставить массив 
@@ -724,14 +813,8 @@ void FEStorage::element_nodes(uint32 el, Node** node_ptr)
 {
 	assert(el <= n_elements);
 	for (uint16 i=0; i<Element::n_nodes(); i++)
-		node_ptr[i] = & nodes[elements[el-1]->node_num(i)-1];
+		node_ptr[i] = & nodes[elements[el-1]->getNodeNumber(i)-1];
 }
-
-bool FEStorage::is_dof_constrained(int32 node, uint16 dof) {
-	assert(dof_array);
-	return dof_array[get_dof_num(node,dof)-1].is_constrained;
-}
-
 
 void FEStorage::addFEComponent (FEComponent* comp) {
 	assert(comp);
@@ -758,5 +841,28 @@ void FEStorage::listFEComponents (std::ostream& out) {
     out << std::endl;
   }
 }
+
+void FEStorage::registerNodeDof(int32 node, Dof::dofType dof) {
+  if (nodeDofs.size() == 0) {
+    nodeDofs.assign(getNumberOfNodes()*Node::getNumberOfDofs(), NULL);
+  }
+  uint32 ind = (node-1)*Node::getNumberOfDofs() + Node::getDofIndex(dof);
+  if (nodeDofs[ind] == NULL) {
+    nodeDofs[ind] = new Dof;
+    numberOfNodeDofs++;
+  }
+}
+
+void FEStorage::registerElementDof(int32 el, Dof::dofType dof) {
+  if (elementDofs.size() == 0) {
+    elementDofs.assign(getNumberOfElements()*Element::getNumberOfDofs(), NULL);
+  }
+  uint32 ind = (el-1)*Element::getNumberOfDofs() + Element::getDofIndex(dof);
+  if (elementDofs[ind] == NULL) {
+    elementDofs[ind] = new Dof;
+    numberOfElementDofs++;
+  }
+}
+
 
 } // namespace nla3d 

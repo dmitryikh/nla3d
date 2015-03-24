@@ -108,6 +108,7 @@ void SparseMatrix::clear() {
 }
 
 void SparseMatrix::zero() {
+  //TODO: do we need to work with zero sized matrices?
 	assert(numberOfValues);
 	memset(values, 0, sizeof(double)*numberOfValues);
 }

@@ -9,21 +9,23 @@
 
 namespace nla3d {
 
-class Reaction_proc : public PostProcessor {
+class ReactionProcessor : public PostProcessor {
 public:
-	Reaction_proc(FEStorage *st);
-	Reaction_proc(FEStorage *st, std::string _filename);
-	virtual ~Reaction_proc() { };
+	ReactionProcessor(FEStorage *st);
+	ReactionProcessor(FEStorage *st, std::string _filename);
+	virtual ~ReactionProcessor() { };
+
 	virtual void pre (uint16 qLoadstep);
 	virtual void process (uint16 curLoadstep, uint16 qLoadstep);
 	virtual void post (uint16 curLoadstep, uint16 qLoadstep);
-  std::vector<double> getReactions ();
+
+  std::vector<double> getReactions (Dof::dofType dof);
 	
 	std::vector<uint32> nodes;
-	std::vector<uint16> dofs;
+	std::vector<Dof::dofType> dofs;
 protected:
   std::string filename;
-	std::vector<double> reactVec;
+	std::vector<std::vector<double> > sumOfDofsReactions;
 };
 
 } // namespace nla3d

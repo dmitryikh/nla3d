@@ -6,7 +6,8 @@
 #include "sys.h"
 #include <vector>
 #include <math.h>
-#include "query.h" 
+#include "query.h"
+#include "Node.h"
 #include "math\Vec.h"
 #include "math\Mat.h"
 
@@ -16,68 +17,6 @@ namespace nla3d {
 class Material;
 class FEStorage;
 
-enum Dof_Type {
-	UX,
-	UY,
-	UZ,
-	ROTX,
-	ROTY,
-	ROTZ,
-	HYDRO_PRESSURE,
-	UNKNOWN
-};
-//----------------------------------------------//
-//--------------------- Dof --------------------//
-//----------------------------------------------//
-// class for Degree of Freedom informations 
-// (is it predefined by BC, its number in equation system, ..)
-class Dof {
-public:
-	Dof() : eq_number(0), is_constrained(false) { }
-	uint32 eq_number; // 0 - not use
-	bool is_constrained; // is this DOF defined by B.C.
-};
-
-//----------------------------------------------//
-//--------------------- Node -------------------//
-//----------------------------------------------//
-//class Node represents spatial 3D node
-class Node {
-public:
-	Node() { }
-	~Node() { }
-	static uint16 n_dofs() {
-		return number_of_dofs;		
-	}
-	
-	static Dof_Type dof_type(uint16 dof) {
-		assert(dof < dof_types.size());
-		return dof_types[dof];
-	}
-	//in-out operation:
-	void display (uint32 nn) {
-		echo("N %d: %f\t%f\t%f", nn, pos[0], pos[1], pos[2]);
-	}
-	std::string toString()	{
-		std::string str;
-		char buff[100];
-		sprintf_s(buff,100,"%f %f %f",pos[0], pos[1], pos[2]);
-		str+=buff;
-		return str; //TODO: do it easy
-	}
-	void read_from_stream(std::istream &str) {
-		str >> pos[0];
-		str >> pos[1];
-		str >> pos[2]; //TODO: process wrong input
-	}
-
-  math::Vec<3> pos;
-
-	friend class Element;
-private:
-	static uint16 number_of_dofs; //only class Element can change it
-	static std::vector<Dof_Type> dof_types; //only class Element can change it
-};
 
 //----------------------------------------------//
 //--------------------- Face -------------------//
@@ -108,6 +47,11 @@ private:
 class Element {
 public: 
 	Element () : nodes(NULL) {
+    // initialise static variables (just once)
+    if (dofNumberList.size() == 0) {
+      dofNumberList.assign(Dof::numberOfDofTypes, Dof::UNDEFINED);
+      numberOfDofs = 0;
+    }
 	}
 	~Element() {
 		if (nodes) delete[] nodes;
@@ -116,17 +60,16 @@ public:
 	static uint16 n_nodes();
 	static uint16 n_dim();
 	static uint16 n_dofs();
-	uint32& node_num (uint16 num);
+	uint32& getNodeNumber (uint16 num);
 	static uint16 n_int();
 	static void set_n_int(uint16 _nint);// нельзя вызывать после выполнения функции pre() (начало решения)
 	static uint16 get_central_gp();
 	static uint16 n_face();
 	static uint16 n_nodes_per_face();
 	static Face& get_face(uint16 fn);
-	static Dof_Type dof_type(uint16 dof);
   static FEStorage& getStorage();
 
-  // hear of the element class
+  // heart of the element class
 	virtual void pre()=0;
 	virtual void build()=0;
 	virtual void update()=0;
@@ -142,22 +85,31 @@ public:
 	void read_from_stream (std::istream& str);
 	void print (std::ostream& out);
 
+
+  // working with Dofs
+	static uint16 getNumberOfDofs();	
+  static void registerDofType(Dof::dofType type);
+	static Dof::dofType getDofType (uint16 dofIndex);
+  static uint16 getDofIndex (Dof::dofType dof);
+  static bool isDofUsed (Dof::dofType dof);
+
   friend class FEStorage;
 protected:
 
-	void change_node_dofs_num (uint16 ndof,...);
-	void change_el_dofs_num (uint16 ndof, ...);
 	void change_face_nodes_num (uint16 num);
 
 	static uint16 number_of_nodes;
 	static uint16 number_of_dimensions;
 	static std::vector<Face> faces;
 	static uint16 number_of_integration_points;	// number of int points per coordinate
-	static uint16 number_of_dofs;
-	static std::vector<Dof_Type> dof_types;
 	uint32 *nodes;
   uint32 elNum;
   static FEStorage* storage;
+
+
+  // vector for mapping dofType into number of Dof in current task
+  static std::vector<uint16> dofNumberList;
+	static uint16 numberOfDofs;
 };
 
 //----------------------------------------------//
@@ -216,57 +168,55 @@ public:
 
 
 
-inline uint16 Element::n_nodes()
-{
+inline uint16 Element::n_nodes() {
 	return number_of_nodes;
 }
-inline uint16 Element::n_dim()
-{
+inline uint16 Element::n_dim() {
 	return number_of_dimensions;
 }
-inline uint16 Element::n_dofs()
-{
-	return number_of_dofs;
+inline uint16 Element::n_dofs() {
+	return numberOfDofs;
 }
-inline uint32& Element::node_num (uint16 num) //TODO: нужна ли ссылка тут?
-{
+inline uint32& Element::getNodeNumber (uint16 num) { //TODO: нужна ли ссылка тут?
 	assert(num < n_nodes());
 	assert(nodes);
 	return nodes[num];
 }
-inline uint16 Element::n_int()
-{
+inline uint16 Element::n_int() {
 	return number_of_integration_points;
 }
-inline void Element::set_n_int(uint16 _nint) //TODO: make more safety: разрешить менять до операции pre()
-{
+
+inline void Element::set_n_int(uint16 _nint) { //TODO: make more safety: разрешить менять до операции pre()
 	number_of_integration_points = _nint; 
 }
-inline uint16 Element::get_central_gp()
-{
+
+inline uint16 Element::get_central_gp() {
 	return (uint16) npow(n_int(), n_dim())/2; //TODO: is it appropriate?
 }
-inline uint16 Element::n_face()
-{
+
+inline uint16 Element::n_face() {
 	return static_cast<uint16> (faces.size());
 }
-inline uint16 Element::n_nodes_per_face()
-{
+
+inline uint16 Element::n_nodes_per_face() {
 	return Face::num_nodes_per_face;
 }
-inline Face& Element::get_face(uint16 fn)
-{
+
+inline Face& Element::get_face(uint16 fn) {
 	assert(fn < n_face());
 	return faces[fn];
 }
-inline void Element::change_face_nodes_num (uint16 num)
-{
+
+inline void Element::change_face_nodes_num (uint16 num) {
 	Face::num_nodes_per_face = num;
 }
-inline Dof_Type Element::dof_type(uint16 dof)
-{
-	assert(dof < dof_types.size());
-	return dof_types[dof];
+
+inline bool Element::isDofUsed (Dof::dofType dof) {
+  if (dofNumberList[dof] != Dof::UNDEFINED) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 inline FEStorage& Element::getStorage() {
@@ -275,6 +225,14 @@ inline FEStorage& Element::getStorage() {
 
 inline uint32 Element::getElNum() {
   return elNum;
+}
+
+inline uint16 Element::getNumberOfDofs() {
+  return numberOfDofs;		
+}
+
+inline uint16 Element::getDofIndex (Dof::dofType dof) {
+  return dofNumberList[dof];
 }
 
 } // namespace nla3d

@@ -17,13 +17,13 @@ namespace nla3d {
 class ElementSOLID81 : public Element_SOLID8, public Element_Lagrange_Formulation<3,8>
 {
 public:
-	ElementSOLID81 ()
-	{
-		change_node_dofs_num(3, UX, UY, UZ);
-		change_el_dofs_num(1,HYDRO_PRESSURE);
-	}
-	ElementSOLID81 (const ElementSOLID81& from)
-	{
+	ElementSOLID81 () {
+    Node::registerDofType(Dof::UX);
+    Node::registerDofType(Dof::UY);
+    Node::registerDofType(Dof::UZ);
+    Element::registerDofType(Dof::HYDRO_PRESSURE);
+  }
+	ElementSOLID81 (const ElementSOLID81& from) {
 		operator=(from);
 	}
 
@@ -56,10 +56,11 @@ public:
 	void assemble3(math::MatSym<dimM> &Kuu, math::Vec<dimM> &Kup, double Kpp, math::Vec<dimM> &Fu, double Fp);
 };
 
+// for now this procedure is broken
 template <uint16 dimM, uint16 dimN>
 void ElementSOLID81::assemble2(math::MatSym<dimM> &Kuu, math::Mat2<dimM,dimM> &Kup, math::Mat2<dimN,dimN> &Kpp, math::Vec<dimM> &Fu, math::Vec<dimN> &Fp) 
 {
-	assert (Element::n_nodes()*Node::n_dofs() == dimM);
+	assert (Element::n_nodes()*dim == dimM);
 	assert (Element::n_dofs() == dimN);
 	double *Kuu_p = Kuu.ptr();
 	double *Kup_p = Kup.ptr();
@@ -68,16 +69,16 @@ void ElementSOLID81::assemble2(math::MatSym<dimM> &Kuu, math::Mat2<dimM,dimM> &K
 	double *Fp_p = Fp.ptr();                               
 
 	for (uint16 i=0; i < Element::n_nodes(); i++)
-		for (uint16 di=0; di < Node::n_dofs(); di++)
+		for (uint16 di=0; di < dim; di++)
 			for (uint16 j=i; j < Element::n_nodes(); j++)
-				for (uint16 dj=di; dj < Node::n_dofs(); dj++)
+				for (uint16 dj=di; dj < dim; dj++)
 				{
 						storage->Kij_add(nodes[i],di,nodes[j],dj, *Kuu_p);
 						Kuu_p++;
 				}
 	//upper diagonal process for nodes-el dofs
 	for (uint16 i=0; i < Element::n_nodes(); i++)
-		for(uint16 di=0; di < Node::n_dofs(); di++)
+		for(uint16 di=0; di < dim; di++)
 			for (uint16 dj=0; dj < Element::n_dofs(); dj++)
 			{
 				storage->Kij_add(nodes[i],di, -(int32)getElNum(), dj, *Kup_p);
@@ -92,7 +93,7 @@ void ElementSOLID81::assemble2(math::MatSym<dimM> &Kuu, math::Mat2<dimM,dimM> &K
 		}
 
 	for (uint16 i=0; i < Element::n_nodes(); i++)
-		for (uint16 di=0; di < Node::n_dofs(); di++)
+		for (uint16 di=0; di < dim; di++)
 		{
 			storage->Fi_add(nodes[i],di, *Fu_p);
 			Fu_p++;
@@ -108,43 +109,43 @@ void ElementSOLID81::assemble2(math::MatSym<dimM> &Kuu, math::Mat2<dimM,dimM> &K
 template <uint16 dimM>
 void ElementSOLID81::assemble3(math::MatSym<dimM> &Kuu, math::Vec<dimM> &Kup, double Kpp, math::Vec<dimM> &Fu, double Fp) 
 {
-	assert (Element::n_nodes()*Node::n_dofs() == dimM);
+  const uint16 dim = 3;
+	assert (Element::n_nodes() * dim == dimM);
 	assert (Element::n_dofs() == 1);
 	double *Kuu_p = Kuu.ptr();
 	double *Kup_p = Kup.ptr();
 	double *Fu_p = Fu.ptr();
-
+  Dof::dofType dofVec[] = {Dof::UX, Dof::UY, Dof::UZ};
 	for (uint16 i=0; i < Element::n_nodes(); i++)
-		for (uint16 di=0; di < Node::n_dofs(); di++)
+		for (uint16 di=0; di < dim; di++)
 		for (uint16 j=i; j < Element::n_nodes(); j++)
 			
-				for (uint16 dj=0; dj < Node::n_dofs(); dj++)
+				for (uint16 dj=0; dj < dim; dj++)
 				{
 					if ((i==j) && (dj<di)) continue;
 					else
 					{
-						storage->Kij_add(nodes[i],di,nodes[j],dj, *Kuu_p);
+						storage->Kij_add(nodes[i],dofVec[di],nodes[j], dofVec[dj], *Kuu_p);
 						Kuu_p++;
 					}
 				}
 	//upper diagonal process for nodes-el dofs
-	for (uint16 i=0; i < Element::n_nodes(); i++)
-		for(uint16 di=0; di < Node::n_dofs(); di++)
-			for (uint16 dj=0; dj < Element::n_dofs(); dj++)
-			{
-				storage->Kij_add(nodes[i],di, -(int32)getElNum(), dj, *Kup_p);
+	for (uint16 i=0; i < Element::n_nodes(); i++) {
+		for(uint16 di=0; di < dim; di++) {
+				storage->Kij_add(nodes[i], dofVec[di], -(int32)getElNum(), Dof::HYDRO_PRESSURE, *Kup_p);
 				Kup_p++;
-			}
+    }
+  }
 	//upper diagonal process for el-el dofs
-			storage->Kij_add(-(int32)getElNum(), 0, -(int32)getElNum(), 0,  Kpp);
+  storage->Kij_add(-(int32)getElNum(), Dof::HYDRO_PRESSURE, -(int32)getElNum(), Dof::HYDRO_PRESSURE,  Kpp);
 
-	for (uint16 i=0; i < Element::n_nodes(); i++)
-		for (uint16 di=0; di < Node::n_dofs(); di++)
-		{
-			storage->Fi_add(nodes[i],di, *Fu_p);
+	for (uint16 i=0; i < Element::n_nodes(); i++) {
+		for (uint16 di=0; di < dim; di++) {
+			storage->Fi_add(nodes[i], dofVec[di], *Fu_p);
 			Fu_p++;
 		}
-		storage->Fi_add(-(int32)getElNum(), 0, Fp);
+  }
+  storage->Fi_add(-(int32)getElNum(), Dof::HYDRO_PRESSURE, Fp);
 }
 
 } // namespace nla3d

@@ -72,6 +72,12 @@ void Solution::main_process ()
 	assert(storage);
 	Timer sol(true);
 	Timer overall(true);
+    //TODO: this is temporary. 
+    //We need to have a material table (different materials for different elements)
+	GlobStates.setptr(States::PTR_CURMATER, (void*) &(storage->getMaterial()));
+	for (uint32 el = 1; el <= storage->getNumberOfElements(); el++)
+				storage->getElement(el).pre();
+    // TODO: Mpc.pre() should go here
 	if (!storage->prepare_for_solution())
 	{
 		warning("Solution::main_process: solution is interrupted");
@@ -80,11 +86,6 @@ void Solution::main_process ()
 	}
 
 
-  //TODO: this is temporary. 
-  //We need to have a material table (different materials for different elements)
-	GlobStates.setptr(States::PTR_CURMATER, (void*) &(storage->getMaterial()));
-	for (uint32 el = 1; el <= storage->getNumElement(); el++)
-				storage->getElement(el).pre();
 	for (size_t i=0; i < storage->getNumPostProc(); i++)
 		storage->getPostProc(i).pre(qLoadstep);
 	echolog("Preporation time: %4.2f sec.", sol.stop());
@@ -124,9 +125,9 @@ void Solution::main_process ()
 			if (cum_iterations == 1)
 			{
 				sol.start();
-				echolog("Start formulation for elements ( %d )", storage->getNumElement());
+				echolog("Start formulation for elements ( %d )", storage->getNumberOfElements());
 			}
-			for (uint32 el = 1; el <= storage->getNumElement(); el++)
+			for (uint32 el = 1; el <= storage->getNumberOfElements(); el++)
 			{
 				GlobStates.setuint32(States::UI32_CURELEM, el);
 				storage->getElement(el).build();
@@ -161,7 +162,7 @@ void Solution::main_process ()
 			if (cum_iterations == 1)
 				sol.start();
 			//вычисление деформаций и напряжений в элементах
-			for (uint32 el = 1; el <= storage->getNumElement(); el++) 
+			for (uint32 el = 1; el <= storage->getNumberOfElements(); el++) 
 			{
 				GlobStates.setuint32(States::UI32_CURELEM, el);
 				storage->getElement(el).update();
@@ -183,9 +184,14 @@ void Solution::main_process ()
 			{
 				curIterat++;
 				break;
-			}
+			} else if (curCriteria > 1.0e10 || isnan(curCriteria)) {
+        error ("The solution is diverged!");
+      }
 			
 		}//iterations
+    if (curIterat > qIterat) {
+      error("The solution is not converged with %d equilibrium iterations", qIterat);
+    }
 		echolog("LS %d completed with %d IT", curLoadstep, curIterat-1);
 		if (curLoadstep == 1)
 			sol.start();

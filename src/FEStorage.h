@@ -10,6 +10,7 @@
 #include "math/SparseMatrix.h"
 #include "FEComponent.h"
 #include "PostProcessor.h"
+#include "Mpc.h"
  
 namespace nla3d {
 
@@ -19,64 +20,6 @@ class Node;
 class PostProcessor;
 class Dof;
 
-class BC {
-public:
-	BC () : is_updatetable(false)
-	{  }
-	//virtual void apply(FEStorage *storage)=0;
-	bool is_updatetable; //нужно ли обновлять на каждом шаге решения
-};
-class BC_dof_constraint : public BC
-{
-public:
-	BC_dof_constraint () : node(0), node_dof(0), value(0.0)
-	{	}
-	int32 node;
-	uint16 node_dof;
-	double value;
-	//void apply(FEStorage *storage);
-};
-
-class BC_dof_force : public BC
-{
-public:
-	BC_dof_force () : node(0), node_dof(0), value(0.0)
-	{	}
-	int32 node;
-	uint16 node_dof;
-	double value;
-	//void apply(FEStorage *storage);
-};
-class MPC_token
-{
-public:
-	MPC_token() : node(0), node_dof(0), coef(0.0)
-	{	}
-	MPC_token(int32 n, uint16 dof, double coef) : node(n), node_dof(dof), coef(coef)
-	{	}
-	int32 node;
-	uint16 node_dof;
-	double coef;
-};
-// MPC equation like
-// coef1 * dof1 + coef2 * dof2 + ... + coefn * dofn - b = 0
-class BC_MPC : public BC {
-public:
-	std::list<MPC_token> eq;
-	double b;
-	// void apply(FEStorage *storage);
-  // virtual void update(const double time) { };
-};
-
-class BC_MPC_FINITE_ROTATE : public BC_MPC {
-
-  //unit axis of ratational
-  math::Vec<3> n;
-  //zero point of rotational
-  math::Vec<3> o;
-  // speed of rotation
-  double theta;
-};
 
 #define ST_INIT 1
 #define ST_LOADED 2
@@ -93,9 +36,10 @@ public:
 	std::vector<Node> nodes;
 	std::list<BC_dof_force> list_bc_dof_force;
 	std::list<BC_dof_constraint> list_bc_dof_constraint;
-	std::list<BC_MPC> list_bc_MPC;
+	std::list<Mpc*> list_bc_MPC;
 	std::vector<PostProcessor*> post_procs;
-  std::vector<FEComponent*> feComponents;
+    std::vector<FEComponent*> feComponents;
+    std::vector<MpcCollection*> mpcCollections;
 
 	uint32 n_nodes;
 	uint32 n_elements;
@@ -135,8 +79,15 @@ public:
 	double* vec_rhs_dof;
 	double* vec_rhs_mpc;
 
-	Dof *dof_array; //массив степеней свободы, поизводит привязку номера степени свободы и номера уравнения
-	//status
+  // vector with size numberOfElements() * Element::numberOfDofs()
+  std::vector<Dof*> elementDofs;
+  // number of not NULL values in elementDofs
+  uint32 numberOfElementDofs;
+  // vector with size numberOfNodes() * Node::numberOfDofs()
+  std::vector<Dof*> nodeDofs;
+  // number of not NULL values in nodeDofs
+  uint32 numberOfNodeDofs;
+
 	uint16 status;
 
   ElementFactory::elTypes elType;
@@ -145,14 +96,18 @@ public:
 	FEStorage();
 	~FEStorage();
 
-	uint32 get_dof_num(int32 node, uint16 dof);
-	uint32 get_dof_eq_num(int32 node, uint16 dof);
-	bool is_dof_constrained(int32 node, uint16 dof);
+	uint32 getDofEqNumber(int32 node, Dof::dofType dof);
+  Dof* getElementDof (int32 el, Dof::dofType dof);
+  Dof* getNodeDof (int32 node, Dof::dofType dof);
+  Dof* getDof (int32 node, Dof::dofType dof);
+  bool isDofUsed (int32 node, Dof::dofType dof);
+  void registerNodeDof(int32 node, Dof::dofType dof);
+  void registerElementDof(int32 el, Dof::dofType dof);
 
 
-	void Kij_add(int32 nodei, uint16 dofi, int32 nodej, uint16 dofj, double value);
-	void Cij_add(uint32 eq_num, int32 nodej, uint32 dofj, double value);
-	void Fi_add(int32 nodei, uint16 dofi, double value);
+  void Kij_add(int32 nodei, Dof::dofType dofi, int32 nodej, Dof::dofType dofj, double value);
+  void Cij_add(uint32 eq_num, int32 nodej, Dof::dofType dofj, double coef);
+  void Fi_add(int32 nodei, Dof::dofType dofi, double value);
 	void zeroK();
 	void zeroF();
   nla3d::math::SparseSymmetricMatrix& get_solve_mat();
@@ -164,13 +119,10 @@ public:
 	Element& getElement(uint32 _en);
 	PostProcessor& getPostProc(size_t _np);
 
-	uint32 getNumDofs () {
-		return n_dofs; 
-	}
-	uint32 getNumNode () {
+	uint32 getNumberOfNodes () {
 		return n_nodes;
 	}
-	uint32 getNumElement () {
+	uint32 getNumberOfElements () {
 		return n_elements;
 	}
 	size_t getNumPostProc () {
@@ -197,7 +149,7 @@ public:
 	uint16 add_post_proc (PostProcessor *pp);
 	void add_bounds (BC_dof_constraint &bc) ;
 	void add_bounds (BC_dof_force &bc) ;
-	void add_bounds (BC_MPC &bc);
+	void add_bounds (Mpc* bc);
   void addFEComponent (FEComponent* comp);
   void listFEComponents (std::ostream& out);
   FEComponent* getFEComponent(size_t i);
@@ -211,13 +163,14 @@ public:
 	bool prepare_for_solution ();
 
 	void element_nodes(uint32 el, Node** node_ptr);
-	void get_q_e(uint32 el, double* ptr);
-	void get_dq_e(uint32 el, double* ptr);
-	void get_q_n(uint32 n, double* ptr);
-	double get_qi_n(int32 n, uint16 dof);
-	void get_node_pos(uint32 n, double* ptr, bool def = false); //def. or initial pos
+//	void get_q_e(uint32 el, double* ptr);
+//	void get_dq_e(uint32 el, double* ptr);
+  double getDofSolution (int32 node, Dof::dofType dof);
+  double getDofSolutionDelta (int32 node, Dof::dofType dof);
 
-	double get_reaction_force(int32 n, uint16 dof);
+	void getNodePosition(uint32 n, double* ptr, bool deformed = false); //def. or initial pos
+
+	double getReaction(int32 n, Dof::dofType dof);
 
 	void pre_first();
 	void post_first();
@@ -288,21 +241,13 @@ inline void FEStorage::add_bounds (BC_dof_force &bc)
 }
 
 
-inline void FEStorage::add_bounds (BC_MPC &bc)
+inline void FEStorage::add_bounds (Mpc* bc)
 {
 	//TODO: предполагается, что закрепления не повторяют одну и туже степень свободы!
+    //TODO: we need to clear a memory after work 
 	list_bc_MPC.push_back(bc);
 }
 
-
-
-//get_qi_n(n, dof)
-// n начинается с 1
-inline double FEStorage::get_qi_n(int32 n, uint16 dof)
-{
-	assert(vec_q_lambda);
-	return vec_q[get_dof_eq_num(n, dof)-1];
-}
 
 
 inline double* FEStorage::get_vec_dqs()

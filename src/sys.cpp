@@ -267,31 +267,6 @@ void del_spaces (std::string &str)
 	str=std::string(str,start, end-start+1);
 }
 
-
-//TODO: use Doftype
-uint16 str2dof (std::string dof_name)
-{
-  uint16 dof;
-  if (!dof_name.compare("UX"))
-  {
-    dof = 0;
-  }
-  else if (!dof_name.compare("UY"))
-  {
-    dof = 1;
-  }
-  else if (!dof_name.compare("UZ"))
-  {
-    dof = 2;
-  }
-  else
-  {
-    warning("str2dof: unknown dof key: %s", dof_name.c_str());
-    dof = 0; //TODO: what we need to return in this case??
-  }
-  return dof;
-}
-
 char* getCmdOption(char ** begin, char ** end, const std::string & option) {
     char ** itr = std::find(begin, end, option);
     if (itr != end && ++itr != end) {

@@ -29,14 +29,15 @@ public:
 		va_end(argp);
 	}
 	~Vec(void) { }
+  // TODO: this should be size_t instead of uint16 
 	double& operator[] (uint16 n);
 	const double operator[] (uint16 n) const;
 	void display ();
 	void zeros() {
 		memset(data,0,sizeof(double)*dim);
 	}
-	double lenght ();
-	double qlenght ();
+	double length ();
+	double qlength ();
 	Vec operator+ (const Vec<dim> &op);
 	Vec& operator+= (const Vec<dim> &op);
 	Vec operator- ();
@@ -116,17 +117,17 @@ double Vec<dim>::operator*(const Vec<dim> &op) {
 	for (uint16 i=0; i < dim; i++) p+=data[i]*op.data[i];
 	return p;
 }
-//---------qlenght----------------------------------------------------
+//---------qlength----------------------------------------------------
 template<uint16 dim>
-double Vec<dim>::qlenght() {
+double Vec<dim>::qlength() {
 	double p=0;
 	for (uint16 i=0; i < dim; i++) p+=data[i]*data[i];
 	return p;
 }
-//---------lenght----------------------------------------------------
+//---------length----------------------------------------------------
 template<uint16 dim>
-double Vec<dim>::lenght() {
-	return sqrt(qlenght());
+double Vec<dim>::length() {
+	return sqrt(qlength());
 }
 //---------operator*----------------------------------------------------
 template<uint16 dim1> Vec<dim1> operator*(const double op1, const Vec<dim1> &op2) {

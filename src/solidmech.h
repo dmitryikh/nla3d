@@ -21,6 +21,22 @@ enum tensorComponents {
 // global order of tensor components in 1-dim array 
 const tensorComponents defaultTensorComponents[] = {M_XX, M_XY, M_XZ, M_YY, M_YZ, M_ZZ};
 
+const int LeviCivita[3][3][3] = {
+{ {0,0,0},
+  {0,0,1},
+  {0,-1,0} },
+{ {0,0,-1},
+  {0,0,0},
+  {1,0,0} }, 
+{ {0,1,0},
+  {-1,0,0},
+  {0,0,0} } };
+
+const int I[3][3] = {
+    {1,0,0},
+    {0,1,0},
+    {0,0,1}};
+
 const char* const labelsTensorComponent[]={"XX","XY", "XZ", "YY", "YZ", "ZZ"};
 // 3x3 symmetric tensor is stored in 1-dim array like order:
 // C = [CXX, CXY, CXZ, CYY, CYZ, CZZ]

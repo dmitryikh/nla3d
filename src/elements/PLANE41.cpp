@@ -21,6 +21,13 @@ void ElementPLANE41::pre() {
 		storage->element_nodes(getElNum(), nodes_p);	
 		make_Jacob(getElNum(), nodes_p);
 	}
+
+  // register element equations
+  for (uint16 i = 0; i < Element::n_nodes(); i++) {
+    storage->registerNodeDof(getNodeNumber(i), Dof::UX);
+    storage->registerNodeDof(getNodeNumber(i), Dof::UY);
+  }
+  storage->registerElementDof(getElNum(), Dof::HYDRO_PRESSURE);
 }
 
 void ElementPLANE41::build () {
@@ -38,7 +45,7 @@ void ElementPLANE41::build () {
   CVec[M_ZZ] = 1.0;
 	MatSym<3> matD_d;
 	Vec<3> vecD_p;
-	double p_e = storage->get_qi_n(-(int32)getElNum(), 0);
+	double p_e = storage->getDofSolution(- static_cast<int32> (getElNum()), Dof::HYDRO_PRESSURE);
 	GlobStates.setdouble(States::DOUBLE_HYDPRES, p_e);
   Mat_Hyper_Isotrop_General* mat = dynamic_cast<Mat_Hyper_Isotrop_General*> ((Material*)GlobStates.getptr(States::PTR_CURMATER));
   if (mat == NULL) {
@@ -122,10 +129,12 @@ Mat<4,8> ElementPLANE41::make_Bomega(uint16 nPoint)
 }
 
 void ElementPLANE41::update() {
-	Vec<9> U; //вектор перемещений элемента
-	// получаем вектор перемещений элемента из общего решения
-	storage->get_q_e(getElNum(), U.ptr());
-	Vec<8> Un;
+	// get nodal solutions from storage
+	Vec<8> U;
+  for (uint16 i = 0; i < Element::n_nodes(); i++) {
+    U[i*2 + 0] = storage->getDofSolution(getNodeNumber(i), Dof::UX);
+    U[i*2 + 1] = storage->getDofSolution(getNodeNumber(i), Dof::UY);
+  }
   Mat_Hyper_Isotrop_General* mat = dynamic_cast<Mat_Hyper_Isotrop_General*> ((Material*) GlobStates.getptr(States::PTR_CURMATER));
   if (mat == NULL) {
     error("ElementPLANE41::update: material is not derived from Mat_Hyper_Isotrop_General");
@@ -134,16 +143,14 @@ void ElementPLANE41::update() {
   CVec[M_XZ] = 0.0;
   CVec[M_YZ] = 0.0;
   CVec[M_ZZ] = 1.0;
-	for (uint16 i=0;i<8;i++)
-		Un[i] = U[i];
 	//восстанавливаем преращение давления
-	double p_e = U[8];;
+	double p_e = storage->getDofSolution(- static_cast<int32> (getElNum()), Dof::HYDRO_PRESSURE);
 	GlobStates.setdouble(States::DOUBLE_HYDPRES, p_e);
 
   for (uint16 nPoint=0; (int32) nPoint < npow(Element::n_int(),n_dim()); nPoint++) {
 		GlobStates.setuint16(States::UI16_CURINTPOINT, nPoint);
 		Mat<4,8> matBomega = make_Bomega(nPoint);
-		O[nPoint] = matBomega * Un;
+		O[nPoint] = matBomega * U;
 		C[nPoint][0] = 1.0f + 2*O[nPoint][0]+1.0f*(O[nPoint][0]*O[nPoint][0]+O[nPoint][2]*O[nPoint][2]);
 		C[nPoint][1]=1.0f + 2*O[nPoint][3]+1.0f*(O[nPoint][3]*O[nPoint][3]+O[nPoint][1]*O[nPoint][1]);
 		C[nPoint][2]=O[nPoint][1]+O[nPoint][2]+O[nPoint][0]*O[nPoint][1]+O[nPoint][2]*O[nPoint][3];
@@ -173,7 +180,7 @@ void ElementPLANE41::getScalar(double& scalar, query::scalarQuery code, uint16 g
 	assert (npow(n_int(),n_dim()));
   switch (code) {
     case query::SCALAR_SP:
-			scalar += storage->get_qi_n(-(int32)getElNum(), 0) * scale;
+      scalar += storage->getDofSolution(- static_cast<int32> (getElNum()), Dof::HYDRO_PRESSURE) * scale;
 			break;
     default:
       error("ElementPLANE41::getScalar: no data for code %d", code);

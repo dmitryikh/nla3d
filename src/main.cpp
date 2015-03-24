@@ -6,7 +6,7 @@
 #include "FEStorage.h"
 #include "VtkProcessor.h"
 #include "Solution.h"
-#include "Reaction_proc.h"
+#include "ReactionProcessor.h"
 #include "materials/MaterialFactory.h"
 
 using namespace nla3d;
@@ -28,6 +28,11 @@ namespace options {
   std::string refCurveFilename = ""; 
   double curveCompareThreshold = 0.0;
   std::string reactionComponentName = "";
+  std::vector<Dof::dofType> reactionDofs;
+
+  uint32 rigidBodyMasterNode = 0;
+  std::string rigidBodySlavesComponent = "";
+  std::vector<Dof::dofType> rigidBodyDofs;
 };
 
 bool parse_args (int argc, char* argv[]) {
@@ -81,11 +86,51 @@ bool parse_args (int argc, char* argv[]) {
     options::reactionComponentName = tmp;
   }
 
+  vtmp = getCmdManyOptions(argv, argv + argc, "-reaction");
+  if (vtmp.size() > 0) {
+    if (vtmp.size() == 1) {
+      options::reactionComponentName = vtmp[0];
+    } else  {
+      options::reactionComponentName = vtmp[0];
+      for (size_t i = 1; i < vtmp.size(); i++) {
+        options::reactionDofs.push_back(Dof::label2dofType(vtmp[i])); 
+      }
+    }
+  }
+
+  vtmp = getCmdManyOptions(argv, argv + argc, "-rigidbody");
+  if (vtmp.size() > 0) {
+    if (vtmp.size() < 2) {
+      error("Please point master node, componen with slave node and degrees of freedom");
+    } else {
+      options::rigidBodyMasterNode = atoi(vtmp[0]);
+      options::rigidBodySlavesComponent = vtmp[1];
+      if (vtmp.size() == 2) {
+        options::rigidBodyDofs.push_back(Dof::UX);
+        options::rigidBodyDofs.push_back(Dof::UY);
+        options::rigidBodyDofs.push_back(Dof::UZ);
+      } else {
+        for (size_t i = 2; i < vtmp.size(); i++) {
+          options::rigidBodyDofs.push_back(Dof::label2dofType(vtmp[i])); 
+        }
+      }
+    }
+  }
+
   return true;
 }
 
 void usage () {
-  echolog("nla3d model_file [-element el_name] [-material mat_name mat_C0 mat_C1 ..] [-iterations it_num] [-loadsteps ls_num] [-novtk]");
+  echolog("nla3d 'mesh file in cdb format'");
+  echolog("\t[-element 'element name']");
+  echolog("\t[-material 'material name' constant1 constant2 ..]");
+  echolog("\t[-iterations 'number of iterations']");
+  echolog("\t[-loadsteps 'number of loadsteps']");
+  echolog("\t[-novtk]");
+  echolog("\t[-refcurve 'file with curve']");
+  echolog("\t[-threshold 'epsilob for comparison']");
+  echolog("\t[-reaction 'component name' ['DoF' ..]]");
+  echolog("\t[-rigidbody 'master node' 'component of slaves' ['DoF' ..]]");
 }
 
 int main (int argc, char* argv[])
@@ -94,7 +139,7 @@ int main (int argc, char* argv[])
   std::vector<double> refCurve;
   std::vector<double> curCurve;
 
-  Reaction_proc* reactProc;
+  ReactionProcessor* reactProc;
 	echolog("---=== WELCOME TO NLA PROGRAM ===---");
   if (!parse_args(argc, argv)) {
     usage();
@@ -147,7 +192,7 @@ int main (int argc, char* argv[])
 
   reactProc = NULL;
   if (options::reactionComponentName.length() > 0) {
-    reactProc = new Reaction_proc(&storage);
+    reactProc = new ReactionProcessor(&storage);
     FEComponent* feComp = storage.getFEComponent(options::reactionComponentName);
     if (feComp->type != FEComponent::NODES) {
       error("To calculate reactions it's needed to provide a component with nodes");
@@ -156,19 +201,59 @@ int main (int argc, char* argv[])
     echolog("Component for measuring a reaction: %s", options::reactionComponentName.c_str());
     for (size_t i = 0; i < feComp->list.size(); i++) {
       reactProc->nodes.push_back(feComp->list[i]);
-      reactProc->dofs.push_back(1);
     }
+    for (size_t d = 0; d < options::reactionDofs.size(); d++) {
+      reactProc->dofs.push_back(options::reactionDofs[d]);
+    }
+  }
+
+  if (options::rigidBodyMasterNode > 0 && options::rigidBodySlavesComponent.length() > 0) {
+    RigidBodyMpc* mpc = new RigidBodyMpc;
+    mpc->storage = &storage;
+    mpc->masterNode = options::rigidBodyMasterNode;
+    FEComponent* comp = storage.getFEComponent(options::rigidBodySlavesComponent);
+    if (comp->type != FEComponent::NODES) {
+      error("For creation a rigid body MPC it's needed to provide a component with nodes");
+    }
+    mpc->slaveNodes.assign(comp->list.size(), 0);
+    for (size_t i = 0; i < comp->list.size(); i++) {
+      mpc->slaveNodes[i] = comp->list[i];
+    }
+
+    for (size_t i = 0; i < options::rigidBodyDofs.size(); i++) {
+      mpc->dofs.push_back(options::rigidBodyDofs[i]);
+    }
+
+    storage.mpcCollections.push_back(mpc);
+    std::stringstream ss;
+    for (uint16 i = 0; i < mpc->dofs.size(); i++) {
+      ss << " " << Dof::dofTypeLabels[i];
+    }
+    echolog("Rigid Body MPC collection: master node = %d, number of slaves = %d, slaves DoFs = %s",
+            mpc->masterNode, mpc->slaveNodes.size(), ss.str().c_str());
   }
 
 	echolog("Preprocessor time: %f sec.", pre_solve.stop());
 	sol.run();
 
   if (reactProc) {
-    curCurve = reactProc->getReactions(); 
-    for (size_t i = 0; i < curCurve.size(); i++) {
-      echolog("curCurve[%d] = %f", i, curCurve[i]);
+    std::stringstream ss;
+    ss << "Reactions:" << std::endl;
+    ss << "Loadstep";
+    for (size_t d = 0; d < reactProc->dofs.size(); d++) {
+      ss << '\t' << Dof::dofTypeLabels[reactProc->dofs[d]];
     }
+    ss << std::endl;
+    for (size_t ls = 0; ls < options::numberOfLoadsteps+1; ls++) {
+      ss << ls;
+      for (size_t d = 0; d < reactProc->dofs.size(); d++) {
+        ss << '\t' << reactProc->getReactions(reactProc->dofs[d])[ls];
+      }
+      ss << std::endl;
+    }
+    echolog(ss.str().c_str()); 
     if (refCurve.size() > 0) {
+      curCurve = reactProc->getReactions(reactProc->dofs[0]); 
       double _error = compareCurves (refCurve, curCurve);
       echolog("Error between reference loading curve and current is %f", _error);
       if (options::curveCompareThreshold > 0.0) {
