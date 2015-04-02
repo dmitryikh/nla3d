@@ -26,7 +26,12 @@ class FEComponent {
     std::string name;
 
     static typeOfComponent typeFromString(const std::string& typeName);
-    void print (std::ostream& out);
+    void print ();
 };
+
+inline MAKE_LOGGABLE(FEComponent, obj, os) {
+  os << obj.name << ": " << obj.list.size() << " " << obj.labelsOfComponent[obj.type];
+  return os;
+} 
 
 } // namespace nla3d 

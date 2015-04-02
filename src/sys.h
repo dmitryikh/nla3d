@@ -16,6 +16,9 @@
 #include <algorithm>
 #include <stdlib.h>
 
+#define ELPP_STL_LOGGING
+#include "easylogging++.h"
+
 #define _USE_MATH_DEFINES
 #include <math.h>
 

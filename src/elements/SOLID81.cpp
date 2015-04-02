@@ -15,7 +15,7 @@ void ElementSOLID81::pre() {
 
 	if (det.size()==0) {
 		Node** nodes_p = new Node*[Element::n_nodes()];
-		storage->element_nodes(getElNum(), nodes_p);	
+		storage->getElementNodes(getElNum(), nodes_p);	
 		make_Jacob(getElNum(), nodes_p);
     delete[] nodes_p;
 	}
@@ -39,7 +39,7 @@ void ElementSOLID81::build()
 	Vec<24> Kup;
 	Vec<24> Fu; //вектор узловых сил элемента
 	Vec<24> F_ext; //вектор внешних сил (пока не подсчитывается)
-  Mat_Hyper_Isotrop_General* mat = dynamic_cast<Mat_Hyper_Isotrop_General*> ((Material*)GlobStates.getptr(States::PTR_CURMATER));
+  Mat_Hyper_Isotrop_General* mat = dynamic_cast<Mat_Hyper_Isotrop_General*> (storage->getMaterial());
   if (mat == NULL) {
     error("SOLLID81::build: material is not derived from Mat_Hyper_Isotrop_General");
   }
@@ -54,16 +54,13 @@ void ElementSOLID81::build()
 	Mat2<9,24> matB_NL;
 	MatSym<24> Kuu; //матрица жесткости перед вектором перемещений
 	double p_e = storage->getDofSolution(- static_cast<int32> (getElNum()), Dof::HYDRO_PRESSURE);
-  GlobStates.setdouble(States::DOUBLE_HYDPRES, p_e);
 	double dWt; //множитель при суммировании квадратур Гаусса
-
 	Kuu.zeros();
-	for (uint16 nPoint=0; (int32) nPoint < npow(Element::n_int(),n_dim()); nPoint++)
-	{
+	for (uint16 nPoint=0; (int32) nPoint < npow(Element::n_int(),n_dim()); nPoint++) {
 		GlobStates.setuint16(States::UI16_CURINTPOINT, nPoint);
 		dWt = g_weight(nPoint);
 
-		mat->getDdDp_UP(6, solidmech::defaultTensorComponents, C[nPoint].ptr(), matD_d.ptr(), vecD_p.ptr());
+		mat->getDdDp_UP(6, solidmech::defaultTensorComponents, C[nPoint].ptr(), p_e, matD_d.ptr(), vecD_p.ptr());
 		double J = solidmech::J_C(C[nPoint].ptr());
 		matB.zeros();
 		matS.zeros();
@@ -109,8 +106,7 @@ void ElementSOLID81::update()
 	Vec<6> vecC;
 	double p_e = storage->getDofSolution(- static_cast<int32> (getElNum()), Dof::HYDRO_PRESSURE);
 
-	GlobStates.setdouble(States::DOUBLE_HYDPRES, p_e);
-  Mat_Hyper_Isotrop_General* mat = dynamic_cast<Mat_Hyper_Isotrop_General*> ((Material*)GlobStates.getptr(States::PTR_CURMATER));
+  Mat_Hyper_Isotrop_General* mat = dynamic_cast<Mat_Hyper_Isotrop_General*> (storage->getMaterial());
   if (mat == NULL) {
     error("ElementSOLID81::update: material is not derived from Mat_Hyper_Isotrop_General");
   }
@@ -130,7 +126,7 @@ void ElementSOLID81::update()
 		C[nPoint][M_XZ] = O[nPoint][2]+O[nPoint][6]+O[nPoint][0]*O[nPoint][2]+O[nPoint][3]*O[nPoint][5]+O[nPoint][6]*O[nPoint][8];	//C13
 
 		// get new PK2 stresses from update C tensor
-		mat->getS_UP (6, solidmech::defaultTensorComponents, C[nPoint].ptr(), S[nPoint].ptr());
+		mat->getS_UP (6, solidmech::defaultTensorComponents, C[nPoint].ptr(), p_e, S[nPoint].ptr());
 	}
 	GlobStates.undefineuint16(States::UI16_CURINTPOINT);
 	GlobStates.undefinedouble(States::DOUBLE_HYDPRES);
@@ -239,7 +235,7 @@ void ElementSOLID81::getScalar(double& scalar, query::scalarQuery code, uint16 g
       tmp[1] = 0.0;
       tmp[2] = 0.0;
       getVector(tmp, query::VECTOR_IC, gp, 1.0);
-      mat = dynamic_cast<Mat_Hyper_Isotrop_General*> (&storage->getMaterial());
+      mat = dynamic_cast<Mat_Hyper_Isotrop_General*> (storage->getMaterial());
       if (mat == NULL) {
         error("ElementSOLID81::getScalar: material is not derived from Mat_Hyper_Isotrop_General");
       }
@@ -247,7 +243,7 @@ void ElementSOLID81::getScalar(double& scalar, query::scalarQuery code, uint16 g
       break;
     case query::SCALAR_WP:
       J = solidmech::J_C(C[gp].ptr());
-      mat = dynamic_cast<Mat_Hyper_Isotrop_General*> (&storage->getMaterial());
+      mat = dynamic_cast<Mat_Hyper_Isotrop_General*> (storage->getMaterial());
       if (mat == NULL) {
         error("ElementSOLID81::getScalar: material is not derived from Mat_Hyper_Isotrop_General");
       }
@@ -272,19 +268,13 @@ void ElementSOLID81::getVector(double* vector, query::vectorQuery code, uint16 g
     }
     return;
   }
-  double I1C;
-  double I2Cz;
-  double J;
+  double IC[3];
   switch (code) {
     case query::VECTOR_IC:
-      I1C = C[gp][M_XX]+C[gp][M_YY]+C[gp][M_ZZ]; 
-      //I2C with star!
-      I2Cz = C[gp][M_XX]*C[gp][M_YY] + C[gp][M_YY]*C[gp][M_ZZ] + C[gp][M_XX]*C[gp][M_ZZ]
-                         - C[gp][M_XY]*C[gp][M_XY] - C[gp][M_YZ]*C[gp][M_YZ] - C[gp][M_XZ]*C[gp][M_XZ];
-      J = solidmech::J_C(C[gp].ptr());
-      vector[0] += I1C*scale;
-      vector[1] += I2Cz*scale;
-      vector[2] += J*scale;
+      solidmech::IC_C(C[gp].ptr(), IC);
+      vector[0] += IC[0] * scale;
+      vector[1] += IC[1] * scale;
+      vector[2] += IC[2] * scale;
       break;
     default:
       error("ElementSOLID81::getVector: no data for code %d", code);

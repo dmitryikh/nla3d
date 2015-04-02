@@ -17,7 +17,7 @@ VtkProcessor::~VtkProcessor()
 {
 }
 
-void VtkProcessor::pre(uint16 qLoadstep)
+void VtkProcessor::pre()
 {
 	std::string cur_fn = file_name + "0"  + ".vtk";
 	std::ofstream file(cur_fn.c_str(), std::ios::trunc);

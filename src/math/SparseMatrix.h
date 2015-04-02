@@ -35,6 +35,7 @@ public:
   
 	void startTraining ();
 	void stopTraining (bool copyValuesToMatrix = true);
+  bool isInTrainingMode();
 
 	void addValue (uint32 row, uint32 column, double value);
 
@@ -102,6 +103,7 @@ public:
 
 	void startTraining ();
 	void stopTraining (bool copyValuesToMatrix = true);
+  bool isInTrainingMode();
 
 	void addValue (uint32 row, uint32 column, double value);
 

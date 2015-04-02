@@ -39,7 +39,7 @@ Material* MaterialFactory::createMaterial (std::string matName) {
     default:
       error("createMaterial: don't have a material with id %d", matId);
   }
-  mat->code = matId; //TODO: its could be a bad thing to pass matId here
+  mat->code = matId;
   return mat;
 }
 

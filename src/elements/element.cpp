@@ -25,13 +25,6 @@ std::ostream& operator<< (std::ostream& stream,const Face& obj)
 }
 
 //--------------Element---------------
-void Element::read_from_stream (std::istream &str)
-{
-	assert(nodes);
-	for (uint16 i=0; i < number_of_nodes; i++)
-		str >> nodes[i];  //TODO: process wrong input
-}
-
 void Element::print (std::ostream& out) {
 	out << "E " << getElNum() << ":";
 	for (uint16 i = 0; i < n_nodes(); i++) {

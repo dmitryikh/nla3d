@@ -29,8 +29,9 @@ class Mat_Hyper_Isotrop_General : public Material {
 	void getS_U (uint16 ncomp, const  solidmech::tensorComponents* comps, const double* C, double *S);
 	void getD_U (uint16 ncomp, const  solidmech::tensorComponents* comps, const double* C, double *D); 
   //for nonlinear U-P elements	
-	void getS_UP (uint16 ncomp, const  solidmech::tensorComponents* comps, const double* C, double *S);
-  void getDdDp_UP (uint16 ncomp, const  solidmech::tensorComponents* comps, const double* C, double *Dd, double *Dp);
+	void getS_UP (uint16 ncomp, const  solidmech::tensorComponents* comps, const double* C, const double press, double *S);
+  void getDdDp_UP (uint16 ncomp, const  solidmech::tensorComponents* comps, const double* C, const double press, double *Dd, double *Dp);
+
 
 	virtual void W_first_derivatives (double I1, double I2, double I3, double *alpha) = 0;
 	virtual void W_second_derivatives (double I1, double I2, double I3, double *alpha) = 0;

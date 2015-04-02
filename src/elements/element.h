@@ -82,7 +82,6 @@ public:
   uint32 getElNum();
 
 	//in-out operation:
-	void read_from_stream (std::istream& str);
 	void print (std::ostream& out);
 
 
@@ -177,16 +176,20 @@ inline uint16 Element::n_dim() {
 inline uint16 Element::n_dofs() {
 	return numberOfDofs;
 }
-inline uint32& Element::getNodeNumber (uint16 num) { //TODO: нужна ли ссылка тут?
+// & is used here because this function is called such this:
+// el->getNodeNumber(0) = 1234;
+inline uint32& Element::getNodeNumber (uint16 num) {
 	assert(num < n_nodes());
 	assert(nodes);
 	return nodes[num];
 }
+
 inline uint16 Element::n_int() {
 	return number_of_integration_points;
 }
 
-inline void Element::set_n_int(uint16 _nint) { //TODO: make more safety: разрешить менять до операции pre()
+// TODO: how to avoid changing of number_of_integration_points after pre() command?
+inline void Element::set_n_int(uint16 _nint) {
 	number_of_integration_points = _nint; 
 }
 

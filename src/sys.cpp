@@ -279,7 +279,6 @@ std::vector<char*> getCmdManyOptions(char ** begin, char ** end, const std::stri
     std::vector<char*> _vec;
     char ** itr = std::find(begin, end, option);
     if (itr != end && ++itr != end) {
-      //TODO: what if len(itr[0]) == 1 ?? momry corrupted?
       while(!(itr[0][0] == '-' && (itr[0][1] < '0' || itr[0][1] > '9'))) {
         _vec.push_back(*itr);
         if (++itr == end) {

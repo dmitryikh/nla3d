@@ -18,7 +18,7 @@ void ElementPLANE41::pre() {
 	O.assign(npow(n_int(),n_dim()), Vec<4>(0.0f, 0.0f, 0.0f, 0.0f));
 	if (det.size()==0) {
 		Node** nodes_p = new Node*[Element::n_nodes()];
-		storage->element_nodes(getElNum(), nodes_p);	
+		storage->getElementNodes(getElNum(), nodes_p);	
 		make_Jacob(getElNum(), nodes_p);
 	}
 
@@ -46,8 +46,7 @@ void ElementPLANE41::build () {
 	MatSym<3> matD_d;
 	Vec<3> vecD_p;
 	double p_e = storage->getDofSolution(- static_cast<int32> (getElNum()), Dof::HYDRO_PRESSURE);
-	GlobStates.setdouble(States::DOUBLE_HYDPRES, p_e);
-  Mat_Hyper_Isotrop_General* mat = dynamic_cast<Mat_Hyper_Isotrop_General*> ((Material*)GlobStates.getptr(States::PTR_CURMATER));
+  Mat_Hyper_Isotrop_General* mat = dynamic_cast<Mat_Hyper_Isotrop_General*> (storage->getMaterial());
   if (mat == NULL) {
     error("ElementPLANE41::build: material is not derived from Mat_Hyper_Isotrop_General");
   }
@@ -60,7 +59,7 @@ void ElementPLANE41::build () {
     CVec[M_XX] = C[nPoint][0];
     CVec[M_YY] = C[nPoint][1];
     CVec[M_XY] = C[nPoint][2];
-		mat->getDdDp_UP(num_components, components, CVec.ptr(), matD_d.ptr(), vecD_p.ptr());
+		mat->getDdDp_UP(num_components, components, CVec.ptr(), p_e, matD_d.ptr(), vecD_p.ptr());
     //matD_d will be 3x3 symmetric matrix. We need to convert it onto 3x3 usual matrix
     Mat<3,3> matE_c = matD_d.toMat();
     Mat<3,1> matE_p;
@@ -84,7 +83,6 @@ void ElementPLANE41::build () {
 		Mat<4,8> matBomega = make_Bomega(nPoint);
 		Mat<3,8> matBl = matO * matBomega;
 		matB += matBl;
-    //TODO: somehow here is 2.0 multiplayer.. I need to figure out why..
 		Kuu += (matB.transpose() * matE_c * matB * 2.0 + matBomega.transpose() * matS * matBomega)*dWt;
 		Fp += (J - 1 - p_e/k)*dWt;
 		Qe += (matB.transpose() * S[nPoint] * dWt);
@@ -135,7 +133,7 @@ void ElementPLANE41::update() {
     U[i*2 + 0] = storage->getDofSolution(getNodeNumber(i), Dof::UX);
     U[i*2 + 1] = storage->getDofSolution(getNodeNumber(i), Dof::UY);
   }
-  Mat_Hyper_Isotrop_General* mat = dynamic_cast<Mat_Hyper_Isotrop_General*> ((Material*) GlobStates.getptr(States::PTR_CURMATER));
+  Mat_Hyper_Isotrop_General* mat = dynamic_cast<Mat_Hyper_Isotrop_General*> (storage->getMaterial());
   if (mat == NULL) {
     error("ElementPLANE41::update: material is not derived from Mat_Hyper_Isotrop_General");
   }
@@ -145,7 +143,6 @@ void ElementPLANE41::update() {
   CVec[M_ZZ] = 1.0;
 	//восстанавливаем преращение давления
 	double p_e = storage->getDofSolution(- static_cast<int32> (getElNum()), Dof::HYDRO_PRESSURE);
-	GlobStates.setdouble(States::DOUBLE_HYDPRES, p_e);
 
   for (uint16 nPoint=0; (int32) nPoint < npow(Element::n_int(),n_dim()); nPoint++) {
 		GlobStates.setuint16(States::UI16_CURINTPOINT, nPoint);
@@ -159,7 +156,7 @@ void ElementPLANE41::update() {
     CVec[M_XX] = C[nPoint][0];
     CVec[M_YY] = C[nPoint][1];
     CVec[M_XY] = C[nPoint][2];
-		mat->getS_UP (num_components, components, CVec.ptr(), S[nPoint].ptr());
+		mat->getS_UP (num_components, components, CVec.ptr(), p_e, S[nPoint].ptr());
 	}
 	GlobStates.undefineuint16(States::UI16_CURINTPOINT);
 	GlobStates.undefinedouble(States::DOUBLE_HYDPRES);
@@ -188,7 +185,33 @@ void ElementPLANE41::getScalar(double& scalar, query::scalarQuery code, uint16 g
 }
 
 void ElementPLANE41::getVector(double* vector, query::vectorQuery code, uint16 gp, const double scale) {
-    error ("Not now"); //TODO
+  if (gp == query::GP_MEAN) { //need to average result over the element
+    double dWtSum = volume();
+    double dWt;
+    for (uint16 nPoint = 0; nPoint < npow(n_int(),n_dim()); nPoint ++) {
+      dWt = g_weight(nPoint);
+      getVector(vector, code, nPoint, dWt/dWtSum*scale );
+    }
+    return;
+  }
+  double IC[3];
+  Vec<6> CVec;
+  switch (code) {
+    case query::VECTOR_IC:
+      CVec[M_XZ] = 0.0;
+      CVec[M_YZ] = 0.0;
+      CVec[M_ZZ] = 1.0;
+      CVec[M_XX] = C[gp][0];
+      CVec[M_YY] = C[gp][1];
+      CVec[M_XY] = C[gp][2];
+      solidmech::IC_C(CVec.ptr(), IC);
+      vector[0] += IC[0] * scale;
+      vector[1] += IC[1] * scale;
+      vector[2] += IC[2] * scale;
+      break;
+    default:
+      error("ElementPLANE41::getVector: no data for code %d", code);
+  }
 }
 //return a tensor in a global coordinate system
 void  ElementPLANE41::getTensor(math::MatSym<3>& tensor, query::tensorQuery code, uint16 gp, const double scale) {
@@ -216,6 +239,8 @@ void  ElementPLANE41::getTensor(math::MatSym<3>& tensor, query::tensorQuery code
   CVec[M_YY] = C[gp][1];
   CVec[M_XY] = C[gp][2];
 
+  double p_e;
+
 	switch (code) {
     case query::TENSOR_COUCHY:
 
@@ -233,19 +258,21 @@ void  ElementPLANE41::getTensor(math::MatSym<3>& tensor, query::tensorQuery code
       //and store it in S[nPoint] vector.
       //2) Second solution is to resotre S33 right here.
       //Now 2) is working.
-      mat = dynamic_cast<Mat_Hyper_Isotrop_General*> (&storage->getMaterial());
+      p_e = storage->getDofSolution(- static_cast<int32> (getElNum()), Dof::HYDRO_PRESSURE);
+      mat = dynamic_cast<Mat_Hyper_Isotrop_General*> (storage->getMaterial());
       if (mat == NULL) {
         error("ElementPLANE41::getTensor: material is not derived from Mat_Hyper_Isotrop_General");
       }
-      mat->getS_UP (6, solidmech::defaultTensorComponents, CVec.ptr(), matS.data);
+      mat->getS_UP (6, solidmech::defaultTensorComponents, CVec.ptr(), p_e, matS.data);
       matBTDBprod (matF, matS, 1.0/J, tensor); //Symmetric Couchy tensor
       break;
     case query::TENSOR_PK2:
-      mat = dynamic_cast<Mat_Hyper_Isotrop_General*> (&storage->getMaterial());
+      mat = dynamic_cast<Mat_Hyper_Isotrop_General*> (storage->getMaterial());
       if (mat == NULL) {
         error("ElementPLANE41::getTensor: material is not derived from Mat_Hyper_Isotrop_General");
       }
-      mat->getS_UP (6, solidmech::defaultTensorComponents, CVec.ptr(), matS.data);
+      p_e = storage->getDofSolution(- static_cast<int32> (getElNum()), Dof::HYDRO_PRESSURE);
+      mat->getS_UP (6, solidmech::defaultTensorComponents, CVec.ptr(), p_e, matS.data);
       tensor.data[0] += matS.data[0]*scale;
       tensor.data[1] += matS.data[1]*scale;
       tensor.data[2] += matS.data[2]*scale;

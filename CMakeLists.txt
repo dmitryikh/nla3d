@@ -28,13 +28,13 @@ endif() #nla3d_multithreaded
 
 if (nla3d_debug)
   if(UNIX) 
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=gnu++11")
   endif()
   #todo make config=Debug by default for MSVC
 else()
   if(UNIX) 
     # in case of release under linux use -O2 option
-    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -O2 -msse2")
+    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -O2 -msse2 -std=gnu++11")
   endif()
 endif()
 
@@ -58,10 +58,14 @@ else()
 endif()
 
 
-SET(CMAKE_COLOR_MAKEFILE ON)
+SET (CMAKE_COLOR_MAKEFILE ON)
 enable_testing()
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/eigen)
+# site-src contains source codes of external libraries
+SET (SITE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/site-src)
+
+include_directories(${SITE_SOURCE_DIR}/eigen)
+include_directories(${SITE_SOURCE_DIR}/easyloggingpp/src)
 include_directories (src)
 
 add_subdirectory (src/math)
@@ -96,4 +100,9 @@ install (TARGETS nla3d
 add_custom_command(TARGET nla3d POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
   ${MKL_IOMP5_RUNTIME_LIB}
+  $<TARGET_FILE_DIR:nla3d>)
+
+add_custom_command(TARGET nla3d POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+  ${CMAKE_CURRENT_SOURCE_DIR}/files/logger.conf
   $<TARGET_FILE_DIR:nla3d>)

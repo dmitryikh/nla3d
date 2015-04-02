@@ -15,7 +15,7 @@ ReactionProcessor::ReactionProcessor(FEStorage *st, std::string _filename) : Pos
   filename = _filename;
 }
 
-void ReactionProcessor::pre(uint16 qLoadstep) {
+void ReactionProcessor::pre() {
 	if (nodes.size() == 0) {
     error("ReactionProcessor::pre: can't work. No nodes. Processor name = %s", name.c_str()); 
   }
@@ -81,7 +81,7 @@ void ReactionProcessor::pre(uint16 qLoadstep) {
   }
   sumOfDofsReactions.assign(dofs.size(), std::vector<double> ());
   for (uint16 d = 0; d < dofs.size(); d++) {
-    sumOfDofsReactions[d].reserve(qLoadstep+1);
+    //sumOfDofsReactions[d].reserve(qLoadstep+1);
     sumOfDofsReactions[d].push_back(0.0);
   }
 }

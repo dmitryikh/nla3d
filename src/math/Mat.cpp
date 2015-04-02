@@ -25,21 +25,20 @@ double Mat<3,3>::det()
 	return data[0][0]*(data[1][1]*data[2][2]-data[1][2]*data[2][1])-data[0][1]*(data[1][0]*data[2][2]-data[1][2]*data[2][0])+data[0][2]*(data[1][0]*data[2][1]-data[1][1]*data[2][0]);
 }
 
-//TODO: check det == 0
 template<>
-Mat<1,1> Mat<1,1>::inv(double det)
-{
-	return (1.0/det);
+Mat<1,1> Mat<1,1>::inv(double det) {
+    assert(det);
+    return (1.0/det);
 }
 template<>
-Mat<2,2> Mat<2,2>::inv(double det)
-{
+Mat<2,2> Mat<2,2>::inv(double det) {
+    assert(det);
 	Mat<2,2> tmp(data[1][1],-data[0][1],-data[1][0],data[0][0]);
 	return tmp*(1.0/det);
 }
 template<>
-Mat<3,3> Mat<3,3>::inv(double det)
-{
+Mat<3,3> Mat<3,3>::inv(double det) {
+    assert(det);
 	Mat<3,3> tmp(data[1][1]*data[2][2]-data[1][2]*data[2][1],data[0][2]*data[2][1]-data[0][1]*data[2][2],data[0][1]*data[1][2]-data[0][2]*data[1][1],
 				data[2][0]*data[1][2]-data[1][0]*data[2][2],data[0][0]*data[2][2]-data[0][2]*data[2][0],data[1][0]*data[0][2]-data[0][0]*data[1][2],
 				data[1][0]*data[2][1]-data[1][1]*data[2][0],data[0][1]*data[2][0]-data[0][0]*data[2][1],data[0][0]*data[1][1]-data[0][1]*data[1][0]);

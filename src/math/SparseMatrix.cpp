@@ -91,6 +91,10 @@ void SparseMatrix::stopTraining(bool copyValuesToMatrix) {
 	is_training = false;
 }
 
+bool SparseMatrix::isInTrainingMode() {
+  return is_training;
+}
+
 void SparseMatrix::clear() {
 	numberOfValues = 0;
 	if (values) {
@@ -109,7 +113,7 @@ void SparseMatrix::clear() {
 
 void SparseMatrix::zero() {
   //TODO: do we need to work with zero sized matrices?
-	assert(numberOfValues);
+	//assert(numberOfValues);
 	memset(values, 0, sizeof(double)*numberOfValues);
 }
 
@@ -379,6 +383,10 @@ void SparseSymmetricMatrix::stopTraining(bool copyValuesToMatrix) {
   }
 	training_data.clear();
 	is_training = false;
+}
+
+bool SparseSymmetricMatrix::isInTrainingMode() {
+  return is_training;
 }
 
 void SparseSymmetricMatrix::clear() {

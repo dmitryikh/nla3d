@@ -26,8 +26,4 @@ FEComponent::typeOfComponent FEComponent::typeFromString(const std::string& type
   return NOT_DEFINED;
 }
 
-void FEComponent::print (std::ostream& out) {
-  out << name << ": " << list.size() << " " << labelsOfComponent[type];
-}
-
 } // namespace nla3d

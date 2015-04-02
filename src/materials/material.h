@@ -32,7 +32,6 @@ public:
 	double& Ci (uint16 i);
 	double& Ci (const std::string& nameConst);
 	uint16 getNumC ();
-	void read_from_stream (std::istream &str);
 
 	static const double I[6];
 

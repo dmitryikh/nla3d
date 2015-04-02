@@ -9,6 +9,9 @@
 #include "ReactionProcessor.h"
 #include "materials/MaterialFactory.h"
 
+// initialize easylogging
+INITIALIZE_EASYLOGGINGPP
+
 using namespace nla3d;
 
 void prepeareProcessors (FEStorage& storage);
@@ -63,7 +66,8 @@ bool parse_args (int argc, char* argv[]) {
 
   std::vector<char*> vtmp = getCmdManyOptions(argv, argv + argc, "-material");
   if (vtmp.size() == 0) {
-    error("Please point a material model. Use -material keyword.");
+    LOG(ERROR) << "Please point a material model. Use -material keyword.";
+    std::exit(1);
   } else {
     options::materialName = vtmp[0];
     for (uint16 i = 1; i < vtmp.size(); i++) {
@@ -101,7 +105,8 @@ bool parse_args (int argc, char* argv[]) {
   vtmp = getCmdManyOptions(argv, argv + argc, "-rigidbody");
   if (vtmp.size() > 0) {
     if (vtmp.size() < 2) {
-      error("Please point master node, componen with slave node and degrees of freedom");
+      LOG(ERROR) << "Please point master node, componen with slave node and degrees of freedom";
+      std::exit(1);
     } else {
       options::rigidBodyMasterNode = atoi(vtmp[0]);
       options::rigidBodySlavesComponent = vtmp[1];
@@ -121,26 +126,29 @@ bool parse_args (int argc, char* argv[]) {
 }
 
 void usage () {
-  echolog("nla3d 'mesh file in cdb format'");
-  echolog("\t[-element 'element name']");
-  echolog("\t[-material 'material name' constant1 constant2 ..]");
-  echolog("\t[-iterations 'number of iterations']");
-  echolog("\t[-loadsteps 'number of loadsteps']");
-  echolog("\t[-novtk]");
-  echolog("\t[-refcurve 'file with curve']");
-  echolog("\t[-threshold 'epsilob for comparison']");
-  echolog("\t[-reaction 'component name' ['DoF' ..]]");
-  echolog("\t[-rigidbody 'master node' 'component of slaves' ['DoF' ..]]");
+  LOG(INFO) << "nla3d 'mesh file in cdb format'\n"
+      << "\t[-element 'element name']\n"
+      << "\t[-material 'material name' constant1 constant2 ..]\n"
+      << "\t[-iterations 'number of iterations']\n"
+      << "\t[-loadsteps 'number of loadsteps']\n"
+      << "\t[-novtk]\n"
+      << "\t[-refcurve 'file with curve']\n"
+      << "\t[-threshold 'epsilob for comparison']\n"
+      << "\t[-reaction 'component name' ['DoF' ..]]\n"
+      << "\t[-rigidbody 'master node' 'component of slaves' ['DoF' ..]]";
 }
 
-int main (int argc, char* argv[])
-{
+int main (int argc, char* argv[]) {
+  el::Configurations conf("logger.conf");
+  // Actually reconfigure all loggers instead
+  el::Loggers::reconfigureAllLoggers(conf);
+  el::Loggers::addFlag(el::LoggingFlag::ColoredTerminalOutput);
 
   std::vector<double> refCurve;
   std::vector<double> curCurve;
 
   ReactionProcessor* reactProc;
-	echolog("---=== WELCOME TO NLA PROGRAM ===---");
+	LOG(INFO) << "---=== WELCOME TO NLA PROGRAM ===---";
   if (!parse_args(argc, argv)) {
     usage();
     exit(1);
@@ -150,35 +158,36 @@ int main (int argc, char* argv[])
   // and optimization (curve fitting) purpose.
   if (options::refCurveFilename.length() > 0) {
     if (options::reactionComponentName.length() == 0) {
-      error("Reference curve is obtained, but no component name provided to \
-          calculate reactions from analysis. Use -reaction option");
+      LOG(ERROR) << "Reference curve is obtained, but no component name provided to "
+          << "calculate reactions from analysis. Use -reaction option";
+      exit(1);
     }
     refCurve = readRefCurveData(options::refCurveFilename);
     for (size_t i = 0; i < refCurve.size(); i++) {
-      echolog("refCurve[%d] = %f", i, refCurve[i]);
+      LOG(INFO) << "refCurve[" << i << "] = " << refCurve[i];
     }
   }
 
 	Timer pre_solve(true);
 	FEStorage storage;
   storage.elType = options::elementType;
-  if (!read_ans_data(options::modelFilename.c_str(), &storage)) {
-    error("Can't read FE info from %s file. exiting..", options::modelFilename.c_str());
+  if (!readCdbFile (options::modelFilename.c_str(), &storage)) {
+    LOG(ERROR) << "Can't read FE info from " << options::modelFilename << "file. exiting..";
+    exit(1);
   }
   Material* mat = MaterialFactory::createMaterial(options::materialName);
   if (mat->getNumC() != options::materialConstants.size())
-    error("Material %s needs exactly %d constants (%d were provided)", options::materialName.c_str(),
-        mat->getNumC(), options::materialConstants.size());
+    LOG(ERROR) << "Material " << options::materialName << " needs exactly " << mat->getNumC()
+      << " constants (" << options::materialConstants.size() << " were provided)";
   for (uint16 i = 0; i < mat->getNumC(); i++) {
     mat->Ci(i) = options::materialConstants[i];
   }
 	storage.material = mat;
-  echolog("Material: %s", mat->toString().c_str());
+  LOG(INFO) << "Material: " << mat->toString();
 
   std::stringstream ss;
-  ss << "Loaded components:" << std::endl;
-  storage.listFEComponents(ss);
-  echolog(ss.str().c_str());
+  LOG(INFO) << "Loaded components:";
+  storage.listFEComponents();
 
 	Solution sol;
 	sol.attach(&storage);
@@ -195,10 +204,11 @@ int main (int argc, char* argv[])
     reactProc = new ReactionProcessor(&storage);
     FEComponent* feComp = storage.getFEComponent(options::reactionComponentName);
     if (feComp->type != FEComponent::NODES) {
-      error("To calculate reactions it's needed to provide a component with nodes");
+      LOG(ERROR) << "To calculate reactions it's needed to provide a component with nodes";
+      exit(1);
     }
 
-    echolog("Component for measuring a reaction: %s", options::reactionComponentName.c_str());
+    LOG(INFO) << "Component for measuring a reaction: " << options::reactionComponentName;
     for (size_t i = 0; i < feComp->list.size(); i++) {
       reactProc->nodes.push_back(feComp->list[i]);
     }
@@ -213,7 +223,8 @@ int main (int argc, char* argv[])
     mpc->masterNode = options::rigidBodyMasterNode;
     FEComponent* comp = storage.getFEComponent(options::rigidBodySlavesComponent);
     if (comp->type != FEComponent::NODES) {
-      error("For creation a rigid body MPC it's needed to provide a component with nodes");
+      LOG(ERROR) << "For creation a rigid body MPC it's needed to provide a component with nodes";
+      exit(1);
     }
     mpc->slaveNodes.assign(comp->list.size(), 0);
     for (size_t i = 0; i < comp->list.size(); i++) {
@@ -224,16 +235,19 @@ int main (int argc, char* argv[])
       mpc->dofs.push_back(options::rigidBodyDofs[i]);
     }
 
-    storage.mpcCollections.push_back(mpc);
-    std::stringstream ss;
+    storage.addMpcCollection(mpc);
+
+    std::vector<std::string> slaveDofLabels;
+    slaveDofLabels.assign(mpc->dofs.size(), "");
     for (uint16 i = 0; i < mpc->dofs.size(); i++) {
-      ss << " " << Dof::dofTypeLabels[i];
+      slaveDofLabels[i] = Dof::dofTypeLabels[i];
     }
-    echolog("Rigid Body MPC collection: master node = %d, number of slaves = %d, slaves DoFs = %s",
-            mpc->masterNode, mpc->slaveNodes.size(), ss.str().c_str());
+
+    LOG(INFO) << "Rigid Body MPC collection: master node = " << mpc->masterNode << ", number of slaves = " <<  
+        mpc->slaveNodes.size() << ", slaves DoFs = " << slaveDofLabels; 
   }
 
-	echolog("Preprocessor time: %f sec.", pre_solve.stop());
+	//TODO: echolog("Preprocessor time: %f sec.", pre_solve.stop());
 	sol.run();
 
   if (reactProc) {
@@ -251,16 +265,17 @@ int main (int argc, char* argv[])
       }
       ss << std::endl;
     }
-    echolog(ss.str().c_str()); 
+    LOG(INFO) << ss.str();
     if (refCurve.size() > 0) {
       curCurve = reactProc->getReactions(reactProc->dofs[0]); 
       double _error = compareCurves (refCurve, curCurve);
-      echolog("Error between reference loading curve and current is %f", _error);
+      LOG(INFO) << "Error between reference loading curve and current is " << _error;
       if (options::curveCompareThreshold > 0.0) {
         if (_error > options::curveCompareThreshold) {
-          error("To big error! (upper bound is %f)", options::curveCompareThreshold);
+          LOG(ERROR) << "To big error! (upper bound is " << options::curveCompareThreshold << ")";
+          exit(1);
         } else {
-          echolog("Error is less that the threshold. %f < %f", _error, options::curveCompareThreshold);
+          LOG(INFO) << "Error is less that the threshold. " << _error << " < " << options::curveCompareThreshold;
         }
       }
     }
@@ -272,9 +287,9 @@ int main (int argc, char* argv[])
 
 double compareCurves (const std::vector<double>& refCurve, const std::vector<double>& curCurve) {
   if (refCurve.size() != curCurve.size()) {
-    error("curves: tabular data size should be the same for reference curve \
-        and for current curve. (got refCurve.size() = %d, curCurve.size() = %d",
-        refCurve.size(), curCurve.size());
+    LOG(ERROR) << "compareCurves: tabular data size should be the same for reference curve "
+        << "and for current curve. (got refCurve.size() = " << refCurve.size() <<", curCurve.size() = " << curCurve.size() << ")";
+    exit(1);
   }
   double _error = 0.0;
   size_t lenCurve = curCurve.size(); 
@@ -292,7 +307,8 @@ std::vector<double> readRefCurveData (std::string fileRefCurve) {
   std::vector<double> res;
   file >> dummy >> dummy >> dummy;
   if (dummy.compare("force") != 0) {
-    error("readRefCurveData: Expecting third column to a force column");
+    LOG(ERROR) << "readRefCurveData: Expecting third column to a force column";
+    exit(1);
   }
   while (!file.eof()) {
     file >> dummy >> dummy >> tmp;

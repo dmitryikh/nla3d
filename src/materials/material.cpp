@@ -27,12 +27,6 @@ std::string Material::toString() {
 	return str;
 }
 
-
-void Material::read_from_stream (std::istream &str) {
-	for (uint16 i=0; i < getNumC(); i++)
-		str >> MC[i]; //TODO: check on errors
-}
-
 double& Material::Ci (const std::string& nameConst) {
   for (size_t i = 0; i < getNumC(); i++) {
     if (nameConst.compare(MC_names[i]) == 0) {

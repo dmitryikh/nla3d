@@ -31,9 +31,11 @@ public:
 		solver_type = SAE_CHOLESKY;
 		if_solver_first_time = true;
 	};
+
+  // attach solver to FEStorage instance
 	void attach (FEStorage *st);
-	void run (bool multi_thread = false); // запустить решение задачи
-	void stop (); // остановить решение задачи
+
+	void run ();
 
 	uint16 getqIterat ();
 	uint16 getqLoadstep ();
@@ -59,14 +61,13 @@ private:
 	uint16 curLoadstep;
 	uint16 curIterat;
 
-	void bound (double dF_par); //применение узловых граничных условий
 	uint16 solve_wrap ();
 	uint16 solveSAE_Bunch ();
-	uint16 solveSAE_Cholesky();
+	uint16 solveSAE_Cholesky ();
 	uint16 solveSAE_DSS ();
-	static void fork (void *ptr);
 	FEStorage* storage;
-	void main_process (); //главный процесс решения, вызывается после отделения процесса
+  // main process of solution
+	void main_process ();
 };
 
 inline uint16 Solution::getqIterat ()

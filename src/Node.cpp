@@ -6,7 +6,7 @@
 
 namespace nla3d {
 
-//TODO: could it be used special cosntructor for vector to define right here?
+//TODO: is there a special cosntructor for vector to define values right here?
 std::vector<uint16> Node::dofNumberList;
 uint16 Node::numberOfDofs = 0;
 

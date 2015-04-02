@@ -14,7 +14,7 @@ class PostProcessor {
 public:
 	PostProcessor(FEStorage *st);
 	~PostProcessor() { };
-	virtual void pre (uint16 qLoadstep)=0;
+	virtual void pre ()=0;
 	virtual void process (uint16 curLoadstep, uint16 qLoadstep)=0;
 	virtual void post (uint16 curLoadstep, uint16 qLoadstep)=0;
 	std::string getStatus ();

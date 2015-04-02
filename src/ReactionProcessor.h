@@ -15,7 +15,7 @@ public:
 	ReactionProcessor(FEStorage *st, std::string _filename);
 	virtual ~ReactionProcessor() { };
 
-	virtual void pre (uint16 qLoadstep);
+	virtual void pre ();
 	virtual void process (uint16 curLoadstep, uint16 qLoadstep);
 	virtual void post (uint16 curLoadstep, uint16 qLoadstep);
 

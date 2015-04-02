@@ -21,6 +21,7 @@ bool Solution::setInit ()
 	warning("Solution::setInit: can't change solution parameters while solving");
 	return false;
 }
+
 bool Solution::setqIterat (uint16 iter)
 {
 	if (status != SOL_SOLVING)
@@ -36,6 +37,7 @@ bool Solution::setqIterat (uint16 iter)
 	warning("Solution::setqIter: can't change solution parameters while solving");
 	return false;
 }
+
 bool Solution::setqLoadstep (uint16 ls)
 {
 	if (status != SOL_SOLVING)
@@ -51,6 +53,7 @@ bool Solution::setqLoadstep (uint16 ls)
 	warning("Solution::setqLoadstep: can't change solution parameters while solving");
 	return false;
 }
+
 bool Solution::setCriteria (double cr)
 {
 	if (status != SOL_SOLVING)
@@ -72,13 +75,8 @@ void Solution::main_process ()
 	assert(storage);
 	Timer sol(true);
 	Timer overall(true);
-    //TODO: this is temporary. 
-    //We need to have a material table (different materials for different elements)
-	GlobStates.setptr(States::PTR_CURMATER, (void*) &(storage->getMaterial()));
-	for (uint32 el = 1; el <= storage->getNumberOfElements(); el++)
-				storage->getElement(el).pre();
-    // TODO: Mpc.pre() should go here
-	if (!storage->prepare_for_solution())
+
+	if (!storage->initializeSolutionData())
 	{
 		warning("Solution::main_process: solution is interrupted");
 		status = SOL_WAIT;
@@ -86,66 +84,44 @@ void Solution::main_process ()
 	}
 
 
-	for (size_t i=0; i < storage->getNumPostProc(); i++)
-		storage->getPostProc(i).pre(qLoadstep);
 	echolog("Preporation time: %4.2f sec.", sol.stop());
 	curCriteria = 0.0f;
 	double dF_par;
 	double cumF_par = 0.0;
 	uint16 cum_iterations = 0;
 	GlobStates.setuint32(States::UI32_CURLOADSTEP, 1);
-	for (curLoadstep = 1; curLoadstep <= qLoadstep; curLoadstep++ )
-	{
+	for (curLoadstep = 1; curLoadstep <= qLoadstep; curLoadstep++ ) {
 		GlobStates.setuint32(States::UI32_CURSUBSTEP, curLoadstep);
 		dF_par = 1.0/qLoadstep;
 		cumF_par += dF_par;
 		
 		curIterat= 1;
-		for (; curIterat <= qIterat; curIterat++ )
-		{
+		for (; curIterat <= qIterat; curIterat++ ) {
 			GlobStates.setuint16(States::UI16_EQUILITER, curIterat);
 			cum_iterations++;
 			echolog("------LS = %d of %d, IT = %d (%d)------", curLoadstep, qLoadstep, curIterat, cum_iterations);
-			if (stopit)
-			{
-				curLoadstep--;
-				echolog("Solution::main_process: solution process was stopped by user.\n Last solved loadstep = %d",curLoadstep);
-				status = SOL_WAIT;
-				return;
-			}
+
 			if (curIterat > 1) dF_par = 0.0;
-			if (cum_iterations == 1)
-				storage->pre_first();
-			else
-			{
-				// очистка matK и vecF
-				storage->zeroK();
-				storage->zeroF();
-			}
-			if (cum_iterations == 1)
-			{
+
+			if (cum_iterations == 1) {
 				sol.start();
 				echolog("Start formulation for elements ( %d )", storage->getNumberOfElements());
 			}
-			for (uint32 el = 1; el <= storage->getNumberOfElements(); el++)
-			{
-				GlobStates.setuint32(States::UI32_CURELEM, el);
-				storage->getElement(el).build();
-			}
-			GlobStates.undefineuint32(States::UI32_CURELEM);
+
+      storage->assembleGlobalEqMatrix();
+
 			if (cum_iterations == 1)
 				echolog("Formulation time: %4.2f sec.", sol.stop());
 			//учет "узловых" Г.У. пока только кинематические
 			if (cum_iterations == 1)
 				sol.start();
-			storage->apply_BCs(curLoadstep, curIterat, dF_par, cumF_par);
-			if (cum_iterations == 1)
-			{
+
+			storage->applyBoundaryConditions(curLoadstep, curIterat, dF_par, cumF_par);
+
+			if (cum_iterations == 1) {
 				echolog("BC applying time: %4.2f sec.", sol.stop());
-				sol.start();
-				storage->post_first();
-				echolog("Matrices training time: %4.2f sec.", sol.stop());
 			}
+
 			//решение системы
 			if (!solve_wrap())
 			{
@@ -155,57 +131,46 @@ void Solution::main_process ()
 			}
 			if (cum_iterations == 1)
 				sol.start();
-			storage->process_solution();
+			storage->updateSolutionResults();
 			if (cum_iterations == 1)
 				echolog("After solution process time: %4.2f sec.", sol.stop());
 
 			if (cum_iterations == 1)
 				sol.start();
-			//вычисление деформаций и напряжений в элементах
-			for (uint32 el = 1; el <= storage->getNumberOfElements(); el++) 
-			{
-				GlobStates.setuint32(States::UI32_CURELEM, el);
-				storage->getElement(el).update();
-			}
-			GlobStates.undefineuint32(States::UI32_CURELEM);
 			
-			if (cum_iterations == 1)
-				echolog("Elements updating time: %4.2f sec.", sol.stop());
-
+      // calculate convergence criteria
 			curCriteria = 0.0;
-			for (uint32 i=0; i < storage->get_n_solve_dofs(); i++)
-			{
-				curCriteria += fabs(storage->get_vec_dqs()[i]);
+			for (uint32 i=0; i < storage->getNumberOfUnknownDofs(); i++) {
+				curCriteria += fabs(storage->getGlobalEqUnknowns()[i]);
 			}
-			curCriteria /= storage->get_n_solve_dofs();
+			curCriteria /= storage->getNumberOfUnknownDofs();
 
 			echolog("Criteria (%5.1f%%)", curCriteria/Criteria*100);
-			if (curCriteria < Criteria) 
-			{
+			if (curCriteria < Criteria) {
 				curIterat++;
 				break;
-			} else if (curCriteria > 1.0e10 || isnan(curCriteria)) {
+			} else if (curCriteria > 1.0e10 || std::isnan(curCriteria)) {
         error ("The solution is diverged!");
       }
 			
 		}//iterations
+
     if (curIterat > qIterat) {
       error("The solution is not converged with %d equilibrium iterations", qIterat);
     }
 		echolog("LS %d completed with %d IT", curLoadstep, curIterat-1);
 		if (curLoadstep == 1)
 			sol.start();
-		for (size_t i = 0; i < storage->getNumPostProc(); i++)
-			storage->getPostProc(i).process(curLoadstep, qLoadstep);
+		for (size_t i = 0; i < storage->getNumberOfPostProcessors(); i++)
+			storage->getPostProcessor(i).process(curLoadstep, qLoadstep);
 		if (curLoadstep == 1)
 			echolog("PostProc's processing time: %4.2f sec.", sol.stop());
 		echolog("\n\n");
 	}//LS steps
-	storage->setStatus(ST_SOLVED);
 	status = SOL_WAIT;
 	echolog("****SOLVED****  (Total solution time: %4.2f sec.)", overall.stop());
-	for (size_t i = 0; i < storage->getNumPostProc(); i++)
-			storage->getPostProc(i).post(curLoadstep, qLoadstep);
+	for (size_t i = 0; i < storage->getNumberOfPostProcessors(); i++)
+			storage->getPostProcessor(i).post(curLoadstep, qLoadstep);
 }
 uint16 Solution::solve_wrap ()
 {
@@ -238,7 +203,7 @@ uint16 Solution::solveSAE_Cholesky()
 {
 	////Внимание в процессе решения vecF изменяется
 	////и уже не будут содежрать информации о нагрузке
-	//int n = storage->getNumDofs();	//TODO: перевод в int недопустим при больших размерностях
+	//int n = storage->getNumDofs();	
 	//int kd = storage->get_nBand() - 1; //^
 	//int ldab = kd+1;	//^
 	//int info;
@@ -256,7 +221,7 @@ uint16 Solution::solveSAE_Cholesky()
 	//}
 	//dpbtrs("U",&n,&kd,&nrhs,matrix.Ptr(),&ldab,storage->getVecF().Ptr(),&ldb,&info);
 	//if (info != 0) error("Solution::solve: error in MKL solver (errno %d)", info);
-	//storage->getVecdQ() = storage->getVecF();// TODO CHECK
+	//storage->getVecdQ() = storage->getVecF();
 	return 1;
 }
 
@@ -265,7 +230,7 @@ uint16 Solution::solveSAE_Bunch ()
 {
 	////Внимание в процессе решения матрица matK и vecF изменяются
 	////и уже не будут содежрать информации о матрице жест. и нагрузке
-	//int n = storage->getNumDofs();	//TODO: перевод в int недопустим при больших размерностях
+	//int n = storage->getNumDofs();	
 	//int info;
 	//int nrhs = 1;
 	//int ldb = n;	//^
@@ -285,15 +250,14 @@ uint16 Solution::solveSAE_Bunch ()
 	//if (info != 0) error("Solution::solve: error in MKL Bunch-Kaufman solver (errno %d)", info);
 	//delete[] ipv;	
 	////storage->vecdQ->operator=(*storage->vecF);
-	//storage->getVecdQ() = storage->getVecF();// TODO CHECK
+	//storage->getVecdQ() = storage->getVecF();
 	return 1;
 }
 
-uint16 Solution::solveSAE_DSS ()
-{
-	int n = storage->get_solve_mat().getNumberOfRows();
+uint16 Solution::solveSAE_DSS () {
+	int n = storage->getGlobalEqMatrix().getNumberOfRows();
 	Timer sol_timer;
-	int nrhs = 1; // кол-во правых частей
+	int nrhs = 1; // number of rhs 
 	int mtype = -2; //real symmetric undifinite defined matrix
 	int iparm[64];
 	int maxfct, mnum, phase, error, msglvl;
@@ -325,7 +289,7 @@ uint16 Solution::solveSAE_DSS ()
 		// all memory that is necessary for the factorization
 		phase = 11;
 		PARDISO(pt, &maxfct, &mnum, &mtype,&phase,
-			&n, storage->get_solve_mat().getValuesArray(), (int*) storage->get_solve_mat().getIofeirArray(), (int*) storage->get_solve_mat().getColumnsArray(), 
+			&n, storage->getGlobalEqMatrix().getValuesArray(), (int*) storage->getGlobalEqMatrix().getIofeirArray(), (int*) storage->getGlobalEqMatrix().getColumnsArray(), 
 			NULL, &nrhs, iparm, &msglvl, NULL, NULL, &error);
 		if (error != 0)
 		{
@@ -339,7 +303,7 @@ uint16 Solution::solveSAE_DSS ()
 	// Numerical factorization
 	phase = 22;
 	PARDISO(pt, &maxfct, &mnum, &mtype,&phase,
-			&n, storage->get_solve_mat().getValuesArray(), (int*) storage->get_solve_mat().getIofeirArray(), (int*) storage->get_solve_mat().getColumnsArray(),
+			&n, storage->getGlobalEqMatrix().getValuesArray(), (int*) storage->getGlobalEqMatrix().getIofeirArray(), (int*) storage->getGlobalEqMatrix().getColumnsArray(),
 			NULL, &nrhs, iparm, &msglvl, NULL, NULL, &error);
 	if (error != 0)
 	{
@@ -351,8 +315,8 @@ uint16 Solution::solveSAE_DSS ()
 	phase = 33;
 	iparm[7] = 2; //max num of iterative refiment
 	PARDISO(pt, &maxfct, &mnum, &mtype,&phase,
-			&n, storage->get_solve_mat().getValuesArray(), (int*) storage->get_solve_mat().getIofeirArray(), (int*) storage->get_solve_mat().getColumnsArray(),
-			NULL, &nrhs, iparm, &msglvl, storage->get_solve_rhs(), storage->get_solve_result_vector(), &error);
+			&n, storage->getGlobalEqMatrix().getValuesArray(), (int*) storage->getGlobalEqMatrix().getIofeirArray(), (int*) storage->getGlobalEqMatrix().getColumnsArray(),
+			NULL, &nrhs, iparm, &msglvl, storage->getGlobalEqRhs(), storage->getGlobalEqUnknowns(), &error);
 	if (error != 0)
 	{
 		echolog("ERROR during solution: %d", error);
@@ -373,28 +337,10 @@ uint16 Solution::solveSAE_DSS ()
 
 	return 1;
 }
-void Solution::bound (double dF_par)
-{
-	//static const double REAL_BIG_NUMBER = 1.0e10;
-	//for(uint32 i=0; i < storage->getNumBound(); i++)
-	//{
-	//	Bound bnd = storage->getBound(i);
-	//	if (bnd.key == D_UX || bnd.key == D_UY || bnd.key == D_UZ)
-	//	{
-	//		storage->getKij(bnd.node, bnd.key-1,bnd.node, bnd.key-1) *= REAL_BIG_NUMBER;
-	//		storage->getFi(bnd.node, bnd.key-1) = storage->getKij(bnd.node, bnd.key-1,bnd.node, bnd.key-1)*bnd.value*dF_par;
-	//	}
-	//	//TODO: forces dont work now
-	//	//else if (storage->bounds[i].key == F_X || storage->bounds[i].key == F_Y || storage->bounds[i].key == F_Z)
-	//	//	(*storage->vecF)[row] += storage->bounds[i].value*dF_par;
-	//}
-}
 
-void Solution::attach (FEStorage *st)
-{
+void Solution::attach (FEStorage *st) {
 	assert(st);
-	if (status == SOL_SOLVING)
-	{
+	if (status == SOL_SOLVING) {
 		warning("Solution::attach: can't attach new storage while solving previous one");
 		return;
 	}
@@ -402,31 +348,14 @@ void Solution::attach (FEStorage *st)
 	storage = st;
 }
 
-void Solution::run (bool multi_thread) 
-{
-	if (status == SOL_SOLVING)
-	{
+void Solution::run () {
+	if (status == SOL_SOLVING) {
 		warning("Solution::run: solution process is already running");
 		return;
 	}
 	status = SOL_SOLVING;
 	stopit = false;
-	//TODO: кастыль
-	if (multi_thread) {
-		//_beginthread(fork,0,this);
-  } else {
-		main_process();
-  }
-}
-
-void Solution::fork (void *ptr)
-{
-	((Solution*)ptr)->main_process();
-}
-
-void Solution::stop ()
-{
-	stopit = true;
+  main_process();
 }
 
 } // namespace nla3d

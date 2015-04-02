@@ -28,7 +28,7 @@ void Mpc::print (std::ostream& out) {
 
 void MpcCollection::registerMpcsInStorage () {
   for (size_t i = 0; i < collection.size(); i++) {
-    storage->add_bounds(collection[i]);
+    storage->addMpc(collection[i]);
   }
 }
 
@@ -50,14 +50,7 @@ RigidBodyMpc::RigidBodyMpc () {
 }
 
 RigidBodyMpc::~RigidBodyMpc () {
-  if (collection.size() > 0) {
-    for (size_t i = 0; i < collection.size(); i++) {
-      if (collection[i] != NULL) {
-        delete collection[i];
-      }
-    }
-    collection.clear();
-  }
+  collection.clear();
 }
 
 void RigidBodyMpc::pre () {

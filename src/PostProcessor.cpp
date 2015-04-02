@@ -9,7 +9,7 @@ namespace nla3d {
 PostProcessor::PostProcessor(FEStorage *st) {
 	assert(st);
 	storage = st;
-	storage->add_post_proc(this);
+	storage->addPostProcessor(this);
 	active = false;
 	failed = false;
 }

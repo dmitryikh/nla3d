@@ -27,12 +27,11 @@ void Mat_Hyper_Isotrop_General::getD_U (uint16 ncomp, const  solidmech::tensorCo
 	
 
 //C - all times we must have 6 components
-void Mat_Hyper_Isotrop_General::getS_UP (uint16 ncomp, const  solidmech::tensorComponents* comps, const double* C, double *S) {
-	double press = GlobStates.getdouble(States::DOUBLE_HYDPRES);
-	double alpha[2];
+void Mat_Hyper_Isotrop_General::getS_UP (uint16 ncomp, const  solidmech::tensorComponents* comps, const double* C, const double press, double *S) {
+    double alpha[2];
 
-  double IC[3];
-  solidmech::IC_C(C, IC);
+    double IC[3];
+    solidmech::IC_C(C, IC);
 
 	double _13I1C = 1.0/3.0*IC[0];
 	double _23I2C = 2.0/3.0*IC[1];
@@ -63,13 +62,11 @@ void Mat_Hyper_Isotrop_General::getS_UP (uint16 ncomp, const  solidmech::tensorC
 }
 
 
-void Mat_Hyper_Isotrop_General::getDdDp_UP (uint16 ncomp, const  solidmech::tensorComponents* comps, const double* C, double *Dd, double *Dp)
-{
-	double press = GlobStates.getdouble(States::DOUBLE_HYDPRES);
-	
+void Mat_Hyper_Isotrop_General::getDdDp_UP (uint16 ncomp, const  solidmech::tensorComponents* comps,
+        const double* C, const double press, double *Dd, double *Dp) {
 	double alpha[5];
-  double IC[3];
-  solidmech::IC_C(C, IC);
+    double IC[3];
+    solidmech::IC_C(C, IC);
 
 	double _13I1C = 1.0/3.0*IC[0];
 	double _23I2C = 2.0/3.0*IC[1];
@@ -81,7 +78,7 @@ void Mat_Hyper_Isotrop_General::getDdDp_UP (uint16 ncomp, const  solidmech::tens
 	double pppp = pp*pp;
 	
 	double C_inv[6];
-  solidmech::invC_C(C, J, C_inv);
+    solidmech::invC_C(C, J, C_inv);
 
 	/*
 	AL_1	=	0
