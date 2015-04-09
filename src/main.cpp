@@ -4,13 +4,10 @@
 
 #include "sys.h"
 #include "FEStorage.h"
+#include "FESolver.h"
 #include "VtkProcessor.h"
-#include "Solution.h"
 #include "ReactionProcessor.h"
 #include "materials/MaterialFactory.h"
-
-// initialize easylogging
-INITIALIZE_EASYLOGGINGPP
 
 using namespace nla3d;
 
@@ -139,11 +136,6 @@ void usage () {
 }
 
 int main (int argc, char* argv[]) {
-  el::Configurations conf("logger.conf");
-  // Actually reconfigure all loggers instead
-  el::Loggers::reconfigureAllLoggers(conf);
-  el::Loggers::addFlag(el::LoggingFlag::ColoredTerminalOutput);
-
   std::vector<double> refCurve;
   std::vector<double> curCurve;
 
@@ -175,7 +167,7 @@ int main (int argc, char* argv[]) {
     LOG(ERROR) << "Can't read FE info from " << options::modelFilename << "file. exiting..";
     exit(1);
   }
-  Material* mat = MaterialFactory::createMaterial(options::materialName);
+  Material* mat = CHECK_NOTNULL (MaterialFactory::createMaterial(options::materialName));
   if (mat->getNumC() != options::materialConstants.size())
     LOG(ERROR) << "Material " << options::materialName << " needs exactly " << mat->getNumC()
       << " constants (" << options::materialConstants.size() << " were provided)";
@@ -185,23 +177,25 @@ int main (int argc, char* argv[]) {
 	storage.material = mat;
   LOG(INFO) << "Material: " << mat->toString();
 
-  std::stringstream ss;
   LOG(INFO) << "Loaded components:";
   storage.listFEComponents();
 
-	Solution sol;
-	sol.attach(&storage);
-	sol.setqIterat(options::numberOfIterations);
-	sol.setqLoadstep(options::numberOfLoadsteps);
+	NonlinearFESolver solver;
+	solver.attachFEStorage (&storage);
+	solver.numberOfIterations = options::numberOfIterations;
+	solver.numberOfLoadsteps = options::numberOfLoadsteps;
+
   if (options::useVtk) {
     //obtain job name from path of a FE model file
     std::string jobname = getFileNameFromPath(options::modelFilename);
     VtkProcessor* vtk = new VtkProcessor (&storage, jobname);
+    solver.addPostProcessor(vtk);
   }
 
   reactProc = NULL;
   if (options::reactionComponentName.length() > 0) {
     reactProc = new ReactionProcessor(&storage);
+    solver.addPostProcessor(reactProc);
     FEComponent* feComp = storage.getFEComponent(options::reactionComponentName);
     if (feComp->type != FEComponent::NODES) {
       LOG(ERROR) << "To calculate reactions it's needed to provide a component with nodes";
@@ -247,8 +241,7 @@ int main (int argc, char* argv[]) {
         mpc->slaveNodes.size() << ", slaves DoFs = " << slaveDofLabels; 
   }
 
-	//TODO: echolog("Preprocessor time: %f sec.", pre_solve.stop());
-	sol.run();
+	solver.solve();
 
   if (reactProc) {
     std::stringstream ss;

@@ -1,4 +1,6 @@
-# nla3d ## Introduction
+# nla3d
+
+## Introduction
 
 _nla3d_ (Non-Linear Analysis 3D) - is a program to solve mechanics non-linear finite element (FE)
 problems. Or, better to say, it a set of procedures (C++ classes) that make it easy to implement new
@@ -24,10 +26,11 @@ can easily integrate his own FE into _nla3d_.
   * Many commonly used procedures in FE methods are already implemented in _nla3d_ and they are
     hidden in classes realisations.
 
-  * Here is two elements in _nla3d_: *PLANE41* - 4-node element with u/p formulation (quasi linear
+  * Here is two elements in _nla3d_:
+    - *PLANE41* - 4-node element with u/p formulation (quasi linear
     interpolation of displacements and constant interpolation of hydrostatic pressure). This element
-is suitable for model a behavior of model with nearly incompressible hyperelastic materials. *SOLID81*
-- the same as *PLANE41*, but for 3D models. All this elements support finite deformations with Total
+is suitable for model a behavior of model with nearly incompressible hyperelastic materials.
+    - *SOLID81* the same as *PLANE41*, but for 3D models. All this elements support finite deformations with Total
   Lagrange approach.
 
   * It supports non-linear multi point constraints (MPC). _nla3d_ treats MPC as addition nonlinear
@@ -60,3 +63,98 @@ versions.
 
   * _nla3d_ isn't capable to solve transient problems.
 
+## Requirements
+
+_nla3d_ is written in C++ language. It uses C++11 features in the code. It is compiled ok with Visual
+Studio 2013 compiler under Windows 7 and GNU g++ 4.7.2 under Debian. Actually, the Author didn't try
+to compile it under different platforms and compilers. And here is non-zero probability that _nla3d_
+will be compiled ok under another versions of compilers.
+
+_nla3d_ uses CMake to deploy project files from the source code. CMake produces visual studio projects
+under Windows and make files under linux-based OS. One can find more information about how to
+compile _nla3d_ using CMake in the section *Compilation*.
+
+_nla3d_ uses several external libraries:
+
+  * Intel Math Kernel Library (MKL) to solve large scale systems of linear equations and to call BLAS
+    matrix procedures (optional).
+  * Eigen matrix library to provide rich and good optimized matrix operations.
+  * Easylogging++ as powerfull and lightweight logging engine with the useful performance measurments
+    feature.
+
+## Compiling
+
+To compile _nla3d_ first of all you need an environment and tools desribed in Requirements chapter.
+Here is an example how to do it under linux-based OS:
+
+```
+mkdir nla3d_build
+cd nla3d_build
+```
+
+Then you can deploy makefiles dy calling ```cmake``` program:
+
+```
+cmake '~/Downloads/nla3d'
+```
+
+One will see the output like this:
+
+```
+...
+-- Found MKL: /opt/intel/mkl/include  
+-- Could NOT find EASYLOGGINGPP (missing:  EASYLOGGINGPP_INCLUDE_DIRS) 
+CMake Warning at CMakeLists.txt:64 (message):
+  Can't find Easylogging++
+
+
+-- Could NOT find Eigen (missing:  EIGEN_INCLUDE_DIR) 
+CMake Warning at CMakeLists.txt:71 (message):
+  Can't find Eigen
+
+
+-- Configuring done
+-- Generating done
+...
+```
+
+That means that cmake wasn't successed to find were are some libraries are installed. To fix it the
+best way is to use cmake curses interface ```ccmake``` and provide missing pathes manually:
+
+```
+ccmake .
+```
+
+Then one can just launch the compilation:
+
+```
+cmake --build . --config Release 
+```
+
+And after launch the tests:
+
+```
+ctest . --C Release
+```
+
+If all test pass ok, in this case here is fully worked _nla3d_ binaries!
+ 
+## Writing new finite element
+
+Here is just a try to help someone to get familiar with _nla3d_. In this chapter a pretty easy 3D
+truss finite element is described and is incorporated into _nla3d_ library and then an excecutable
+program is shown. 3D truss is a finite element with two spatial nodes connected with a line, this
+line can be subjected only with compression or tension loads. The line has a few properties:
+cross-section area, Young's module (stiffness of the material).
+
+The implementation of a such FE one can find in ```src/lib/elements/TRUSS3.h``` and ```src/lib/elements/TRUSS3.cpp```.
+
+Then ElementTRUSS3 is used to solve a very simple 2D problem described in ```src/main_truss.cpp```.
+
+All this sources are massively commented to make it clear how to use it and how to implement new FE
+into nla3d.
+
+## Contacts
+
+In case if you are interested in the project or if you have questions, please contact with by email:
+khdmitryi ```at``` gmail.com

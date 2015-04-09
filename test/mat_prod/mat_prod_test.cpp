@@ -10,8 +10,7 @@ const double eps = 0.000001;
 uint16 tn = 100;
 char* dir;
 
-bool test_matBVprod ()
-{
+bool test_matBVprod () {
 	std::ifstream in;
 	const uint16 _N = 24;
 	const uint16 _M = 9;
@@ -22,8 +21,7 @@ bool test_matBVprod ()
 	Vec<_N> R;
   sprintf_s(filename,100,"%s/matBVprod_%02d%02d",dir,_N,_M);
   in.open(filename);
-	for (uint16 gg=1;gg<=tn;gg++)
-	{
+	for (uint16 gg = 1; gg <= tn; gg++) {
 		B.zeros();
 		V.zeros();
 		R.zeros();
@@ -36,16 +34,16 @@ bool test_matBVprod ()
 		matBVprod(B, V, 1.0, R);
 
 		if (!R.compare(Rf, eps)) {
-			error("test_matBVprod: n=%d", gg);
+			LOG(ERROR) << "test_matBVprod: n = " << gg;
+      exit(1);
 		}
-		debug("test_matBVprod: case %d checked successfuly!", gg);
+		DLOG(DEBUG) << "test_matBVprod: case " << gg << " checked successfuly!";
 	}
   in.close();
 	return true;
 }
 
-bool test_matBTVprod ()
-{
+bool test_matBTVprod () {
 	std::ifstream in;
 	const uint16 _N = 24;
 	const uint16 _M = 9;
@@ -56,8 +54,7 @@ bool test_matBTVprod ()
 	Vec<_M> R;
   sprintf_s(filename,100, "%s/matBTVprod_%02d%02d", dir, _N, _M);
   in.open(filename);
-	for (uint16 gg=1;gg<=tn;gg++)
-	{
+	for (uint16 gg = 1; gg <= tn; gg++) {
 		B.zeros();
 		V.zeros();
 		R.zeros();
@@ -70,17 +67,17 @@ bool test_matBTVprod ()
 		matBTVprod(B, V, 1.0, R);
 
 		if (!R.compare(Rf, eps)) {
-			error("test_matBTVprod: n=%d", gg);
+			LOG(ERROR) << "test_matBTVprod: n = " << gg;
+      exit(1);
 		}
-		debug("test_matBTVprod: case %d checked successfuly!", gg);
+		DLOG(DEBUG) << "test_matBTVprod: case " << gg << " checked successfuly!";
 	}
   in.close();
 	return true;
 }
 
-bool test_matABprod ()
-{
-std::ifstream in;
+bool test_matABprod () {
+  std::ifstream in;
 	const uint16 _N = 24;
 	const uint16 _M = 9;
 	const uint16 _M2= 12;
@@ -91,8 +88,7 @@ std::ifstream in;
 	Mat2<_N,_M2> Rf;
   sprintf_s(filename,100, "%s/matABprod_%02d%02d%02d", dir, _N, _M, _M2);
   in.open(filename);
-	for (uint16 gg=1;gg<=tn;gg++)
-	{
+	for (uint16 gg = 1; gg <= tn; gg++) {
 		A.zeros();
 		B.zeros();
 		R.zeros();
@@ -105,17 +101,17 @@ std::ifstream in;
 		matABprod(A, B, 1.0, R);
 
 		if (!R.compare(Rf, eps)) {
-			error("test_matABprod: n=%d", gg);
+			LOG(ERROR) << "test_matABprod: n = " << gg;
+      exit(1);
 		}
-		debug("test_matABprod: case %d checked successfuly!", gg);
+		DLOG(DEBUG) << "test_matABprod: case " << gg << " checked successfuly!";
 	}
   in.close();
 	return true;
 }
 
-bool test_matATBprod ()
-{
-std::ifstream in;
+bool test_matATBprod () {
+  std::ifstream in;
 	const uint16 _M = 24;
 	const uint16 _N = 9;
 	const uint16 _N2= 12;
@@ -126,8 +122,7 @@ std::ifstream in;
 	Mat2<_N,_N2> Rf;
   sprintf_s(filename,100, "%s/matATBprod_%02d%02d%02d", dir, _M, _N, _N2);
   in.open(filename);
-	for (uint16 gg=1;gg<=tn;gg++)
-	{
+	for (uint16 gg = 1; gg <= tn; gg++) {
 		A.zeros();
 		B.zeros();
 		R.zeros();
@@ -139,17 +134,17 @@ std::ifstream in;
 
 		matATBprod(A, B, 1.0, R);
 		if (!R.compare(Rf, eps)) {
-			error("test_matATBprod: n=%d", gg);
+			LOG(ERROR) << "test_matATBprod: n = " << gg;
+      exit(1);
 		}
-		debug("test_matATBprod: case %d checked successfuly!", gg);
+		DLOG(DEBUG) << "test_matATBprod: case " << gg << " checked successfuly!";
 	}
   in.close();
 	return true;
 }
 
-bool test_matBTDBprod ()
-{
-std::ifstream in;
+bool test_matBTDBprod () {
+  std::ifstream in;
 	const uint16 _M = 24;
 	const uint16 _N = 9;
 	char filename[100];
@@ -159,8 +154,7 @@ std::ifstream in;
 	MatSym<_N> Rf;
   sprintf_s(filename,100, "%s/matBTDBprod_%02d%02d", dir, _M, _N);
   in.open(filename);
-	for (uint16 gg=1;gg<=tn;gg++)
-	{
+	for (uint16 gg = 1; gg <= tn; gg++) {
 		D.zeros();
 		B.zeros();
 		R.zeros();
@@ -173,22 +167,21 @@ std::ifstream in;
 		matBTDBprod(B, D, 1.0, R);
 
 		if (!R.compare(Rf, eps)) {
-			error("test_matBTDBprod: n=%d", gg);
+			LOG(ERROR) << "test_matBTDBprod: n = " << gg;
+      exit(1);
 		}
-		debug("test_matBTDBprod: case %d checked successfuly!", gg);
-
+		DLOG(DEBUG) << "test_matBTDBprod: case " << gg << " checked successfuly!";
 	}
   in.close();
 	return true;
 }
 
-int main (int argc, char* argv[])
-{
+int main (int argc, char* argv[]) {
   char* tmp = getCmdOption(argv, argv + argc, "-dir");
   if (tmp) {
     dir = tmp;
   } else {
-    error("You shoud provide directory with test data");
+    LOG(FATAL) << "You shoud provide directory with test data";
   }
 
   tmp = getCmdOption(argv, argv + argc, "-num");

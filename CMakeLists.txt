@@ -57,40 +57,44 @@ else()
   message(WARNING "Can't find MKL")
 endif()
 
+find_package(EASYLOGGINGPP)
+if (EASYLOGGINGPP_FOUND)
+  include_directories(${EASYLOGGINGPP_INCLUDE_DIRS})
+else()
+  message(WARNING "Can't find Easylogging++")
+endif()
+
+find_package(EIGEN)
+if (EIGEN_FOUND)
+  include_directories(${EIGEN_INCLUDE_DIRS})
+else()
+  message(WARNING "Can't find Eigen")
+endif()
+
 
 SET (CMAKE_COLOR_MAKEFILE ON)
 enable_testing()
 
-# site-src contains source codes of external libraries
-SET (SITE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/site-src)
-
-include_directories(${SITE_SOURCE_DIR}/eigen)
-include_directories(${SITE_SOURCE_DIR}/easyloggingpp/src)
 include_directories (src)
+include_directories (src/lib)
 
-add_subdirectory (src/math)
+add_subdirectory (src/lib)
 add_subdirectory (test)
 
 
-#TODO: make recursively add
-file (GLOB NLA3D_LIB_SOURCES
-	  "src/*.cpp" "src/materials/*.cpp" "src/elements/*cpp")
-
 # here is a main target - nla3d.exe
 set (NLA3D_APP_SOURCES "src/main.cpp")
-list(REMOVE_ITEM NLA3D_LIB_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp) 
 
-#collect all sources except main.cpp into a static link
-#this static link could be conviniently used for tests
-add_library(nla3d_lib STATIC ${NLA3D_LIB_SOURCES})
-
-target_link_libraries(nla3d_lib math ${MKL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-
+# an executable to use TRUSS3 element
+set (NLA3D_TRUSS_APP_SOURCES "src/main_truss.cpp")
 
 #main executable of the project: nla3d.exe program
 add_executable(nla3d ${NLA3D_APP_SOURCES})
 target_link_libraries(nla3d nla3d_lib)
 
+
+add_executable(nla3d_truss ${NLA3D_TRUSS_APP_SOURCES})
+target_link_libraries(nla3d_truss nla3d_lib)
 
 # Add logic to INSTALL.vcproj to copy app.exe to destination directory
 install (TARGETS nla3d
@@ -100,9 +104,4 @@ install (TARGETS nla3d
 add_custom_command(TARGET nla3d POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
   ${MKL_IOMP5_RUNTIME_LIB}
-  $<TARGET_FILE_DIR:nla3d>)
-
-add_custom_command(TARGET nla3d POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different
-  ${CMAKE_CURRENT_SOURCE_DIR}/files/logger.conf
   $<TARGET_FILE_DIR:nla3d>)
