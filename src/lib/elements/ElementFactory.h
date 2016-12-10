@@ -15,6 +15,7 @@ class ElementFactory {
     PLANE41,
     SOLID81,
     TRUSS3,
+    TETRA,
     LAST
   };
 

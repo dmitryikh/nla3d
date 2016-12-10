@@ -6,13 +6,15 @@
 #include "elements/PLANE41.h"
 #include "elements/SOLID81.h"
 #include "elements/TRUSS3.h"
+#include "elements/TETRA.h"
 
 namespace nla3d {
 
 const char* const ElementFactory::elTypeLabels[]={"UNDEFINED",
   "PLANE41",
   "SOLID81",
-  "TRUSS3"
+  "TRUSS3",
+  "TETRA"
 };
 
 ElementFactory::elTypes ElementFactory::elName2elType (std::string elName) {
@@ -41,6 +43,11 @@ void ElementFactory::createElements (elTypes elId, const uint32 n, std::vector<E
     case ElementFactory::TRUSS3:
       for (uint32 i = 0; i < n; i++) {
         ptr.push_back(new ElementTRUSS3());
+      }
+      break;
+    case ElementFactory::TETRA:
+      for (uint32 i = 0; i < n; i++) {
+        ptr.push_back(new ElementTETRA());
       }
       break;
     default:
