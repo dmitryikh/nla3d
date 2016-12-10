@@ -31,7 +31,10 @@
   #define sprintf_s snprintf
 #endif
 
-//#ifdef VC_COMPILER
+#ifdef __APPLE__
+  #define sprintf_s snprintf
+#endif
+
 #define int8 char //-127 to +127
 #define uint8 unsigned char //0 to +255
 #define int16 short //-32 767 to +32 767
@@ -41,9 +44,6 @@
 #define int64 long long //-9 223 372 036 854 775 807 to +9 223 372 036 854 775 807
 #define uint64 unsigned long long //0 to +18 446 744 073 709 551 615
 
-//#else
-//#error Dont know integers types
-//#endif
 
 namespace nla3d {
 
@@ -75,16 +75,6 @@ public:
     el::Loggers::addFlag(el::LoggingFlag::ColoredTerminalOutput);
 	};
 };
-
-// legasy logging routines
-//void warning(const char* logline, ...);
-//void debug(const char* logline, ...);
-//void debug(std::string &str);
-//void log(std::string &str);
-//void log(const char* logline, ...);
-//void error(const char* logline, ...);
-//void echo (const char* logline, ...);
-//void echolog(const char* logline, ...);
 
 uint32 tick();
 

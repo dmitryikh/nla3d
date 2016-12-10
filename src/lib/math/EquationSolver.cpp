@@ -2,7 +2,6 @@
 // licensing go to project's repository on github:
 // https://github.com/dmitryikh/nla3d 
 
-#pragma once
 #include "math/EquationSolver.h"
 #include "math/SparseMatrix.h"
 #include <mkl.h>

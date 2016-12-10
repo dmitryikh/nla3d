@@ -47,14 +47,17 @@ endif()
 
 
 # MKL is composed by four layers: Interface, Threading, Computational and RTL
-if (UNIX)
+if (LINUX)
   set(MKL_LIB_DIR ${MKL_ROOT}/lib/${MKL_ARCH}/)
+elseif(APPLE)
+  set(MKL_LIB_DIR ${MKL_ROOT}/lib/)
 else()
   set(MKL_LIB_DIR ${MKL_ROOT}/${MKL_ARCH}/lib)
 endif()
+
 if(MKL_SDL)
     find_library(MKL_LIBRARY mkl_rt
-        PATHS ${MKL_ROOT}/lib/em64t/)
+        PATHS ${MKL_LIB_DIR})
     set(MKL_MINIMAL_LIBRARY ${MKL_LIBRARY})
 else()
     ######################### Interface layer #######################
@@ -84,16 +87,6 @@ else()
     ####################### Computational layer #####################
     find_library(MKL_CORE_LIBRARY mkl_core
       PATHS ${MKL_LIB_DIR})
-    find_library(MKL_FFT_LIBRARY mkl_cdft_core
-      PATHS ${MKL_LIB_DIR})
-    find_library(MKL_SCALAPACK_LIBRARY mkl_scalapack_lp64
-      PATHS ${MKL_LIB_DIR})
-    find_library(MKL_SCALAPACK_LIBRARY mkl_scalapack
-      PATHS ${MKL_LIB_DIR})
-    find_library(MKL_SOLVER_LIBRARY mkl_solver_lp64
-      PATHS ${MKL_LIB_DIR})
-    find_library(MKL_SOLVER_LIBRARY mkl_solver
-      PATHS ${MKL_LIB_DIR})
 
     ############################ RTL layer ##########################
     if(WIN32)
@@ -102,12 +95,12 @@ else()
         set(MKL_RTL_LIBNAME iomp5)
     endif()
     find_library(MKL_RTL_LIBRARY ${MKL_RTL_LIBNAME}
-      PATHS ${MKL_LIB_DIR})
+        PATHS ${INTEL_ROOT}/lib)
     if(CMAKE_COMPILER_IS_GNUCXX)
       #need to group undex g++ in urder to resolve all references
-      set(MKL_LIBRARY "-Wl,--start-group ${MKL_INTERFACE_LIBRARY} ${MKL_THREADING_LIBRARY} ${MKL_CORE_LIBRARY} ${MKL_FFT_LIBRARY} ${MKL_SCALAPACK_LIBRARY} ${MKL_RTL_LIBRARY} ${MKL_SOLVER_LIBRARY} -Wl,--end-group")
+      set(MKL_LIBRARY "-Wl,--start-group ${MKL_INTERFACE_LIBRARY} ${MKL_THREADING_LIBRARY} ${MKL_CORE_LIBRARY}${MKL_SCALAPACK_LIBRARY} ${MKL_RTL_LIBRARY} ${MKL_SOLVER_LIBRARY} -Wl,--end-group")
     else()
-      set(MKL_LIBRARY ${MKL_INTERFACE_LIBRARY} ${MKL_THREADING_LIBRARY} ${MKL_CORE_LIBRARY} ${MKL_FFT_LIBRARY} ${MKL_SCALAPACK_LIBRARY} ${MKL_RTL_LIBRARY} ${MKL_SOLVER_LIBRARY})
+      set(MKL_LIBRARY ${MKL_INTERFACE_LIBRARY} ${MKL_THREADING_LIBRARY} ${MKL_CORE_LIBRARY} ${MKL_SCALAPACK_LIBRARY} ${MKL_RTL_LIBRARY} ${MKL_SOLVER_LIBRARY})
     endif()
     set(MKL_MINIMAL_LIBRARY ${MKL_INTERFACE_LIBRARY} ${MKL_THREADING_LIBRARY} ${MKL_CORE_LIBRARY} ${MKL_RTL_LIBRARY})
 endif()
@@ -117,6 +110,11 @@ if(WIN32)
   set(CMAKE_FIND_LIBRARY_SUFFIXES .dll)
   find_library(MKL_IOMP5_RUNTIME_LIB libiomp5md
       PATHS ${MKL_ROOT}/${MKL_ARCH}/bin/)
+elseif(APPLE)
+  set(MKL_RTL_LIBNAME iomp5)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES .dylib)
+  find_library(MKL_IOMP5_RUNTIME_LIB ${MKL_RTL_LIBNAME}
+      PATHS ${INTEL_ROOT}/lib)
 else()
   set(MKL_RTL_LIBNAME iomp5)
   set(CMAKE_FIND_LIBRARY_SUFFIXES .so)

@@ -4,8 +4,8 @@
 
 #pragma once
 #include <string>
-#include "math\Vec.h"
-#include "math\Mat.h"
+#include "math/Vec.h"
+#include "math/Mat.h"
 
 namespace nla3d {
 

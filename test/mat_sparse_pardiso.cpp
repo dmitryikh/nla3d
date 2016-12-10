@@ -1,6 +1,6 @@
 #include "sys.h"
 #include <mkl.h>
-#include "math\SparseMatrix.h"
+#include "math/SparseMatrix.h"
 
 using namespace std;
 using namespace nla3d::math;

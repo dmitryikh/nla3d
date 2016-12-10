@@ -1,5 +1,5 @@
 #include "sys.h"
-#include "math\Mat.h"
+#include "math/Mat.h"
 
 //TODO: not all results are autochecked
 

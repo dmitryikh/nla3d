@@ -43,10 +43,9 @@ if (nla3d_blas)
 endif()
 
 if(WIN32)
-  #this settings works for me.. But for you it needs to be changed
-  set(MKL_ARCH "em64t")
+  set(MKL_ARCH "intel64")
 else()
-  set(MKL_ARCH "em64t")
+  set(MKL_ARCH "intel64")
 endif()
 
 find_package(MKL)

@@ -12,8 +12,8 @@
 #include "query.h"
 #include "Node.h"
 #include "FEStorage.h"
-#include "math\Vec.h"
-#include "math\Mat.h"
+#include "math/Vec.h"
+#include "math/Mat.h"
 
 namespace nla3d {
 
