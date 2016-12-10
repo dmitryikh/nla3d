@@ -146,7 +146,7 @@ void VtkProcessor::write_cell_data(std::ofstream &file) {
     dataVector.assign(en, Vec<3> ());
     for (size_t j = 0; j < cellVectorQuery.size(); j++) {
       for (uint32 i = 1; i <= storage->getNumberOfElements(); i++) {
-        dataVector[i-1].zeros();
+        dataVector[i-1].zero();
         storage->getElement(i).getVector(dataVector[i-1].ptr(), cellVectorQuery[j]);
       }
       writeVector (file, query::vectorQueryLabels[cellVectorQuery[j]], dataVector); 
@@ -158,7 +158,7 @@ void VtkProcessor::write_cell_data(std::ofstream &file) {
     dataTensor.assign(en, MatSym<3> ());
     for (size_t j = 0; j < cellTensorQuery.size(); j++) {
       for (uint32 i = 1; i <= storage->getNumberOfElements(); i++) {
-        dataTensor[i-1].zeros();
+        dataTensor[i-1].zero();
         storage->getElement(i).getTensor(dataTensor[i-1], cellTensorQuery[j]);
       }
       writeTensor (file, query::tensorQueryLabels[cellTensorQuery[j]], dataTensor); 

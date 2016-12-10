@@ -26,7 +26,7 @@ int main()
 	Mat<3,3> mat2 = mat;
 	cout << "mat=mat2:" << endl;
 	cout << mat << endl;
-  if (!matCompare(mat, mat2)) {
+  if (!mat.compare(mat2)) {
     LOG(ERROR) << "mat!=mat2";
     exit(1);
   }
@@ -34,7 +34,7 @@ int main()
 	cout << "mat2.zero()" << endl;
 	mat2.zero();
 	cout << mat2 << endl;
-  if (!matCompare(mat2, Mat<3,3>(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f))) {
+  if (!mat2.compare(Mat<3,3>(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f))) {
     LOG(ERROR) << "mat2!=zeros";
     exit(1);
   }
@@ -77,7 +77,7 @@ int main()
   Mat<3,3> inv_mat33(-0.07914764,  0.02435312,  0.00456621,
         1.24505327,  0.00152207, -0.18721461, -0.47031963, -0.00913242,  0.12328767);
   cout << "answer inv_mat33 = " << endl << inv_mat33 << endl;
-  if (!matCompare(mat33.inv(mat33.det()), inv_mat33)) {
+  if (!(mat33.inv(mat33.det())).compare(inv_mat33)) {
     LOG(ERROR) << "mat33.inv() is not correct";
     exit(1);
   } 
@@ -96,7 +96,7 @@ int main()
        1.95000000e+00, -1.00000000e-01, -2.15000000e+00, 1.30000000e+00,
        1.25000000e-01,   6.89552582e-17,  -3.75000000e-01, 2.50000000e-01);
   cout << "answer inv_mat44 = " << endl << inv_mat44 << endl;
-  if (!matCompare(mat44.inv(mat44.det()), inv_mat44)) {
+  if (!(mat44.inv(mat44.det())).compare(inv_mat44)) {
     LOG(ERROR) << "mat44.inv() is not correct";
     exit(1);
   } 
@@ -120,7 +120,7 @@ int main()
          -3.65917041e-01,  -4.17391304e+00,   3.64217891e-01,
          -2.89855072e-02,  -5.90134933e+00,   2.76261869e-01,
           3.17391304e+00);
-  if (!matCompare(mat55.inv(mat55.det()), inv_mat55)) {
+  if (!(mat55.inv(mat55.det())).compare(inv_mat55)) {
     LOG(ERROR) << "mat55.inv() is not correct";
     exit(1);
   } 

@@ -48,14 +48,14 @@ public:
 
 
 	template <uint16 dimM, uint16 dimN>
-	void assemble2(MatSym<dimM> &Kuu, Mat2<dimM,dimM> &Kup, Mat2<dimN,dimN> &Kpp, Vec<dimM> &Fu, Vec<dimN> &Fp);
+	void assemble2(MatSym<dimM> &Kuu, Mat<dimM,dimM> &Kup, Mat<dimN,dimN> &Kpp, Vec<dimM> &Fu, Vec<dimN> &Fp);
 	template <uint16 dimM>
 	void assemble3(MatSym<dimM> &Kuu, Vec<dimM> &Kup, double Kpp, Vec<dimM> &Fu, double Fp);
   void assemble4(Eigen::Ref<Eigen::MatrixXd> Ke, Eigen::Ref<Eigen::MatrixXd> Fe);
 };
 
 template <uint16 dimM, uint16 dimN>
-void ElementSOLID81::assemble2(MatSym<dimM> &Kuu, Mat2<dimM,dimM> &Kup, Mat2<dimN,dimN> &Kpp, Vec<dimM> &Fu, Vec<dimN> &Fp) 
+void ElementSOLID81::assemble2(MatSym<dimM> &Kuu, Mat<dimM,dimM> &Kup, Mat<dimN,dimN> &Kpp, Vec<dimM> &Fu, Vec<dimN> &Fp) 
 {
 	assert (Element::n_nodes()*Node::n_dofs() == dimM);
 	assert (Element::n_dofs() == dimN);

@@ -32,7 +32,7 @@ bool test_matBVprod () {
 	const uint16 _N = 24;
 	const uint16 _M = 9;
 	char filename[100];
-	Mat2<_N,_M> B;
+	Mat<_N,_M> B;
 	Vec<_M> V;
 	Vec<_N> Rf;
 	Vec<_N> R;
@@ -44,10 +44,10 @@ bool test_matBVprod () {
   sprintf_s(filename,100,"%s/matBVprod_%02d%02d",dir,_N,_M);
   in.open(filename);
 	for (uint16 gg = 1; gg <= tn; gg++) {
-		B.zeros();
-		V.zeros();
-		R.zeros();
-		Rf.zeros();
+		B.zero();
+		V.zero();
+		R.zero();
+		Rf.zero();
 
 		B.simple_read(in);
 		V.simple_read(in);
@@ -76,7 +76,7 @@ bool test_matBTVprod () {
 	const uint16 _N = 24;
 	const uint16 _M = 9;
 	char filename[100];
-	Mat2<_N,_M> B;
+	Mat<_N,_M> B;
 	Vec<_N> V;
 	Vec<_M> Rf;
 	Vec<_M> R;
@@ -88,10 +88,10 @@ bool test_matBTVprod () {
   sprintf_s(filename,100, "%s/matBTVprod_%02d%02d", dir, _N, _M);
   in.open(filename);
 	for (uint16 gg = 1; gg <= tn; gg++) {
-		B.zeros();
-		V.zeros();
-		R.zeros();
-		Rf.zeros();
+		B.zero();
+		V.zero();
+		R.zero();
+		Rf.zero();
 
 		B.simple_read(in);
 		V.simple_read(in);
@@ -121,18 +121,18 @@ bool test_matABprod () {
 	const uint16 _M = 9;
 	const uint16 _M2= 12;
 	char filename[100];
-	Mat2<_N,_M>  A;
-	Mat2<_M,_M2> B;
-	Mat2<_N,_M2> R;
-	Mat2<_N,_M2> Rf;
+	Mat<_N,_M>  A;
+	Mat<_M,_M2> B;
+	Mat<_N,_M2> R;
+	Mat<_N,_M2> Rf;
   Eigen::MatrixXd e_A, e_B, e_R;
   sprintf_s(filename,100, "%s/matABprod_%02d%02d%02d", dir, _N, _M, _M2);
   in.open(filename);
 	for (uint16 gg = 1; gg <= tn; gg++) {
-		A.zeros();
-		B.zeros();
-		R.zeros();
-		Rf.zeros();
+		A.zero();
+		B.zero();
+		R.zero();
+		Rf.zero();
 
 		A.simple_read(in);
 		B.simple_read(in);
@@ -161,19 +161,19 @@ bool test_matATBprod () {
 	const uint16 _N = 9;
 	const uint16 _N2= 12;
 	char filename[100];
-	Mat2<_M,_N>  A;
-	Mat2<_M,_N2> B;
-	Mat2<_N,_N2> R;
-	Mat2<_N,_N2> Rf;
+	Mat<_M,_N>  A;
+	Mat<_M,_N2> B;
+	Mat<_N,_N2> R;
+	Mat<_N,_N2> Rf;
 
   Eigen::MatrixXd e_A, e_B, e_R;
   sprintf_s(filename,100, "%s/matATBprod_%02d%02d%02d", dir, _M, _N, _N2);
   in.open(filename);
 	for (uint16 gg = 1; gg <= tn; gg++) {
-		A.zeros();
-		B.zeros();
-		R.zeros();
-		Rf.zeros();
+		A.zero();
+		B.zero();
+		R.zero();
+		Rf.zero();
 
 		A.simple_read(in);
 		B.simple_read(in);
@@ -202,7 +202,7 @@ bool test_matBTDBprod () {
 	const uint16 _M = 24;
 	const uint16 _N = 9;
 	char filename[100];
-	Mat2<_M,_N>  B;
+	Mat<_M,_N>  B;
 	MatSym<_M> D;
 	MatSym<_N> R;
 	MatSym<_N> Rf;
@@ -210,10 +210,10 @@ bool test_matBTDBprod () {
   sprintf_s(filename,100, "%s/matBTDBprod_%02d%02d", dir, _M, _N);
   in.open(filename);
 	for (uint16 gg = 1; gg <= tn; gg++) {
-		D.zeros();
-		B.zeros();
-		R.zeros();
-		Rf.zeros();
+		D.zero();
+		B.zero();
+		R.zero();
+		Rf.zero();
 
 		B.simple_read(in);
 		D.simple_read(in);

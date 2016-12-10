@@ -219,7 +219,7 @@ void  ElementPLANE41::getTensor(math::MatSym<3>& tensor, query::tensorQuery code
 
   MatSym<3> matS;
   Mat_Hyper_Isotrop_General* mat;
-  Mat2<3,3> matF;
+  Mat<3,3> matF;
   double J;
 
   Vec<6> CVec;
@@ -235,7 +235,7 @@ void  ElementPLANE41::getTensor(math::MatSym<3>& tensor, query::tensorQuery code
 	switch (code) {
     case query::TENSOR_COUCHY:
 
-      matF.zeros();
+      matF.zero();
       matF.data[0][0] = 1+O[gp][0]; //11
       matF.data[0][1] = O[gp][1];  //12
       matF.data[1][0] = O[gp][2];  //21

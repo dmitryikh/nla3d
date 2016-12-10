@@ -45,23 +45,23 @@ void ElementSOLID81::build()
 	Vec<6> vecD_p;
 	Vec<6> vecC;
 
-	Mat2<6,24> matB;
+	Mat<6,24> matB;
 	MatSym<9> matS;
-	Mat2<6,9> matO;
-	Mat2<9,24> matB_NL;
+	Mat<6,9> matO;
+	Mat<9,24> matB_NL;
 	MatSym<24> Kuu; //матрица жесткости перед вектором перемещений
 	double p_e = storage->getDofSolution(- static_cast<int32> (getElNum()), Dof::HYDRO_PRESSURE);
 	double dWt; //множитель при суммировании квадратур Гаусса
-	Kuu.zeros();
+	Kuu.zero();
 	for (uint16 nPoint=0; (int32) nPoint < npow(Element::n_int(),n_dim()); nPoint++) {
 		dWt = g_weight(nPoint);
 
 		mat->getDdDp_UP(6, solidmech::defaultTensorComponents, C[nPoint].ptr(), p_e, matD_d.ptr(), vecD_p.ptr());
 		double J = solidmech::J_C(C[nPoint].ptr());
-		matB.zeros();
-		matS.zeros();
-		matO.zeros();
-		matB_NL.zeros();
+		matB.zero();
+		matS.zero();
+		matO.zero();
+		matB_NL.zero();
 
 		make_B_L(nPoint, matB);
 		make_S(nPoint, matS); //matrix 9x9 with 3x3 stress tenros blocks
@@ -96,15 +96,15 @@ void ElementSOLID81::update()
     U[i*3 + 1] = storage->getDofSolution(getNodeNumber(i), Dof::UY);
     U[i*3 + 2] = storage->getDofSolution(getNodeNumber(i), Dof::UZ);
   }
-	Mat2<9,24> B_NL;
+	Mat<9,24> B_NL;
 	Vec<6> vecC;
 	double p_e = storage->getDofSolution(- static_cast<int32> (getElNum()), Dof::HYDRO_PRESSURE);
 
   Mat_Hyper_Isotrop_General* mat = CHECK_NOTNULL(dynamic_cast<Mat_Hyper_Isotrop_General*> (storage->getMaterial()));
 	for (uint16 nPoint=0; (int32) nPoint < npow(Element::n_int(),n_dim()); nPoint++) {
-		B_NL.zeros();
+		B_NL.zero();
 		make_B_NL(nPoint, B_NL);
-		O[nPoint].zeros();
+		O[nPoint].zero();
     // O[nPoint] = B_NL * U
 		matBVprod(B_NL, U, 1.0, O[nPoint]);
 		C[nPoint][M_XX] = 1.0+2*O[nPoint][0]+pow(O[nPoint][0],2)+pow(O[nPoint][3],2)+pow(O[nPoint][6],2);	//C11
@@ -120,7 +120,7 @@ void ElementSOLID81::update()
 }
 
 
-void ElementSOLID81::make_B_L (uint16 nPoint, Mat2<6,24> &B)
+void ElementSOLID81::make_B_L (uint16 nPoint, Mat<6,24> &B)
 {
 	double *B_L = B.ptr();
 	for (uint16 i=0; i < 8; i++) {
@@ -137,7 +137,7 @@ void ElementSOLID81::make_B_L (uint16 nPoint, Mat2<6,24> &B)
 }
 
 
-void ElementSOLID81::make_B_NL (uint16 nPoint,  Mat2<9,24> &B)
+void ElementSOLID81::make_B_NL (uint16 nPoint,  Mat<9,24> &B)
 {
 	double *B_NL = B.ptr();
 	for (uint16 i=0; i < 8; i++) {
@@ -181,7 +181,7 @@ void ElementSOLID81::make_S (uint16 nPoint, MatSym<9> &B)
 }
 
 
-void ElementSOLID81::make_Omega (uint16 nPoint, Mat2<6,9> &B)
+void ElementSOLID81::make_Omega (uint16 nPoint, Mat<6,9> &B)
 {
 	double *Omega = B.ptr();
 	for (uint16 i=0; i < 3; i++) {
@@ -277,7 +277,7 @@ void  ElementSOLID81::getTensor(math::MatSym<3>& tensor, query::tensorQuery code
   }
 	assert (gp < npow(n_int(),n_dim()));
 
-  Mat2<3,3> matF;
+  Mat<3,3> matF;
   MatSym<3> matS;
   double J;
   double cInv[6];

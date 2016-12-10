@@ -32,10 +32,10 @@ public:
 	void build();
 	void update();
 
-	void make_B_L (uint16 nPoint, math::Mat2<6,24> &B);	//функция создает линейную матрицу [B]
-	void make_B_NL (uint16 nPoint,  math::Mat2<9,24> &B); //функция создает линейную матрицу [Bomega]
+	void make_B_L (uint16 nPoint, math::Mat<6,24> &B);	//функция создает линейную матрицу [B]
+	void make_B_NL (uint16 nPoint,  math::Mat<9,24> &B); //функция создает линейную матрицу [Bomega]
 	void make_S (uint16 nPoint, math::MatSym<9> &B);
-	void make_Omega (uint16 nPoint, math::Mat2<6,9> &B);
+	void make_Omega (uint16 nPoint, math::Mat<6,9> &B);
 
   //postproc procedures
 	void getScalar(double& scalar, query::scalarQuery code, uint16 gp, const double scale);
@@ -51,15 +51,15 @@ public:
 	std::vector<math::Vec<9> > O; //S[номер т. интегр.][номер омеги]
 
 	template <uint16 dimM, uint16 dimN>
-	void assemble2(math::MatSym<dimM> &Kuu, math::Mat2<dimM,dimM> &Kup, math::Mat2<dimN,dimN> &Kpp, math::Vec<dimM> &Fu, math::Vec<dimN> &Fp);
+	void assemble2(math::MatSym<dimM> &Kuu, math::Mat<dimM,dimM> &Kup, math::Mat<dimN,dimN> &Kpp, math::Vec<dimM> &Fu, math::Vec<dimN> &Fp);
 	template <uint16 dimM>
 	void assemble3(math::MatSym<dimM> &Kuu, math::Vec<dimM> &Kup, double Kpp, math::Vec<dimM> &Fu, double Fp);
 };
 
 //// for now this procedure is broken
 //template <uint16 dimM, uint16 dimN>
-//void ElementSOLID81::assemble2(math::MatSym<dimM> &Kuu, math::Mat2<dimM,dimM> &Kup,
-//    math::Mat2<dimN,dimN> &Kpp, math::Vec<dimM> &Fu, math::Vec<dimN> &Fp) {
+//void ElementSOLID81::assemble2(math::MatSym<dimM> &Kuu, math::Mat<dimM,dimM> &Kup,
+//    math::Mat<dimN,dimN> &Kpp, math::Vec<dimM> &Fu, math::Vec<dimN> &Fp) {
 //  const uint16 dim = 3;
 //	assert (Element::n_nodes()*dim == dimM);
 //	assert (Element::n_dofs() == dimN);

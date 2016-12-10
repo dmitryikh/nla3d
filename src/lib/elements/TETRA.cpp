@@ -24,15 +24,15 @@ void ElementTETRA::pre () {
 void ElementTETRA::build () {
   // Ke will store element stiffness matrix in global coordinates
   math::MatSym<12> matKe;
-  matKe.zeros();
+  matKe.zero();
 
   // matB is strain matrix
-  math::Mat2<6,12> matB;
-  matB.zeros();
+  math::Mat<6,12> matB;
+  matB.zero();
 
   // matC is 3d elastic  matrix
   math::MatSym<6> matC;
-  matC.zeros();
+  matC.zero();
 
 
   // fill here matC
@@ -52,12 +52,12 @@ void ElementTETRA::build () {
 // after solution it's handy to calculate stresses, strains and other stuff in elements.
 void ElementTETRA::update () {
   // matB is strain matrix
-  math::Mat2<6,12> matB;
-  matB.zeros();
+  math::Mat<6,12> matB;
+  matB.zero();
 
   // matC is 3d elastic  matrix
   math::MatSym<6> matC;
-  matC.zeros();
+  matC.zero();
 
   // fill here matC
   makeC(matC);
@@ -83,7 +83,7 @@ void ElementTETRA::update () {
   // math::matBVprod(matC.toMat(), strains, 1.0, strains);
 }
 
-void ElementTETRA::makeB(math::Mat2<6,12> &B)
+void ElementTETRA::makeB(math::Mat<6,12> &B)
 {
     double *B_L = B.ptr();
     for (uint16 i=0; i < 4; i++) {

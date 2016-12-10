@@ -33,7 +33,7 @@ public:
 	double& operator[] (uint16 n);
 	const double operator[] (uint16 n) const;
 	void display ();
-	void zeros() {
+	void zero() {
 		memset(data,0,sizeof(double)*dim);
 	}
 	double length ();

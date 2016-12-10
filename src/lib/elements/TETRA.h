@@ -36,7 +36,7 @@ public:
   void update();
 
 
-  void makeB (math::Mat2<6,12> &B);
+  void makeB (math::Mat<6,12> &B);
   void makeC (math::MatSym<6> &C);
 
   // Elastic module
