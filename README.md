@@ -85,40 +85,37 @@ _nla3d_ uses several external libraries:
 ## Compiling
 
 To compile _nla3d_ first of all you need an environment and tools desribed in Requirements chapter.
-Here is an example how to do it under linux-based OS:
+Here is an example how to do it under linux-based OS. Firs of all we need to clone current project
+and fetch all submodules:
 
 ```
-mkdir nla3d_build
-cd nla3d_build
+git clone https://github.com/dmitryikh/nla3d
+cd nla3d
+git submodule update --init
 ```
 
 Then you can deploy makefiles dy calling ```cmake``` program:
 
 ```
-cmake '~/Downloads/nla3d'
+mkdir build
+cd build
+cmake ..
 ```
 
 One will see the output like this:
 
 ```
 ...
--- Found MKL: /opt/intel/mkl/include  
--- Could NOT find EASYLOGGINGPP (missing:  EASYLOGGINGPP_INCLUDE_DIRS) 
-CMake Warning at CMakeLists.txt:64 (message):
-  Can't find Easylogging++
-
-
--- Could NOT find Eigen (missing:  EIGEN_INCLUDE_DIR) 
-CMake Warning at CMakeLists.txt:71 (message):
-  Can't find Eigen
-
-
+-- Found MKL: /opt/intel  
+-- Found EASYLOGGINGPP: /Users/foo/code/nla3d/site-src/easyloggingpp/src  
+-- Found Eigen: /Users/foo/code/nla3d/site-src/eigen  
 -- Configuring done
 -- Generating done
 ...
 ```
 
-That means that cmake wasn't successed to find were are some libraries are installed. To fix it the
+That means that everything is ok with configuring.
+If cmake wasn't successed to find were are some dependencies are, you need to fix manually. The
 best way is to use cmake curses interface ```ccmake``` and provide missing pathes manually:
 
 ```
