@@ -1,0 +1,6 @@
+[submodule "site-src/easyloggingpp"]
+	path = site-src/easyloggingpp
+	url = https://github.com/easylogging/easyloggingpp
+[submodule "site-src/eigen"]
+	path = site-src/eigen
+	url = https://github.com/RLovelett/eigen

@@ -1,24 +1,14 @@
 # - Find Eigen
 # Find the Eigen libraries
-#
-# This module defines the following variables:
-#   EIGEN_FOUND -True if EIGEN_INCLUDE_DIR are found
-#   EIGEN_INCLUDE_DIR - where to find Eigen.h.
-#   EIGEN_INCLUDE_DIRS - set when EIGEN_INCLUDE_DIR found
-
-include(FindPackageHandleStandardArgs)
-
-set(EIGEN_ROOT "" CACHE PATH "Folder contains eigen")
 
 # Find include dir
 find_path(EIGEN_INCLUDE_DIR "Eigen/Core"
-    PATHS ${EIGEN_ROOT}
-    PATH_SUFFIXES  eigen3
-    DOC "The path the the directory that contains Eigen.h")
+    NO_CMAKE_PATH
+    NO_CMAKE_ENVIRONMENT_PATH
+    NO_SYSTEM_ENVIRONMENT_PATH
+    NO_CMAKE_SYSTEM_PATH
+    PATHS ${CMAKE_CURRENT_SOURCE_DIR}/site-src/eigen
+    DOC "The path the the directory that contains Core, Eigen and others")
 
 find_package_handle_standard_args(Eigen DEFAULT_MSG
     EIGEN_INCLUDE_DIR)
-
-if(EIGEN_FOUND)
-    set(EIGEN_INCLUDE_DIRS ${EIGEN_INCLUDE_DIR})
-endif()

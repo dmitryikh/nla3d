@@ -6,11 +6,12 @@ project (NLA3D)
 
 set (nla3d_multithreaded OFF)
 set (nla3d_debug OFF)
-#NOTE: now SOLID80 can use blas, but results not converged.. need to fix
+#TODO: now SOLID81 can use blas, but results not converged.. need to fix
+# Do not use nla3d_blas for now..
 set (nla3d_blas OFF)
-set(MKL_STATIC 1)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/modules)
+# Use mine findFoo.cmake modules
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
 if (nla3d_multithreaded)
   if(UNIX)
@@ -42,30 +43,33 @@ if (nla3d_blas)
   add_definitions( -DNLA3D_USE_BLAS)
 endif()
 
-if(WIN32)
-  set(MKL_ARCH "intel64")
-else()
-  set(MKL_ARCH "intel64")
-endif()
 
 find_package(MKL)
 if (MKL_FOUND)
-  include_directories(${MKL_INCLUDE_DIRS})
-  link_directories(${MKL_LIBRARY_DIRS})
+  include_directories(${MKL_INCLUDE_DIR})
+
+  # below code works fine only on UNIX systems..
+  if (MKL_MULTI_THREADED)
+    SET(MKL_LINKER_ARGS " -L${MKL_ROOT}/lib -Wl,-rpath,${MKL_ROOT}/lib -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ldl")
+  else()
+    SET(MKL_LINKER_ARGS " -L${MKL_ROOT}/lib -Wl,-rpath,${MKL_ROOT}/lib -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl")
+  endif()
+    SET( CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} ${MKL_LINKER_ARGS}" )
+
 else()
   message(WARNING "Can't find MKL")
 endif()
 
 find_package(EASYLOGGINGPP)
 if (EASYLOGGINGPP_FOUND)
-  include_directories(${EASYLOGGINGPP_INCLUDE_DIRS})
+  include_directories(${EASYLOGGINGPP_INCLUDE_DIR})
 else()
   message(WARNING "Can't find Easylogging++")
 endif()
 
 find_package(EIGEN)
 if (EIGEN_FOUND)
-  include_directories(${EIGEN_INCLUDE_DIRS})
+  include_directories(${EIGEN_INCLUDE_DIR})
 else()
   message(WARNING "Can't find Eigen")
 endif()
@@ -100,7 +104,7 @@ install (TARGETS nla3d
 		 RUNTIME DESTINATION ${PROJECT_BINARY_DIR}/bin)
 
 # taken from stackoverflow: How to copy DLL files into the same folder as the executable using CMake
-add_custom_command(TARGET nla3d POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different
-  ${MKL_IOMP5_RUNTIME_LIB}
-  $<TARGET_FILE_DIR:nla3d>)
+# add_custom_command(TARGET nla3d POST_BUILD
+#  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+#  ${MKL_IOMP5_RUNTIME_LIB}
+#  $<TARGET_FILE_DIR:nla3d>)

@@ -1,13 +1,14 @@
 #   CMake module to find easylogging++ library
 	
 FIND_PATH(
-    EASYLOGGINGPP_INCLUDE_DIRS
-    NAMES src/easylogging++.h
-    HINTS $ENV{EASYLOGGINGPP_DIR}/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/site-src
-    PATHS /usr/local/include
-          /usr/include
+    EASYLOGGINGPP_INCLUDE_DIR
+    easylogging++.h
+    NO_CMAKE_PATH
+    NO_CMAKE_ENVIRONMENT_PATH
+    NO_SYSTEM_ENVIRONMENT_PATH
+    NO_CMAKE_SYSTEM_PATH
+    PATHS ${CMAKE_CURRENT_SOURCE_DIR}/site-src/easyloggingpp/src
+    DOC "Path to directory where easylogging++.h is stored"
 )
 	
-INCLUDE(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(EASYLOGGINGPP DEFAULT_MSG EASYLOGGINGPP_INCLUDE_DIRS)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(EASYLOGGINGPP DEFAULT_MSG EASYLOGGINGPP_INCLUDE_DIR)
