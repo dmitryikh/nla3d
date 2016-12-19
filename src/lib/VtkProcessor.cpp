@@ -93,14 +93,14 @@ void VtkProcessor::write_point_data(std::ofstream &file) {
   std::vector<double> dataScalar;
   dataVector.assign(nn, Vec<3> ());
   for (uint32 j = 1; j <= nn; j++) {
-    if (storage->isDofUsed(j, Dof::UX)) {
-      dataVector[j-1][0] = storage->getDofSolution(j, Dof::UX);
+    if (storage->isNodeDofUsed(j, Dof::UX)) {
+      dataVector[j-1][0] = storage->getNodeDofSolution(j, Dof::UX);
     }
-    if (storage->isDofUsed(j, Dof::UY)) {
-      dataVector[j-1][1] = storage->getDofSolution(j, Dof::UY);
+    if (storage->isNodeDofUsed(j, Dof::UY)) {
+      dataVector[j-1][1] = storage->getNodeDofSolution(j, Dof::UY);
     }
-    if (storage->isDofUsed(j, Dof::UZ)) {
-      dataVector[j-1][2] = storage->getDofSolution(j, Dof::UZ);
+    if (storage->isNodeDofUsed(j, Dof::UZ)) {
+      dataVector[j-1][2] = storage->getNodeDofSolution(j, Dof::UZ);
     }
   }
   writeVector(file, "disp", dataVector);

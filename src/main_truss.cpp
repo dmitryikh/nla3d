@@ -97,8 +97,8 @@ int main (int argc, char* argv[]) {
   // Log all results about the model
   LOG(INFO) << "DoF solution:";
   for (uint32 i = 1; i <= numberOfNodes; i++) {
-    LOG(INFO) << i << ":" << Dof::dofTypeLabels[Dof::UX] << " = " << storage.getDofSolution(i, Dof::UX);
-    LOG(INFO) << i << ":" << Dof::dofTypeLabels[Dof::UY] << " = " << storage.getDofSolution(i, Dof::UY);
+    LOG(INFO) << i << ":" << Dof::dofTypeLabels[Dof::UX] << " = " << storage.getNodeDofSolution(i, Dof::UX);
+    LOG(INFO) << i << ":" << Dof::dofTypeLabels[Dof::UY] << " = " << storage.getNodeDofSolution(i, Dof::UY);
   }
 
   LOG(INFO) << "DoF reactions:";

@@ -22,11 +22,11 @@ void ElementSOLID81::pre() {
 
   // register element equations
   for (uint16 i = 0; i < Element::n_nodes(); i++) {
-    storage->registerNodeDof(getNodeNumber(i), Dof::UX);
-    storage->registerNodeDof(getNodeNumber(i), Dof::UY);
-    storage->registerNodeDof(getNodeNumber(i), Dof::UZ);
+    storage->addNodeDof(getNodeNumber(i), Dof::UX);
+    storage->addNodeDof(getNodeNumber(i), Dof::UY);
+    storage->addNodeDof(getNodeNumber(i), Dof::UZ);
   }
-  storage->registerElementDof(getElNum(), Dof::HYDRO_PRESSURE);
+  storage->addElementDof(getElNum(), Dof::HYDRO_PRESSURE);
 }
 
 
@@ -50,7 +50,7 @@ void ElementSOLID81::build()
 	Mat<6,9> matO;
 	Mat<9,24> matB_NL;
 	MatSym<24> Kuu; //матрица жесткости перед вектором перемещений
-	double p_e = storage->getDofSolution(- static_cast<int32> (getElNum()), Dof::HYDRO_PRESSURE);
+	double p_e = storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE);
 	double dWt; //множитель при суммировании квадратур Гаусса
 	Kuu.zero();
 	for (uint16 nPoint=0; (int32) nPoint < npow(Element::n_int(),n_dim()); nPoint++) {
@@ -92,13 +92,13 @@ void ElementSOLID81::update()
 	// get nodal solutions from storage
 	Vec<24> U;
   for (uint16 i = 0; i < Element::n_nodes(); i++) {
-    U[i*3 + 0] = storage->getDofSolution(getNodeNumber(i), Dof::UX);
-    U[i*3 + 1] = storage->getDofSolution(getNodeNumber(i), Dof::UY);
-    U[i*3 + 2] = storage->getDofSolution(getNodeNumber(i), Dof::UZ);
+    U[i*3 + 0] = storage->getNodeDofSolution(getNodeNumber(i), Dof::UX);
+    U[i*3 + 1] = storage->getNodeDofSolution(getNodeNumber(i), Dof::UY);
+    U[i*3 + 2] = storage->getNodeDofSolution(getNodeNumber(i), Dof::UZ);
   }
 	Mat<9,24> B_NL;
 	Vec<6> vecC;
-	double p_e = storage->getDofSolution(- static_cast<int32> (getElNum()), Dof::HYDRO_PRESSURE);
+	double p_e = storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE);
 
   Mat_Hyper_Isotrop_General* mat = CHECK_NOTNULL(dynamic_cast<Mat_Hyper_Isotrop_General*> (storage->getMaterial()));
 	for (uint16 nPoint=0; (int32) nPoint < npow(Element::n_int(),n_dim()); nPoint++) {
@@ -215,7 +215,7 @@ void ElementSOLID81::getScalar(double& scalar, query::scalarQuery code, uint16 g
   double J;
   switch (code) {
     case query::SCALAR_SP:
-      scalar += storage->getDofSolution(- static_cast<int32> (getElNum()), Dof::HYDRO_PRESSURE) * scale;
+      scalar += storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE) * scale;
 			break;
     case query::SCALAR_WU:
       tmp[0] = 0.0;
@@ -302,7 +302,7 @@ void  ElementSOLID81::getTensor(math::MatSym<3>& tensor, query::tensorQuery code
       //deviatoric part of S: Sd = S[gp]
       //hydrostatic part of S: Sp = p * J * C^(-1)
       solidmech::invC_C (C[gp].ptr(), J, cInv); 
-	    pe = storage->getDofSolution(- static_cast<int32> (getElNum()), Dof::HYDRO_PRESSURE);
+	    pe = storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE);
       // TODO: it seems that S[gp] contains deviatoric + pressure already..
       // we dont need to sum it again
       for (uint16 i = 0; i < 6; i++) {
@@ -314,7 +314,7 @@ void  ElementSOLID81::getTensor(math::MatSym<3>& tensor, query::tensorQuery code
       // hydrostatic part of S: Sp = p * J * C^(-1)
       J = solidmech::J_C(C[gp].ptr());
       solidmech::invC_C (C[gp].ptr(), J, cInv); 
-	    pe = storage->getDofSolution(- static_cast<int32> (getElNum()), Dof::HYDRO_PRESSURE);
+	    pe = storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE);
       for (uint16 i = 0; i < 6; i++) {
         tensor.data[i] += (S[gp][i] + pe * J * cInv[i]) * scale;
       }

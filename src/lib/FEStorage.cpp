@@ -25,8 +25,6 @@ FEStorage::FEStorage()  {
 
   elType = ElementFactory::NOT_DEFINED;
 
-  numberOfElementDofs = 0;
-  numberOfNodeDofs = 0;
 };
 
 FEStorage::~FEStorage () {
@@ -39,53 +37,72 @@ FEStorage::~FEStorage () {
   deleteMesh();
 }
 
-void FEStorage::Kij_add(int32 nodei, Dof::dofType dofi, int32 nodej, Dof::dofType dofj, double value) {
-  Dof* rowDof = getDof(nodei, dofi);
-  Dof* colDof = getDof(nodej, dofj);
-	uint32 rowEq = rowDof->eqNumber;
-	uint32 colEq = colDof->eqNumber;
-	if (rowEq > colEq) swap(rowEq, colEq);
+
+void FEStorage::Kij_add(uint32 nodei, Dof::dofType dofi, uint32 nodej, Dof::dofType dofj, double value) {
+	uint32 rowEq = getNodeDofEqNumber(nodei, dofi);
+	uint32 colEq = getNodeDofEqNumber(nodej, dofj);
+  Kij_add(rowEq, colEq, value);
+}
+
+
+void FEStorage::Kij_add(uint32 eqi, uint32 eqj, double value) {
+  // eqi -- row equation 
+  // eqj -- column equation
+	if (eqi > eqj) swap(eqi, eqj);
   // As long as we have distinct blocks
   // of global matrix for constrained DoFs, MPC's lambdas and DoFs to be
   // solver we need to choose in which block (Kcc, Kcs, KssCsT)
   // the value should be added.
 
-	if (rowEq <= numberOfConstrainedDofs) {
-		if (colEq <= numberOfConstrainedDofs) {
-			Kcc->addValue(rowEq, colEq, value);
+	if (eqi <= numberOfConstrainedDofs) {
+		if (eqj <= numberOfConstrainedDofs) {
+			Kcc->addValue(eqi, eqj, value);
     } else {
-			Kcs->addValue(rowEq, colEq - numberOfConstrainedDofs, value);
+			Kcs->addValue(eqi, eqj - numberOfConstrainedDofs, value);
     }
   } else {
-		KssCsT->addValue(rowEq - numberOfConstrainedDofs, colEq - numberOfConstrainedDofs, value);
+		KssCsT->addValue(eqi - numberOfConstrainedDofs, eqj - numberOfConstrainedDofs, value);
   }
 }
+
 
 // Cij_add is a function to add a coefficient from MPC equation to the global
 // matrix.
 // eq_num - number of MPC equation,
 // nodej, dofj - DoFs for which the coefficient to be set.
-void FEStorage::Cij_add(uint32 eq_num, int32 nodej, Dof::dofType dofj, double coef) {
+void FEStorage::Cij_add(uint32 eq_num, uint32 nodej, Dof::dofType dofj, double coef) {
+	uint32 colEq = getNodeDofEqNumber(nodej, dofj);
+  Cij_add(eq_num, colEq, coef);
+}
+
+
+void FEStorage::Cij_add(uint32 eq_num, uint32 eqj, double coef) {
 	assert(Cc);
 	assert(eq_num > 0 && eq_num <= numberOfMpcEq);
-	uint32 dof_col = getDofEqNumber(nodej, dofj);
-	if (dof_col <= numberOfConstrainedDofs) {
-		Cc->addValue(eq_num, dof_col, coef);
+	if (eqj <= numberOfConstrainedDofs) {
+		Cc->addValue(eq_num, eqj, coef);
   }	else {
 		//Cs
-		KssCsT->addValue(dof_col-numberOfConstrainedDofs, numberOfUnknownDofs+eq_num, coef);
+		KssCsT->addValue(eqj-numberOfConstrainedDofs, numberOfUnknownDofs+eq_num, coef);
   }
 }
+
 
 // Fi_add is a function to add the value to a rhs of the global system of linear
 // equations. 
 // NOTE: nodes index starts from 1. DoF index starts with 0.
-void FEStorage::Fi_add(int32 nodei, Dof::dofType dofi, double value) {
-	assert(externalForces.size() > 0);
-	uint32 row = getDofEqNumber(nodei, dofi);
-	assert(row <= numberOfDofs);
-	externalForces[row - 1] += value;
+void FEStorage::Fi_add(uint32 nodei, Dof::dofType dofi, double value) {
+	uint32 rowEq = getNodeDofEqNumber(nodei, dofi);
+  Fi_add(rowEq, value);
 }
+
+
+void FEStorage::Fi_add(uint32 eqi, double value) {
+	assert(externalForces.size() > 0);
+	assert(eqi <= numberOfDofs);
+	externalForces[eqi - 1] += value;
+}
+
 
 // zeroK function is used to set values in the global stiffnes matrix to zero.
 void FEStorage::zeroK() {
@@ -171,6 +188,7 @@ void FEStorage::assembleGlobalEqMatrix() {
     mpcConstantValues[eq_num-1] = (*mpc)->b;
     list<MpcTerm>::iterator token = (*mpc)->eq.begin();
     while (token != (*mpc)->eq.end()) {
+      // TODO: now we support only MPC to nodal DoFs..
       Cij_add(eq_num, token->node, token->node_dof, token->coef);
       token++;
     }
@@ -214,93 +232,89 @@ uint32 FEStorage::getNumberOfMpcEq() {
   return static_cast<uint32> (mpcs.size());
 }
 
-void FEStorage::registerNodeDof(int32 node, Dof::dofType dof) {
-  if (nodeDofs.size() == 0) {
-    nodeDofs.assign(getNumberOfNodes()*Node::getNumberOfDofs(), NULL);
-  }
-  uint32 ind = (node-1)*Node::getNumberOfDofs() + Node::getDofIndex(dof);
-  if (nodeDofs[ind] == NULL) {
-    nodeDofs[ind] = new Dof;
-    numberOfNodeDofs++;
-  }
+void FEStorage::addNodeDof(uint32 node, Dof::dofType dof) {
+  assert(nodeDofs.getNumberOfAllocatedDofs() > 0);
+  nodeDofs.useDof(node, dof);
 }
 
-void FEStorage::registerElementDof(int32 el, Dof::dofType dof) {
-  if (elementDofs.size() == 0) {
-    elementDofs.assign(getNumberOfElements()*Element::getNumberOfDofs(), NULL);
-  }
-  uint32 ind = (el-1)*Element::getNumberOfDofs() + Element::getDofIndex(dof);
-  if (elementDofs[ind] == NULL) {
-    elementDofs[ind] = new Dof;
-    numberOfElementDofs++;
-  }
+void FEStorage::addElementDof(uint32 el, Dof::dofType dof) {
+  assert(elementDofs.getNumberOfAllocatedDofs() > 0);
+  elementDofs.useDof(el, dof);
 }
 
-bool FEStorage::isDofUsed (int32 node, Dof::dofType dof) {
-  Dof* ptr;
-  if (node < 0) {
-    if (!Element::isDofUsed(dof)) {
-      return false;
-    }
-    ptr = elementDofs[(node-1)*Element::getNumberOfDofs() +Element::getDofIndex(dof)];
-    if (ptr == NULL) {
-      return false;
-    }
-  } else {
-    if (!Node::isDofUsed(dof)) {
-      return false;
-    }
-    ptr = nodeDofs[(node-1)*Node::getNumberOfDofs() + Node::getDofIndex(dof)];
-    if (ptr == NULL) {
-      return false;
-    }
-  }
-  return true;
+
+bool FEStorage::isElementDofUsed (uint32 el, Dof::dofType dof) {
+  assert(elementDofs.getNumberOfAllocatedDofs() > 0);
+  return elementDofs.isDofUsed(el, dof);
 }
 
-uint32 FEStorage::getDofEqNumber(int32 node, Dof::dofType dof) {
-  return getDof(node, dof)->eqNumber;
+
+bool FEStorage::isNodeDofUsed (uint32 node, Dof::dofType dof) {
+  assert(nodeDofs.getNumberOfAllocatedDofs() > 0);
+  return nodeDofs.isDofUsed(node, dof);
 }
 
-Dof* FEStorage::getElementDof (int32 el, Dof::dofType dof) {
-  Dof* ptr = elementDofs[(el-1)*Element::getNumberOfDofs() + Element::getDofIndex(dof)];
-  assert(ptr != NULL);
-  return ptr;
+
+uint32 FEStorage::getElementDofEqNumber(uint32 el, Dof::dofType dof) {
+  return getElementDof(el, dof)->eqNumber;
 }
 
-Dof* FEStorage::getNodeDof (int32 node, Dof::dofType dof) {
-  Dof* ptr = nodeDofs[(node-1)*Node::getNumberOfDofs() + Node::getDofIndex(dof)];
-  assert(ptr != NULL);
-  return ptr;
+
+uint32 FEStorage::getNodeDofEqNumber(uint32 node, Dof::dofType dof) {
+  return getNodeDof(node, dof)->eqNumber;
 }
 
-Dof* FEStorage::getDof (int32 node, Dof::dofType dof) {
-  if (node < 0) {
-    return getElementDof(-node, dof);
-  }
-  return getNodeDof(node, dof);
+
+Dof* FEStorage::getElementDof (uint32 el, Dof::dofType dof) {
+  assert(elementDofs.getNumberOfUsedDofs() > 0);
+  return elementDofs.getDof(el, dof);
 }
 
-double FEStorage::getDofSolution (int32 node, Dof::dofType dof) {
+Dof* FEStorage::getNodeDof (uint32 node, Dof::dofType dof) {
+  assert(nodeDofs.getNumberOfUsedDofs() > 0);
+  return nodeDofs.getDof(node, dof);
+}
+
+
+double FEStorage::getNodeDofSolution (uint32 node, Dof::dofType dof) {
   assert(solutionValues.size() > 0);
-  return solutionValues[getDofEqNumber(node, dof) - 1];
+  return solutionValues[getNodeDofEqNumber(node, dof) - 1];
 }
 
-double FEStorage::getDofSolutionDelta (int32 node, Dof::dofType dof) {
+
+double FEStorage::getElementDofSolution (uint32 el, Dof::dofType dof) {
+  assert(solutionValues.size() > 0);
+  return solutionValues[getElementDofEqNumber(el, dof) - 1];
+}
+
+
+double FEStorage::getNodeDofSolutionDelta (uint32 node, Dof::dofType dof) {
   assert(solutionDeltaValues.size() > 0);
-  return solutionDeltaValues[getDofEqNumber(node, dof) - 1];
+  return solutionDeltaValues[getNodeDofEqNumber(node, dof) - 1];
 }
 
-double FEStorage::getReaction(int32 n, Dof::dofType dof) {
-  if (isDofUsed(n, dof)) {
-    uint32 eq_num = getDofEqNumber(n,dof);
-    assert(constrainedDofReactions.size() > 0);
-    //assert(eq_num > 0 && eq_num <= numberOfConstrainedDofs);
-    if (eq_num > 0 && eq_num <= numberOfConstrainedDofs) {
-      return constrainedDofReactions[eq_num-1];
-    } else {
-      return 0.0;
-    }
+
+double FEStorage::getElementDofSolutionDelta (uint32 el, Dof::dofType dof) {
+  assert(solutionDeltaValues.size() > 0);
+  return solutionDeltaValues[getElementDofEqNumber(el, dof) - 1];
+}
+
+
+double FEStorage::getReaction(uint32 node, Dof::dofType dof) {
+  if (isNodeDofUsed(node, dof)) {
+    uint32 eq_num = getNodeDofEqNumber(node,dof);
+    return getReaction(eq_num);
+  } else {
+    return 0.0;
+  }
+}
+
+
+double FEStorage::getReaction(uint32 eq) {
+  assert(constrainedDofReactions.size() > 0);
+  //assert(eq_num > 0 && eq_num <= numberOfConstrainedDofs);
+  if (eq > 0 && eq <= numberOfConstrainedDofs) {
+    return constrainedDofReactions[eq-1];
   } else {
     return 0.0;
   }
@@ -333,16 +347,16 @@ void FEStorage::getNodePosition(uint32 n, double* ptr, bool deformed)
 		ptr[i] = nodes[n-1]->pos[i];
   }
 	if (deformed) {
-    if (isDofUsed(n, Dof::UX)) {
-      ptr[0] += getDofSolution(n, Dof::UX);
+    if (isNodeDofUsed(n, Dof::UX)) {
+      ptr[0] += getNodeDofSolution(n, Dof::UX);
     }
 
-    if (isDofUsed(n, Dof::UY)) {
-      ptr[1] += getDofSolution(n, Dof::UY);
+    if (isNodeDofUsed(n, Dof::UY)) {
+      ptr[1] += getNodeDofSolution(n, Dof::UY);
     }
 
-    if (isDofUsed(n, Dof::UZ)) {
-      ptr[2] += getDofSolution(n, Dof::UZ);
+    if (isNodeDofUsed(n, Dof::UZ)) {
+      ptr[2] += getNodeDofSolution(n, Dof::UZ);
     }
 	}
 }
@@ -497,25 +511,12 @@ void FEStorage::deleteFeComponents () {
 }
 
 void FEStorage::deleteDofArrays() {
-  for (size_t i = 0; i < elementDofs.size(); i++) {
-    if (elementDofs[i] != NULL) {
-      delete elementDofs[i];
-    }
-  }
-  elementDofs.clear();
-
-  for (size_t i = 0; i < nodeDofs.size(); i++) {
-    if (nodeDofs[i] != NULL) {
-      delete nodeDofs[i];
-    }
-  }
-  nodeDofs.clear();
+  elementDofs.clearDofTable();
+  nodeDofs.clearDofTable();
 }
 
 void FEStorage::deleteSolutionData() {
 	numberOfDofs = 0;
-  numberOfElementDofs = 0;
-  numberOfNodeDofs = 0;
 
   numberOfConstrainedDofs = 0;
 	numberOfMpcEq = 0;
@@ -583,6 +584,9 @@ bool FEStorage::initializeSolutionData () {
     exit(1);
 	}
   
+  nodeDofs.buildDofTable(getNumberOfNodes());
+  elementDofs.buildDofTable(getNumberOfElements());
+
 	for (uint32 el = 0; el < getNumberOfElements(); el++) {
     elements[el]->pre();
   }
@@ -595,7 +599,7 @@ bool FEStorage::initializeSolutionData () {
   //t.checkpoint("MpcCollection::pre()");
 
   // Total number of dofs (only registered by elements)
-	numberOfDofs = numberOfElementDofs + numberOfNodeDofs;
+	numberOfDofs = elementDofs.getNumberOfUsedDofs() + nodeDofs.getNumberOfUsedDofs();
 
   //TODO: make it possible to work without any constrained dofs
   // (in case of only MPC)
@@ -642,30 +646,40 @@ bool FEStorage::initializeSolutionData () {
 	uint32 next_eq_const = 1;
 	list<BC_dof_constraint>::iterator p = constraints.begin();
 	while (p != constraints.end()) {
-    getDof(p->node, p->node_dof)->isConstrained = true;
+    //TODO: currently we work only with nodal DoF constraints, but need to fix it!
+    getNodeDof(p->node, p->node_dof)->isConstrained = true;
 		p++;
 	}
-	for (size_t i = 0; i < getNumberOfElements()*Element::getNumberOfDofs(); i++)	{
-    if (elementDofs[i] == NULL) {
-      continue;
-    }
-		if (elementDofs[i]->isConstrained) {
-			elementDofs[i]->eqNumber = next_eq_const++;
-    } else {
-			elementDofs[i]->eqNumber = next_eq_solve++;
-    }
-	}
 
-	for (size_t i = 0; i < getNumberOfNodes()*Node::getNumberOfDofs(); i++)	{
-    if (nodeDofs[i] == NULL) {
-      continue;
+  for (uint32 i = 1; i <= getNumberOfElements(); i++) {
+    for (uint16 it = 0; it < Dof::numberOfDofTypes; it++) {
+      Dof::dofType t = static_cast<Dof::dofType> (it);
+      if (elementDofs.isDofUsed(i, t)) {
+        Dof* d = elementDofs.getDof(i, t);
+        if (d->isConstrained) {
+          d->eqNumber = next_eq_const++;
+        } else {
+          d->eqNumber = next_eq_solve++;
+        }
+      }
     }
-		if (nodeDofs[i]->isConstrained) {
-			nodeDofs[i]->eqNumber = next_eq_const++;
-    } else {
-			nodeDofs[i]->eqNumber = next_eq_solve++;
+  }
+
+
+  for (uint32 i = 1; i <= getNumberOfNodes(); i++) {
+    for (uint16 it = 0; it < Dof::numberOfDofTypes; it++) {
+      Dof::dofType t = static_cast<Dof::dofType> (it);
+      if (nodeDofs.isDofUsed(i, t)) {
+        Dof* d = nodeDofs.getDof(i, t);
+        if (d->isConstrained) {
+          d->eqNumber = next_eq_const++;
+        } else {
+          d->eqNumber = next_eq_solve++;
+        }
+      }
     }
-	}
+  }
+
   assert(next_eq_const - 1 == numberOfConstrainedDofs);
   assert(next_eq_solve - 1 == numberOfDofs);
 
@@ -700,17 +714,9 @@ bool FEStorage::initializeSolutionData () {
 	mpcEquationRhs = rhs.begin() + numberOfUnknownDofs;
 
   std::stringstream ss;
-  ss << "Nodal DoF types:";
-  for (uint16 i = 0; i < Node::getNumberOfDofs(); i++) {
-    ss << " " << Dof::dofTypeLabels[Node::getDofType(i)];
-  }
-  ss << " Number of nodal DoFs: " << numberOfNodeDofs;
+  ss << " Number of nodal DoFs: " << nodeDofs.getNumberOfUsedDofs();
   ss << std::endl;
-  ss << "Element DoF types:";
-  for (uint16 i = 0; i < Element::getNumberOfDofs(); i++) {
-    ss << " " << Dof::dofTypeLabels[Element::getDofType(i)];
-  }
-  ss << " Number of element DoFs: " << numberOfElementDofs;
+  ss << " Number of element DoFs: " << elementDofs.getNumberOfUsedDofs();
 
   LOG(INFO) << ss.str();
 	LOG(INFO) << "DoFs = " << numberOfDofs << ", constrained DoFs = " <<  numberOfConstrainedDofs << ", MPC eq. = "
@@ -788,7 +794,8 @@ void FEStorage::applyBoundaryConditions (double time, double timeDelta) {
 	// fill nodal displacements (kinematic constraints)
 	list<BC_dof_constraint>::iterator bc_dof = constraints.begin();
 	while (bc_dof != constraints.end()) {
-		uint32 eq_num = getDofEqNumber(bc_dof->node, bc_dof->node_dof);
+    //TODO: now support only nodal dofs..
+		uint32 eq_num = getNodeDofEqNumber(bc_dof->node, bc_dof->node_dof);
     // To be sure that constrained DoF lays in numberOfConstrainedDofs part
     assert (eq_num - 1 < numberOfConstrainedDofs);
 		dofDeltaValues[eq_num-1] = bc_dof->value*timeDelta;

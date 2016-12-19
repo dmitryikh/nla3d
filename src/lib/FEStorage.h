@@ -41,16 +41,21 @@ public:
   // Operations for prepearing the global system of equations
   //
   // The function add value to an element of global system of equations matrix (stifness matrix).
-  // For example: Kij_add(-32, Dof::HYDRO_PRESSURE, 42, Dof::UX, 0.32) will add 0.32 to a corresponding
+  // For example: Kij_add(32, Dof::UX, 42, Dof::UZ, 0.32) will add 0.32 to a corresponding
   // element in a global stifness matrix.
-  // NOTE: node > 0 for nodal DoFs, node < 0 for element DoFs.
-  void Kij_add(int32 nodei, Dof::dofType dofi, int32 nodej, Dof::dofType dofj, double value);
+  // NOTE: node > 0
+  // NOTE: use Kij_add(uint32 nodei, ...) to add nodal Dof vs nodal Dof value
+  // or use Kij_add(uint32 eqi, ..) to add value for equation number i vs equation number j (more general case)
+  void Kij_add(uint32 nodei, Dof::dofType dofi, uint32 nodej, Dof::dofType dofj, double value);
+  void Kij_add(uint32 eqi, uint32 eqj, double value);
   // Add value to a matrix of MPC coefficients for DoFs.
-  // NOTE: node > 0 for nodal DoFs, node < 0 for element DoFs.
-  void Cij_add(uint32 eq_num, int32 nodej, Dof::dofType dofj, double coef);
+  void Cij_add(uint32 eq_num, uint32 nodej, Dof::dofType dofj, double coef);
+  void Cij_add(uint32 eq_num, uint32 eqj, double coef);
   // Add value to external DoF forces vector
   // NOTE: node > 0 for nodal DoFs, node < 0 for element DoFs.
-  void Fi_add(int32 nodei, Dof::dofType dofi, double value);
+  void Fi_add(uint32 nodei, Dof::dofType dofi, double value);
+  void Fi_add(uint32 eqi, double value);
+
   // fill with zeros the matrix of global system of equations. As far as global system of equations consist of
   // different blocks, zeroK() zeros next sparse matrices: KssCsT, Kcc, Kcs, Cc 
 	void zeroK();
@@ -81,38 +86,34 @@ public:
   //
   // registation of DoFs is a key moment in nla3d. Every element (and other things) should register those
   // DoFs which the element will use. 
-  // For example: registreNodeDof(32, Dof::UX) means that DoF UX for node 32 will be used in a global system of
+  // For example: addNodeDof(32, Dof::UX) means that DoF UX for node 32 will be used in a global system of
   // equations. Unregistered DoFs will be eliminated automatically. That means that such DoFs contain only zero 
   // rows and columns. That leads to ability to have different DoFs in different nodes/elements. 
   // node number is always > 0
-  void registerNodeDof(int32 node, Dof::dofType dof);
+  void addNodeDof(uint32 node, Dof::dofType dof);
   // element number is always > 0
-  void registerElementDof(int32 el, Dof::dofType dof);
-  // return true if the corresponding DoF was registered in nodeDofs or elementDofs.
-  // NOTE: node > 0 for nodal DoFs, node < 0 for element DoFs.
-  bool isDofUsed (int32 node, Dof::dofType dof);
+  void addElementDof(uint32 el, Dof::dofType dof);
+  // return true if the corresponding DoF was registered as used in nodeDofs or elementDofs.
+  bool isElementDofUsed(uint32 el, Dof::dofType dof);
+  bool isNodeDofUsed(uint32 node, Dof::dofType dof);
   // get the number of equation in the global eq. system for particular DoF
-  // NOTE: node > 0 is for nodal DoFs, node < 0 for element DoFs.
-  // For example: node = -32, dof = Dof::HYDRO_PRESSURE - represents DoF for hydrostatic
-  // pressure for element number 32 
-	uint32 getDofEqNumber(int32 node, Dof::dofType dof);
-  // get instance of Dof class for particular Element DoF
-  Dof* getElementDof (int32 el, Dof::dofType dof);
-  // get instance of Dof class for particular Nodal DoF
-  Dof* getNodeDof (int32 node, Dof::dofType dof);
+	uint32 getElementDofEqNumber(uint32 el, Dof::dofType dof);
+	uint32 getNodeDofEqNumber(uint32 node, Dof::dofType dof);
   // get instance of Dof class for particular DoF
-  // NOTE: node > 0 for nodal DoFs, node < 0 for element DoFs.
-  Dof* getDof (int32 node, Dof::dofType dof);
+  Dof* getElementDof (uint32 el, Dof::dofType dof);
+  Dof* getNodeDof (uint32 node, Dof::dofType dof);
   // get the obtained value for a particular DoF. The value is a solution to the present moment
   // (last converged equilibrium iteration).
-  // node > 0 for nodal DoFs, node < 0 for element DoF.
-  double getDofSolution (int32 node, Dof::dofType dof);
+  double getNodeDofSolution (uint32 node, Dof::dofType dof);
+  double getElementDofSolution (uint32 el, Dof::dofType dof);
   // get the last delta value after solving last converged equilibrium iteration
-  // node > 0 for nodal DoFs, node < 0 for element DoF.
-  double getDofSolutionDelta (int32 node, Dof::dofType dof);
+  double getNodeDofSolutionDelta (uint32 node, Dof::dofType dof);
+  double getElementDofSolutionDelta (uint32 el, Dof::dofType dof);
   // Get magnitude of reaction for particular DoFs. Reactions are defined only for constrained DoFs.
   // If a reaction value is asked for not constrained DoFs, a zero value is returned.
-	double getReaction(int32 n, Dof::dofType dof);
+	double getReaction(uint32 node, Dof::dofType dof);
+  // by passing equation number
+	double getReaction(uint32 eq);
 
 
   // get an instance of Material class
@@ -327,23 +328,12 @@ private:
 
   // * In nla3d every DoF is represented by Dof class.
   // * DoF can be nodal or for element.
-  // * elementDofs and nodeDofs vectors just represent tables to map "adress" 
-  //    (node number, dof type) with particular Dof instance and eq. number.
-  //    For example, here is FEStorage::getDofEqNumber(node, dof) function that returns
-  //    equation number for DoF. 
+  // * elementDofs and nodeDofs are DofCollection 
+  //    DofCollection keeps Dof objects and give it by (node, dof) pair
   // * Elements (or another entities) should register DoFs by using
   //    FEStorage::registerNodeDof(node, dof) or FEStorage::registerElementDof(element, dof).
-  // * elementDofs vector is with size numberOfElements() * Element::numberOfDofs().
-  //    The same for nodeDofs.
-  // * From the beginning element/nodeDofs are initialized with NULL pointers.
-  // * The object Dof created only in FEStorage::register*Dof function.
-  std::vector<Dof*> elementDofs;
-  // number of not NULL values in elementDofs
-  uint32 numberOfElementDofs;
-  // vector with size numberOfNodes() * Node::numberOfDofs()
-  std::vector<Dof*> nodeDofs;
-  // number of not NULL values in nodeDofs
-  uint32 numberOfNodeDofs;
+  DofCollection elementDofs;
+  DofCollection nodeDofs;
 };
 
 // read Ansys Mechanical APDL *.cdb file. Nodes, Elements, Displacement BC and MPC (Constraint equations) is supported

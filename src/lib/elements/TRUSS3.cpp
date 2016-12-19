@@ -6,17 +6,13 @@ ElementTRUSS3::ElementTRUSS3 () {
   Element::number_of_nodes = 2;
   number_of_dimensions = 3;
   nodes = new uint32[Element::number_of_nodes];
-
-  Node::registerDofType(Dof::UX);
-  Node::registerDofType(Dof::UY);
-  Node::registerDofType(Dof::UZ);
 }
 
 void ElementTRUSS3::pre () {
   for (uint16 i = 0; i < Element::n_nodes(); i++) {
-    storage->registerNodeDof(getNodeNumber(i), Dof::UX);
-    storage->registerNodeDof(getNodeNumber(i), Dof::UY);
-    storage->registerNodeDof(getNodeNumber(i), Dof::UZ);
+    storage->addNodeDof(getNodeNumber(i), Dof::UX);
+    storage->addNodeDof(getNodeNumber(i), Dof::UY);
+    storage->addNodeDof(getNodeNumber(i), Dof::UZ);
   }
 }
 
@@ -93,9 +89,9 @@ void ElementTRUSS3::update () {
   // read solution results from FEStorage. Here we need to fill nodal DoFs values into U vector.
   Eigen::VectorXd U(6);
   for (uint16 i = 0; i < Element::n_nodes(); i++) {
-    U(i*3 + 0) = storage->getDofSolution(getNodeNumber(i), Dof::UX);
-    U(i*3 + 1) = storage->getDofSolution(getNodeNumber(i), Dof::UY);
-    U(i*3 + 2) = storage->getDofSolution(getNodeNumber(i), Dof::UZ);
+    U(i*3 + 0) = storage->getNodeDofSolution(getNodeNumber(i), Dof::UX);
+    U(i*3 + 1) = storage->getNodeDofSolution(getNodeNumber(i), Dof::UY);
+    U(i*3 + 2) = storage->getNodeDofSolution(getNodeNumber(i), Dof::UZ);
   }
 
   // The formula to calculate truss stresses (see theory reference):

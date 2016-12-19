@@ -42,12 +42,7 @@ void MpcCollection::printEquations (std::ostream& out) {
 }
 
 RigidBodyMpc::RigidBodyMpc () {
-  Node::registerDofType(Dof::UX);
-  Node::registerDofType(Dof::UY);
-  Node::registerDofType(Dof::UZ);
-  Node::registerDofType(Dof::ROTX);
-  Node::registerDofType(Dof::ROTY);
-  Node::registerDofType(Dof::ROTZ);
+
 }
 
 RigidBodyMpc::~RigidBodyMpc () {
@@ -69,12 +64,12 @@ void RigidBodyMpc::pre () {
       collection[i*dofs.size() + j] = mpc;
     }
   }
-  storage->registerNodeDof(masterNode, Dof::UX);
-  storage->registerNodeDof(masterNode, Dof::UY);
-  storage->registerNodeDof(masterNode, Dof::UZ);
-  storage->registerNodeDof(masterNode, Dof::ROTX);
-  storage->registerNodeDof(masterNode, Dof::ROTY);
-  storage->registerNodeDof(masterNode, Dof::ROTZ);
+  storage->addNodeDof(masterNode, Dof::UX);
+  storage->addNodeDof(masterNode, Dof::UY);
+  storage->addNodeDof(masterNode, Dof::UZ);
+  storage->addNodeDof(masterNode, Dof::ROTX);
+  storage->addNodeDof(masterNode, Dof::ROTY);
+  storage->addNodeDof(masterNode, Dof::ROTZ);
 }
 
 void RigidBodyMpc::update () {
@@ -89,12 +84,12 @@ void RigidBodyMpc::update () {
   // C_{ij} = \delta_{ij} cos\theta + \frac{sin\theta}{\theta}e_{ikj}\theta_k + \left(\frac{1-cos\theta}{\theta^2}\theta_i \theta_j\right) 
   Vec<3> theta0;
   Vec<3> w0;
-  theta0[0] = storage->getDofSolution(masterNode, Dof::ROTX);
-  theta0[1] = storage->getDofSolution(masterNode, Dof::ROTY);
-  theta0[2] = storage->getDofSolution(masterNode, Dof::ROTZ);
-  w0[0] = storage->getDofSolution(masterNode, Dof::UX);
-  w0[1] = storage->getDofSolution(masterNode, Dof::UY);
-  w0[2] = storage->getDofSolution(masterNode, Dof::UZ);
+  theta0[0] = storage->getNodeDofSolution(masterNode, Dof::ROTX);
+  theta0[1] = storage->getNodeDofSolution(masterNode, Dof::ROTY);
+  theta0[2] = storage->getNodeDofSolution(masterNode, Dof::ROTZ);
+  w0[0] = storage->getNodeDofSolution(masterNode, Dof::UX);
+  w0[1] = storage->getNodeDofSolution(masterNode, Dof::UY);
+  w0[2] = storage->getNodeDofSolution(masterNode, Dof::UZ);
   double thetaNorm = theta0.length();
   Vec<3> masterPos;
   Vec<3> slavePos;
@@ -157,7 +152,7 @@ void RigidBodyMpc::update () {
         }
         collection[n*static_cast<uint16> (dofs.size()) + d]->b = w0[i] + (C[i][0] - solidmech::I[i][0])*pqVec[0] +
               (C[i][1] - solidmech::I[i][1])*pqVec[1] + (C[i][2] - solidmech::I[i][2])*pqVec[2] -
-              storage->getDofSolution(slaveNodes[n], dofs[d]);
+              storage->getNodeDofSolution(slaveNodes[n], dofs[d]);
         list<MpcTerm>::iterator token = collection[n*dofs.size() + d]->eq.begin();
         token++;
         token++;

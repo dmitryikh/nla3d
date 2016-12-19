@@ -17,12 +17,7 @@ namespace nla3d {
 class ElementSOLID81 : public Element_SOLID8, public Element_Lagrange_Formulation<3,8>
 {
 public:
-	ElementSOLID81 () {
-    Node::registerDofType(Dof::UX);
-    Node::registerDofType(Dof::UY);
-    Node::registerDofType(Dof::UZ);
-    Element::registerDofType(Dof::HYDRO_PRESSURE);
-  }
+	ElementSOLID81 () { }
 	ElementSOLID81 (const ElementSOLID81& from) {
 		operator=(from);
 	}
@@ -111,7 +106,6 @@ template <uint16 dimM>
 void ElementSOLID81::assemble3(math::MatSym<dimM> &Kuu, math::Vec<dimM> &Kup, double Kpp, math::Vec<dimM> &Fu, double Fp) {
   const uint16 dim = 3;
 	assert (Element::n_nodes() * dim == dimM);
-	assert (Element::n_dofs() == 1);
 	double *Kuu_p = Kuu.ptr();
 	double *Kup_p = Kup.ptr();
 	double *Fu_p = Fu.ptr();
@@ -130,14 +124,16 @@ void ElementSOLID81::assemble3(math::MatSym<dimM> &Kuu, math::Vec<dimM> &Kup, do
 					}
 				}
 	//upper diagonal process for nodes-el dofs
+  uint32 elEq = storage->getElementDofEqNumber(getElNum(), Dof::HYDRO_PRESSURE);
 	for (uint16 i=0; i < Element::n_nodes(); i++) {
 		for(uint16 di=0; di < dim; di++) {
-				storage->Kij_add(nodes[i], dofVec[di], -(int32)getElNum(), Dof::HYDRO_PRESSURE, *Kup_p);
-				Kup_p++;
+      uint32 rowEq = storage->getNodeDofEqNumber(nodes[i], dofVec[di]);
+      storage->Kij_add(rowEq, elEq, *Kup_p);
+      Kup_p++;
     }
   }
 	//upper diagonal process for el-el dofs
-  storage->Kij_add(-(int32)getElNum(), Dof::HYDRO_PRESSURE, -(int32)getElNum(), Dof::HYDRO_PRESSURE,  Kpp);
+  storage->Kij_add(elEq, elEq,  Kpp);
 
 	for (uint16 i=0; i < Element::n_nodes(); i++) {
 		for (uint16 di=0; di < dim; di++) {
@@ -145,7 +141,7 @@ void ElementSOLID81::assemble3(math::MatSym<dimM> &Kuu, math::Vec<dimM> &Kup, do
 			Fu_p++;
 		}
   }
-  storage->Fi_add(-(int32)getElNum(), Dof::HYDRO_PRESSURE, Fp);
+  storage->Fi_add(elEq, Fp);
 }
 
 } // namespace nla3d

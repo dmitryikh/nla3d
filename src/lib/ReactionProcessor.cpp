@@ -27,9 +27,10 @@ void ReactionProcessor::pre() {
   // 2. If dofs.size() == 0 , select dof thich are constrained in current node set.
   // if different nodes has different constrained dofs - error
   if (dofs.size() == 0) {
-    for (uint16 d = 0; d < Node::getNumberOfDofs(); d++) {
-      if (storage->isDofUsed(nodes[0], Node::getDofType(d)) && storage->getDof(nodes[0], Node::getDofType(d))->isConstrained) {
-        dofs.push_back(Node::getDofType(d));
+    for (uint16 d = 0; d < Dof::numberOfDofTypes; d++) {
+      Dof::dofType t = static_cast<Dof::dofType> (d);
+      if (storage->isNodeDofUsed(nodes[0], t) && storage->getNodeDof(nodes[0], t)->isConstrained) {
+        dofs.push_back(t);
       } 
     }
     if (dofs.size() == 0) {
@@ -40,7 +41,7 @@ void ReactionProcessor::pre() {
     uint32 n = 0;
     while (sameDofsConstrained && n < nodes.size()) {
       for (uint16 d = 0; d < dofs.size(); d++) {
-        if (!storage->isDofUsed(nodes[n], dofs[d]) && !storage->getDof(nodes[n], dofs[d])->isConstrained) {
+        if (!storage->isNodeDofUsed(nodes[n], dofs[d]) && !storage->getNodeDof(nodes[n], dofs[d])->isConstrained) {
           LOG(FATAL) << "Different dofs are constrained in the node set. Autochoosing of dofs is failed";
           sameDofsConstrained = false;
           break;
@@ -54,7 +55,7 @@ void ReactionProcessor::pre() {
     uint32 n = 0;
     while (dofsUsed && n < nodes.size()) {
       for (uint16 d = 0; d < dofs.size(); d++) {
-        if (!storage->isDofUsed(nodes[n], dofs[d])) {
+        if (!storage->isNodeDofUsed(nodes[n], dofs[d])) {
           LOG(ERROR) << "some dofs are not used in FE calculations";
           dofsUsed = false;
           break;
