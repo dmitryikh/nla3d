@@ -1,7 +1,6 @@
 language: cpp
 
 compiler:
-  - clang
   - gcc
 
 before_install:
@@ -12,5 +11,5 @@ before_install:
 install: true
 
 script: 
- - mkdir build && cd build && cmake .. 
+ - mkdir build && cd build && cmake --trace-expand --debug-output ..
  - make && make test
