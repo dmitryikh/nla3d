@@ -2,7 +2,9 @@ cmake_minimum_required (VERSION 2.6)
 
 project (NLA3D)
 # Use mine findFoo.cmake modules
+MESSAGE(WARNING ${CMAKE_SOURCE_DIR})
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
+MESSAGE(WARNING ${CMAKE_MODULE_PATH})
 
 #options
 set (nla3d_use_MKL OFF)

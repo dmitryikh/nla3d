@@ -3,13 +3,11 @@ language: cpp
 compiler:
   - gcc
 
-before_install:
- - sed -i 's/git@github.com:/git:\/\/github.com\//' .gitmodules
- - git submodule update --init --recursive
-
-
 install: true
 
 script: 
+ - pwd
+ - ls -la
+ - ls cmake/modules
  - mkdir build && cd build && cmake --trace-expand --debug-output ..
  - make && make test
