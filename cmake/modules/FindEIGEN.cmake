@@ -11,5 +11,5 @@ find_path(EIGEN_INCLUDE_DIR "Eigen/Core"
     PATHS ${CMAKE_CURRENT_SOURCE_DIR}/site-src/eigen
     DOC "The path the the directory that contains Core, Eigen and others")
 
-find_package_handle_standard_args(Eigen DEFAULT_MSG
+find_package_handle_standard_args(EIGEN DEFAULT_MSG
     EIGEN_INCLUDE_DIR)
