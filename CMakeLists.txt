@@ -1,17 +1,17 @@
 cmake_minimum_required (VERSION 2.6)
 
 project (NLA3D)
+# Use mine findFoo.cmake modules
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
 #options
-
+set (nla3d_use_MKL ON)
 set (nla3d_multithreaded OFF)
 set (nla3d_debug OFF)
 #TODO: now SOLID81 can use blas, but results not converged.. need to fix
 # Do not use nla3d_blas for now..
 set (nla3d_blas OFF)
 
-# Use mine findFoo.cmake modules
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
 if (nla3d_multithreaded)
   if(UNIX)
@@ -39,26 +39,30 @@ else()
   endif()
 endif()
 
-if (nla3d_blas)
-  add_definitions( -DNLA3D_USE_BLAS)
-endif()
+if (nla3d_use_MKL)
+    add_definitions( -DNLA3D_USE_MKL)
+    # we can use blas procedures only if MKL library is used
+    if (nla3d_blas)
+      add_definitions( -DNLA3D_USE_BLAS)
+    endif()
 
+    find_package(MKL)
+    if (MKL_FOUND)
+      include_directories(${MKL_INCLUDE_DIR})
 
-find_package(MKL)
-if (MKL_FOUND)
-  include_directories(${MKL_INCLUDE_DIR})
+      # below code works fine only on UNIX systems..
+      if (MKL_MULTI_THREADED)
+        SET(MKL_LINKER_ARGS " -L${MKL_ROOT}/lib -Wl,-rpath,${MKL_ROOT}/lib -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ldl")
+      else()
+        SET(MKL_LINKER_ARGS " -L${MKL_ROOT}/lib -Wl,-rpath,${MKL_ROOT}/lib -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl")
+      endif()
+        SET( CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} ${MKL_LINKER_ARGS}" )
 
-  # below code works fine only on UNIX systems..
-  if (MKL_MULTI_THREADED)
-    SET(MKL_LINKER_ARGS " -L${MKL_ROOT}/lib -Wl,-rpath,${MKL_ROOT}/lib -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ldl")
-  else()
-    SET(MKL_LINKER_ARGS " -L${MKL_ROOT}/lib -Wl,-rpath,${MKL_ROOT}/lib -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl")
-  endif()
-    SET( CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} ${MKL_LINKER_ARGS}" )
+    else()
+      message(WARNING "Can't find MKL")
+    endif()
+endif() # nla3d_use_MKL
 
-else()
-  message(WARNING "Can't find MKL")
-endif()
 
 find_package(EASYLOGGINGPP)
 if (EASYLOGGINGPP_FOUND)

@@ -3,14 +3,18 @@
 // https://github.com/dmitryikh/nla3d 
 
 #include "math/EquationSolver.h"
+#include "math/Mat.h"
 #include "math/SparseMatrix.h"
+
+#ifdef NLA3D_USE_MKL
 #include <mkl.h>
+#endif //NLA3D_USE_MKL
 
 namespace nla3d {
 
 namespace math {
 
-EquationSolver* defaultEquationSolver = new PARDISO_equationSolver;
+EquationSolver* defaultEquationSolver = new GaussDenseEquationSolver;
 
 void EquationSolver::setSymmetric (bool symmetric) {
   isSymmetric = symmetric;
@@ -20,6 +24,95 @@ void EquationSolver::setPositive (bool positive) {
   isPositive = positive;
 }
 
+
+void GaussDenseEquationSolver::solveEquations (math::SparseSymmetricMatrix* matrix, double* rhs, double* unknowns) {
+  TIMED_SCOPE(t, "solveEquations");
+  numberOfEquations = matrix->getNumberOfRows();
+  CHECK(nrhs == 1) << "GaussDenseEquationSolver support only 1 set of rhs values";
+  dMat denseMatrix(numberOfEquations, numberOfEquations);
+  for (uint16 i = 0; i < numberOfEquations; i++)
+    for (uint16 j = 0; j < numberOfEquations; j++)
+      //NOTE: SparceMatrix getters works with indexes started from 1
+      denseMatrix[i][j] = (*matrix)(i+1, j+1);
+  bool res = _solve(unknowns, denseMatrix.ptr(), rhs, numberOfEquations);
+  
+  CHECK(res == true) << "ERROR during solution";
+}
+
+
+bool GaussDenseEquationSolver::_solve(double* X, double* A,
+                               double* B, int n)
+{
+    // Gaussian elimination, with partial pivoting. It's an error if the
+    // matrix is singular, because that means two constraints are
+    // equivalent.
+    int i, j, ip, jp, imax;
+    double max, temp;
+
+    for(i = 0; i < n; i++) {
+        // We are trying eliminate the term in column i, for rows i+1 and
+        // greater. First, find a pivot (between rows i and N-1).
+        max = 0;
+        for(ip = i; ip < n; ip++) {
+          //if(ffabs(A[ip][i]) > max) {
+            if(fabs(A[ip*n+i]) > max) {
+                imax = ip;
+              //max = ffabs(A[ip][i]);
+                max = fabs(A[ip*n+i]);
+            }
+        }
+        // Don't give up on a singular matrix unless it's really bad; the
+        // assumption code is responsible for identifying that condition,
+        // so we're not responsible for reporting that error.
+        if(fabs(max) < 1e-20) return false;
+
+        // Swap row imax with row i
+        for(jp = 0; jp < n; jp++) {
+          //SWAP(double, A[i][jp], A[imax][jp]);
+            double tmp;
+            tmp = A[i*n+jp];
+            A[i*n+jp] = A[imax*n+jp];
+            A[imax*n+jp] = tmp;
+        }
+      //SWAP(double, B[i], B[imax]);
+        double tmp;
+        tmp = B[i];
+        B[i] = B[imax];
+        B[imax] = tmp;
+
+        // For rows i+1 and greater, eliminate the term in column i.
+        for(ip = i+1; ip < n; ip++) {
+          //temp = A[ip][i]/A[i][i];
+            temp = A[ip*n+i]/A[i*n+i];
+
+            for(jp = i; jp < n; jp++) {
+              //A[ip][jp] -= temp*(A[i][jp]);
+                A[ip*n+jp] -= temp*(A[i*n+jp]);
+            }
+            B[ip] -= temp*B[i];
+        }
+    }
+
+    // We've put the matrix in upper triangular form, so at this point we
+    // can solve by back-substitution.
+    for(i = n - 1; i >= 0; i--) {
+      //if(fabs(A[i][i]) < 1e-20) return false;
+        if(fabs(A[i*n+i]) < 1e-20) return false;
+
+        temp = B[i];
+        for(j = n - 1; j > i; j--) {
+          //temp -= X[j]*A[i][j];
+            temp -= X[j]*A[i*n+j];
+        }
+      //X[i] = temp / A[i][i];
+        X[i] = temp / A[i*n+i];
+    }
+
+    return true;
+}
+
+
+#ifdef NLA3D_USE_MKL
 PARDISO_equationSolver::~PARDISO_equationSolver () {
   releasePARDISO();
 }
@@ -117,6 +210,7 @@ void PARDISO_equationSolver::releasePARDISO () {
 	PARDISO(pt, &maxfct, &mnum, &mtype, &phase,	&n, NULL, NULL, NULL, NULL, &nrhs, iparm, &msglvl, NULL, NULL, &error);
   LOG_IF (error != 0, WARNING) << "ERROR during PARDISO termination. Error code = " << error;
 }
+#endif //NLA3D_USE_MKL
 
 } //namespace math
 

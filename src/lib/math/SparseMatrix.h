@@ -9,6 +9,7 @@
 
 namespace nla3d {
 namespace math {
+// NOTE: SparceMatrix implementation has indexes started from 1 !
 
 // TODO:
 // SparseMatrix in nla3d is primarly used to provide sparse matrix data

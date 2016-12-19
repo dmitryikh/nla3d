@@ -443,6 +443,7 @@ public:
 		operator=(from);
 	}
 	dMat_interface& operator[] (uint16 row) {
+        //TODO: it seems unsafe for parallel read access to dMat..
 		dmat_int.row = row;
 		return dmat_int;
 	}
@@ -495,6 +496,12 @@ public:
 	{
 		return dimN;
 	}
+
+    double* ptr()
+    {
+        return data;
+    }
+
 	friend std::ostream& operator<< (std::ostream& stream, dMat &obj);
 private:
 	uint16 dimM;

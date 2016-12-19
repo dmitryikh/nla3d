@@ -184,6 +184,12 @@ int main (int argc, char* argv[]) {
 	solver.attachFEStorage (&storage);
 	solver.numberOfIterations = options::numberOfIterations;
 	solver.numberOfLoadsteps = options::numberOfLoadsteps;
+    // NOTE: use PARDISO eq. solver by default (if accessible..)
+#ifdef NLA3D_USE_MKL
+    math::PARDISO_equationSolver eqSolver = math::PARDISO_equationSolver();
+    solver.attachEquationSolver(&eqSolver);
+#endif
+
 
   if (options::useVtk) {
     //obtain job name from path of a FE model file

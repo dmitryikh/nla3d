@@ -1,6 +1,7 @@
 # - Find Eigen
 # Find the Eigen libraries
 
+include(FindPackageHandleStandardArgs)
 # Find include dir
 find_path(EIGEN_INCLUDE_DIR "Eigen/Core"
     NO_CMAKE_PATH

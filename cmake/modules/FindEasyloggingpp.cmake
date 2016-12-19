@@ -1,4 +1,5 @@
 #   CMake module to find easylogging++ library
+include(FindPackageHandleStandardArgs)
 	
 FIND_PATH(
     EASYLOGGINGPP_INCLUDE_DIR

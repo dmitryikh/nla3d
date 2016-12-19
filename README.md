@@ -135,6 +135,36 @@ ctest . --C Release
 ```
 
 If all test pass ok, in this case here is fully worked _nla3d_ binaries!
+
+## Compiling options
+
+Here are some _nla3d_ specific options that can affect on result binaries. This options are defined
+in ```nla3d/CMakeLists.txt```:
+
+```
+set (nla3d_use_MKL OFF)
+set (nla3d_multithreaded OFF)
+set (nla3d_debug OFF)
+set (nla3d_blas OFF)
+```
+
+_nla3d_ by default use ```math::GaussDenseEquationSolver``` to solve a system of linear equations. This is
+very simple method named _Gaussian Elimination with partial pivoting_. It works fine for small
+systems but when you need to solve some large FE system your should use other ```math::EquationSolver```.
+The best candidate for now is ```math::PARDISO_equationSolver```. It uses _MKL_'s ```PARDISO(...)```
+subroutines to solve large scale sparce linear equations systems. Hence, if you have _MKL_ dev
+libraries installed on your side you can ```set (nla3d_use_MKL ON)``` to build with _MKL_ support.
+Once you did this nla3d.exe will use ```math::PARDISO_equationSolver```.
+
+Currently _nla3d_ internals doesn't benefit from multithread support. ```set (nla3d_multithreaded
+ON)``` will only affect on _MKL_'s pardiso equation solver.
+
+```set (nla3d_blas ON)``` will use blas subroutines to perform matrix calculations. Currently it's
+not well tested, so it's recommended to keep this thing OFF.
+
+```set (nla3d_debug ON)``` will only affect on compiler flags. See ```nla3d/CMakeLists.txt``` for
+details.
+
  
 ## Writing new finite element
 

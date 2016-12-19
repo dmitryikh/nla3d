@@ -16,6 +16,7 @@ class SparseSymmetricMatrix;
 
 class EquationSolver {
 public:
+  virtual ~EquationSolver() { };
   virtual void solveEquations (math::SparseSymmetricMatrix* matrix, double* rhs, double* unknowns) = 0;
   void setSymmetric (bool symmetric = true);
   void setPositive (bool positive = true);
@@ -28,10 +29,19 @@ protected:
   bool isPositive = true;
 };
 
+class GaussDenseEquationSolver : public EquationSolver {
+public:
+  virtual ~GaussDenseEquationSolver() { };
+  virtual void solveEquations (math::SparseSymmetricMatrix* matrix, double* rhs, double* unknowns);
+  static bool _solve(double* X, double* A, double* B, int n);
+protected:
+};
+
+#ifdef NLA3D_USE_MKL
 class PARDISO_equationSolver : public EquationSolver {
 public:
-  ~PARDISO_equationSolver ();
-  void solveEquations (math::SparseSymmetricMatrix* matrix, double* rhs, double* unknowns);
+  virtual ~PARDISO_equationSolver();
+  virtual void solveEquations (math::SparseSymmetricMatrix* matrix, double* rhs, double* unknowns);
 protected:
   void initializePARDISO (math::SparseSymmetricMatrix* matrix);
   void releasePARDISO ();
@@ -53,6 +63,7 @@ protected:
   // real symmetric undifinite defined matrix
 	int mtype = -2; 
 };
+#endif //NLA3D_USE_MKL
 
 extern EquationSolver* defaultEquationSolver;
 

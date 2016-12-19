@@ -164,7 +164,7 @@ double& SparseMatrix::operator() (uint32 row, uint32 column) {
 	if (searchIndex(row, column, &index)) {
 		return values[index];
   } else {
-    LOG(WARNING) << "The position(" << row << ", " << column << ") is absent in the matrix";
+    LOG_N_TIMES(10, WARNING) << "The position(" << row << ", " << column << ") is absent in the matrix";
     return dummy;
   }
 }

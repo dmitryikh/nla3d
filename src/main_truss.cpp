@@ -80,6 +80,10 @@ int main (int argc, char* argv[]) {
   // We have a deal with linear FE. Then it's ok to use linear solver (just one equilibrium iteration without
   // convergence controls)
 	LinearFESolver solver;
+#ifdef NLA3D_USE_MKL
+    math::PARDISO_equationSolver eqSolver = math::PARDISO_equationSolver();
+    solver.attachEquationSolver(&eqSolver);
+#endif
   // FESolver should know FEStorage instance. Attach it.
 	solver.attachFEStorage(&storage);
   // We would like to generate *.vtk file with deformed and undeformed models. For this purpose
