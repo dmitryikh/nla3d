@@ -3,6 +3,14 @@ language: cpp
 compiler:
   - gcc
 
+addons:
+  apt:
+    sources:
+      - george-edison55-precise-backports # cmake 3.2.3 / doxygen 1.8.3
+    packages:
+      - cmake
+      - cmake-data
+
 install: true
 
 script: 
@@ -10,5 +18,5 @@ script:
  - ls -la
  - ls cmake/modules
  - cmake --version
- - mkdir build && cd build && cmake --trace-expand --debug-output ..
+ - mkdir build && cd build && cmake ..
  - make && make test
