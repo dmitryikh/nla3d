@@ -1,5 +1,7 @@
 # nla3d
 
+[![Build Status](https://travis-ci.org/dmitryikh/nla3d.svg?branch=master)](https://travis-ci.org/dmitryikh/nla3d)
+
 ## Introduction
 
 _nla3d_ (Non-Linear Analysis 3D) - is a program to solve mechanics non-linear finite element (FE)
