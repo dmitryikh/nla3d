@@ -9,5 +9,6 @@ script:
  - pwd
  - ls -la
  - ls cmake/modules
+ - cmake --version
  - mkdir build && cd build && cmake --trace-expand --debug-output ..
  - make && make test
