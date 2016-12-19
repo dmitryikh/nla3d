@@ -33,11 +33,12 @@
 
 #ifdef __APPLE__
   #define sprintf_s snprintf
-
-  // TODO:
-  // for some reasons CHECK_NOTNULL from easylogging++ doesn't work on Apple's clang
-  #define CHECK_NOTNULL(x) x
 #endif
+
+// TODO:
+// for some reasons CHECK_NOTNULL from easylogging++ doesn't work on Apple's clang and g++
+#undef CHECK_NOTNULL
+#define CHECK_NOTNULL(x) x
 
 #define int8 char //-127 to +127
 #define uint8 unsigned char //0 to +255

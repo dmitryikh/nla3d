@@ -1,0 +1,16 @@
+language: cpp
+
+compiler:
+  - clang
+  - gcc
+
+before_install:
+ - sed -i 's/git@github.com:/git:\/\/github.com\//' .gitmodules
+ - git submodule update --init --recursive
+
+
+install: true
+
+script: 
+ - mkdir build && cd build && cmake .. 
+ - make && make test
