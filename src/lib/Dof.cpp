@@ -9,7 +9,8 @@ const char* const Dof::dofTypeLabels[] = {"UX", "UY", "UZ", "ROTX", "ROTY",
 uint32 DofCollection::empty = 0xFFFFFFFF;
 
 // Check that TypeLabels has the same length as numberOfDofTypes
-static_assert(Dof::numberOfDofTypes == sizeof(Dof::dofTypeLabels)/sizeof(Dof::dofTypeLabels[0]) - 1);
+static_assert(Dof::numberOfDofTypes == sizeof(Dof::dofTypeLabels)/sizeof(Dof::dofTypeLabels[0]) - 1,
+                "dofTypeLabels and dofType must have the same number of elements");
 
 Dof::dofType Dof::label2dofType (const std::string& label) {
   for (uint16 i = 0; i < numberOfDofTypes; i++) {
