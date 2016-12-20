@@ -24,10 +24,9 @@ void ElementPLANE41::pre() {
 
   // register element equations
   for (uint16 i = 0; i < Element::n_nodes(); i++) {
-    storage->addNodeDof(getNodeNumber(i), Dof::UX);
-    storage->addNodeDof(getNodeNumber(i), Dof::UY);
+    storage->addNodeDof(getNodeNumber(i), {Dof::UX, Dof::UY});
   }
-  storage->addElementDof(getElNum(), Dof::HYDRO_PRESSURE);
+  storage->addElementDof(getElNum(), {Dof::HYDRO_PRESSURE});
 }
 
 void ElementPLANE41::build () {

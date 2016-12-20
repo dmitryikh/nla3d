@@ -47,10 +47,8 @@ class DofCollection {
     uint32 getNumberOfEntities();
     Dof* getDof(uint32 n, Dof::dofType dof);
 
-    // NOTE: Dof add procudere rely on the fact that n (entity number) is growing from 1 
-    // to numberOfEntities. If storage will add 
     void initDofTable(uint32 _numberOfEntities);
-    void addDof(uint32 n, Dof::dofType dof);
+    void addDof(uint32 n, std::initializer_list<Dof::dofType> _dofs);
     void clearDofTable();
 
     bool isDofUsed(uint32 n, Dof::dofType dof);

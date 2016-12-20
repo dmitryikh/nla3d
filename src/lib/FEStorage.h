@@ -90,9 +90,9 @@ public:
   // equations. Unregistered DoFs will be eliminated automatically. That means that such DoFs contain only zero 
   // rows and columns. That leads to ability to have different DoFs in different nodes/elements. 
   // node number is always > 0
-  void addNodeDof(uint32 node, Dof::dofType dof);
+  void addNodeDof(uint32 node, std::initializer_list<Dof::dofType> _dofs);
   // element number is always > 0
-  void addElementDof(uint32 el, Dof::dofType dof);
+  void addElementDof(uint32 el, std::initializer_list<Dof::dofType> _dofs);
   // return true if the corresponding DoF was registered as used in nodeDofs or elementDofs.
   bool isElementDofUsed(uint32 el, Dof::dofType dof);
   bool isNodeDofUsed(uint32 node, Dof::dofType dof);

@@ -232,14 +232,14 @@ uint32 FEStorage::getNumberOfMpcEq() {
   return static_cast<uint32> (mpcs.size());
 }
 
-void FEStorage::addNodeDof(uint32 node, Dof::dofType dof) {
+void FEStorage::addNodeDof(uint32 node, std::initializer_list<Dof::dofType> _dofs) {
   assert(nodeDofs.getNumberOfEntities() > 0);
-  nodeDofs.addDof(node, dof);
+  nodeDofs.addDof(node, _dofs);
 }
 
-void FEStorage::addElementDof(uint32 el, Dof::dofType dof) {
+void FEStorage::addElementDof(uint32 el, std::initializer_list<Dof::dofType> _dofs) {
   assert(elementDofs.getNumberOfEntities() > 0);
-  elementDofs.addDof(el, dof);
+  elementDofs.addDof(el, _dofs);
 }
 
 

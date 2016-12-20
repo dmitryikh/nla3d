@@ -28,48 +28,47 @@ void DofCollection::initDofTable(uint32 _numberOfEntities) {
   assert(dofs.size() == 0);
 
   numberOfEntities = _numberOfEntities;
-  dofPos.assign(numberOfEntities + 1, empty);
+  // dofPos.assign(numberOfEntities + 1, empty);
+  dofPos.assign(numberOfEntities + 1, 0);
   numberOfUsedDofs = 0;
 }
 
 
 // n index starts from 1
-void DofCollection::addDof(uint32 n, Dof::dofType dof) {
+//
+void DofCollection::addDof(uint32 n, std::initializer_list<Dof::dofType> _dofs) {
   assert(n <= numberOfEntities);
   assert(dofPos.size() > 0);
+
+  std::vector<Dof> newDofs;
   // if already registered - just return
-  if (isDofUsed(n, dof)) return;
-
-  if (dofPos[n] == empty) {
-    // add to the end
-    // if previus dofPos fields are empty we need to find last non empty and fill the gap
-    uint32 last_no_zero = n-1;
-    while (last_no_zero > 0 && dofPos[last_no_zero] == empty) last_no_zero--;
-    uint32 lastPos = dofPos[last_no_zero];
-    if (last_no_zero == 0 && lastPos == empty) lastPos = 0;
-    assert(lastPos != empty);
-    for (; last_no_zero < n; last_no_zero++) dofPos[last_no_zero] = lastPos;
-
-    dofPos[n] = lastPos + 1;
-    dofs.push_back(Dof(dof));
+  if (dofPos[n-1] == dofPos[n]) {
+    for (auto v : _dofs)
+      newDofs.push_back(Dof(v));
   } else {
-    // need to insert dof.. bad case actualy
-    // incement dofPos +1 for all above
-    uint32 i = n;
-    while (i <= numberOfEntities and dofPos[i] != empty) dofPos[i++]++;
-
-    // insert Dof into dofs before dofPos[n]
-    if (dofPos[n] == dofs.size()+1) {
-      // can add to the end
-      dofs.push_back(Dof(dof));
-    } else if (dofPos[n] <= dofs.size()) {
-      dofs.insert(dofs.begin() + (dofPos[n] - 1), Dof(dof));
-    } else {
-      assert(false);
+    for (auto v : _dofs) {
+      bool isFound = false;
+      for (auto it = dofs.begin() + dofPos[n-1]; it < dofs.begin() + dofPos[n]; it++) {
+        if (it->type == v) {
+          isFound = true;
+          break;
+        }
+      }
+      if (!isFound) {
+        newDofs.push_back(Dof(v));
+      }
     }
-
   }
-  numberOfUsedDofs++;
+
+  if (newDofs.size() == 0) return;
+
+  dofs.insert(dofs.begin() + dofPos[n], newDofs.begin(), newDofs.end());
+  uint32 i = n;
+
+  // incement dofPos with newDofs.size() for all above
+  while (i <= numberOfEntities) dofPos[i++] += newDofs.size();
+
+  numberOfUsedDofs += newDofs.size();
 }
 
 

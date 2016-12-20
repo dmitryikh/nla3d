@@ -22,11 +22,9 @@ void ElementSOLID81::pre() {
 
   // register element equations
   for (uint16 i = 0; i < Element::n_nodes(); i++) {
-    storage->addNodeDof(getNodeNumber(i), Dof::UX);
-    storage->addNodeDof(getNodeNumber(i), Dof::UY);
-    storage->addNodeDof(getNodeNumber(i), Dof::UZ);
+    storage->addNodeDof(getNodeNumber(i), {Dof::UX, Dof::UY, Dof::UZ});
   }
-  storage->addElementDof(getElNum(), Dof::HYDRO_PRESSURE);
+  storage->addElementDof(getElNum(), {Dof::HYDRO_PRESSURE});
 }
 
 

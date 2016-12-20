@@ -11,9 +11,7 @@ ElementTETRA::ElementTETRA () {
 
 void ElementTETRA::pre () {
   for (uint16 i = 0; i < Element::n_nodes(); i++) {
-    storage->addNodeDof(getNodeNumber(i), Dof::UX);
-    storage->addNodeDof(getNodeNumber(i), Dof::UY);
-    storage->addNodeDof(getNodeNumber(i), Dof::UZ);
+    storage->addNodeDof(getNodeNumber(i), {Dof::UX, Dof::UY, Dof::UZ});
   }
 }
 

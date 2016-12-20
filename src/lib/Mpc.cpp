@@ -64,12 +64,7 @@ void RigidBodyMpc::pre () {
       collection[i*dofs.size() + j] = mpc;
     }
   }
-  storage->addNodeDof(masterNode, Dof::UX);
-  storage->addNodeDof(masterNode, Dof::UY);
-  storage->addNodeDof(masterNode, Dof::UZ);
-  storage->addNodeDof(masterNode, Dof::ROTX);
-  storage->addNodeDof(masterNode, Dof::ROTY);
-  storage->addNodeDof(masterNode, Dof::ROTZ);
+  storage->addNodeDof(masterNode, {Dof::UX, Dof::UY, Dof::UZ, Dof::ROTX, Dof::ROTY, Dof::ROTZ});
 }
 
 void RigidBodyMpc::update () {
