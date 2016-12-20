@@ -42,3 +42,5 @@ add_test(NAME rigid_body_mpc_block_ROTX COMMAND nla3d ${PROJECT_SOURCE_DIR}/test
 add_executable(TimeControlTestExe TimeControlTest.cpp)
 target_link_libraries(TimeControlTestExe  nla3d_lib)
 add_test(NAME TimeControlTest COMMAND TimeControlTestExe)
+
+add_test(NAME truss3D_test COMMAND nla3d_truss)

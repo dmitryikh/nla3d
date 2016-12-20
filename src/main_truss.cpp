@@ -112,5 +112,14 @@ int main (int argc, char* argv[]) {
     ElementTRUSS3* el = dynamic_cast<ElementTRUSS3*> (&storage.getElement(i));
     LOG(INFO) << i << " = " << el->S;
   }
+  // check for correct result
+  CHECK(storage.getNodeDofSolution(2, Dof::UX) - 0.0146067 < 1.0e-7);
+  CHECK(storage.getNodeDofSolution(2, Dof::UY) - (-0.1046405) < 1.0e-7);
+
+  CHECK(storage.getNodeDofSolution(3, Dof::UX) - 0.0027214 < 1.0e-7);
+  CHECK(storage.getNodeDofSolution(3, Dof::UY) - (-0.0730729) < 1.0e-7);
+
+  CHECK(storage.getNodeDofSolution(5, Dof::UX) - 0.0055080 < 1.0e-7);
+  CHECK(storage.getNodeDofSolution(5, Dof::UY) - (-0.0164325) < 1.0e-7);
 	return 0;
 }
