@@ -23,19 +23,16 @@ class Dof {
       UNDEFINED // should be last
     };
 
+    Dof(dofType t) : eqNumber(0), isConstrained(false), type(t) { }
+
     uint32 eqNumber = 0; // 0 - not use
     bool isConstrained = false; // is this DOF defined by B.C.
+    dofType type;
 
     static const char* const dofTypeLabels[];
     static const uint16 numberOfDofTypes;
     static dofType label2dofType (const std::string& label);
     static const char* dofType2label (const dofType t);
-
-    bool isUsed();
-
-  friend class DofCollection;
-  private:
-    bool _isUsed = false;
 };
 
 inline const char* Dof::dofType2label(const Dof::dofType t) {
@@ -43,26 +40,31 @@ inline const char* Dof::dofType2label(const Dof::dofType t) {
   return dofTypeLabels[t];
 }
 
-inline bool Dof::isUsed() {
-  return _isUsed;
-}
 
 class DofCollection {
   public:
     uint32 getNumberOfUsedDofs();
-    uint32 getNumberOfAllocatedDofs();
+    uint32 getNumberOfEntities();
     Dof* getDof(uint32 n, Dof::dofType dof);
-    void buildDofTable(uint32 _numberOfEntities);
-    void useDof(uint32 n, Dof::dofType dof);
-    bool isDofUsed(uint32 n, Dof::dofType dof);
+
+    // NOTE: Dof add procudere rely on the fact that n (entity number) is growing from 1 
+    // to numberOfEntities. If storage will add 
+    void initDofTable(uint32 _numberOfEntities);
+    void addDof(uint32 n, Dof::dofType dof);
     void clearDofTable();
+
+    bool isDofUsed(uint32 n, Dof::dofType dof);
 
   private:
     uint32 numberOfUsedDofs = 0;
-    uint32 numberOfAllocatedDofs = 0;
     uint32 numberOfEntities = 0;
 
-    std::vector<Dof> dofTable;
+    // row of Dof objects 
+    std::vector<Dof> dofs;
+    // array of indexes to find where dofs for particular entity is located in dofs
+    // Dof for entity n will be located from dofPos[n-1] included to dofPos[n] excluded 
+    std::vector<uint32> dofPos;
+    static uint32 empty;
 };
 
 
@@ -71,27 +73,10 @@ inline uint32 DofCollection::getNumberOfUsedDofs() {
 }
 
 
-inline uint32 DofCollection::getNumberOfAllocatedDofs() {
-  return numberOfAllocatedDofs;
+inline uint32 DofCollection::getNumberOfEntities() {
+  return numberOfEntities;
 }
 
 
-// n index starts from 1
-inline bool DofCollection::isDofUsed(uint32 n, Dof::dofType dof) {
-  assert(n <= numberOfEntities);
-  assert(dofTable.size() > 0);
-  return dofTable[(n - 1) * Dof::numberOfDofTypes + dof]._isUsed;
-}
-
-
-inline Dof* DofCollection::getDof(uint32 n, Dof::dofType dof) {
-  assert(n <= numberOfEntities);
-  assert(dofTable.size() > 0);
-
-  Dof* pdof = &(dofTable[(n - 1) * Dof::numberOfDofTypes + dof]);
-  // return only used dofs
-  assert(pdof->_isUsed == true);
-  return pdof;
-}
 
 } // namespace nla3d 

@@ -233,24 +233,24 @@ uint32 FEStorage::getNumberOfMpcEq() {
 }
 
 void FEStorage::addNodeDof(uint32 node, Dof::dofType dof) {
-  assert(nodeDofs.getNumberOfAllocatedDofs() > 0);
-  nodeDofs.useDof(node, dof);
+  assert(nodeDofs.getNumberOfEntities() > 0);
+  nodeDofs.addDof(node, dof);
 }
 
 void FEStorage::addElementDof(uint32 el, Dof::dofType dof) {
-  assert(elementDofs.getNumberOfAllocatedDofs() > 0);
-  elementDofs.useDof(el, dof);
+  assert(elementDofs.getNumberOfEntities() > 0);
+  elementDofs.addDof(el, dof);
 }
 
 
 bool FEStorage::isElementDofUsed (uint32 el, Dof::dofType dof) {
-  assert(elementDofs.getNumberOfAllocatedDofs() > 0);
+  assert(elementDofs.getNumberOfEntities() > 0);
   return elementDofs.isDofUsed(el, dof);
 }
 
 
 bool FEStorage::isNodeDofUsed (uint32 node, Dof::dofType dof) {
-  assert(nodeDofs.getNumberOfAllocatedDofs() > 0);
+  assert(nodeDofs.getNumberOfEntities() > 0);
   return nodeDofs.isDofUsed(node, dof);
 }
 
@@ -584,8 +584,8 @@ bool FEStorage::initializeSolutionData () {
     exit(1);
 	}
   
-  nodeDofs.buildDofTable(getNumberOfNodes());
-  elementDofs.buildDofTable(getNumberOfElements());
+  nodeDofs.initDofTable(getNumberOfNodes());
+  elementDofs.initDofTable(getNumberOfElements());
 
 	for (uint32 el = 0; el < getNumberOfElements(); el++) {
     elements[el]->pre();
@@ -654,8 +654,8 @@ bool FEStorage::initializeSolutionData () {
   for (uint32 i = 1; i <= getNumberOfElements(); i++) {
     for (uint16 it = 0; it < Dof::numberOfDofTypes; it++) {
       Dof::dofType t = static_cast<Dof::dofType> (it);
-      if (elementDofs.isDofUsed(i, t)) {
-        Dof* d = elementDofs.getDof(i, t);
+      Dof* d = elementDofs.getDof(i, t);
+      if (d) {
         if (d->isConstrained) {
           d->eqNumber = next_eq_const++;
         } else {
@@ -669,8 +669,8 @@ bool FEStorage::initializeSolutionData () {
   for (uint32 i = 1; i <= getNumberOfNodes(); i++) {
     for (uint16 it = 0; it < Dof::numberOfDofTypes; it++) {
       Dof::dofType t = static_cast<Dof::dofType> (it);
-      if (nodeDofs.isDofUsed(i, t)) {
-        Dof* d = nodeDofs.getDof(i, t);
+      Dof* d = nodeDofs.getDof(i, t);
+      if (d) {
         if (d->isConstrained) {
           d->eqNumber = next_eq_const++;
         } else {
