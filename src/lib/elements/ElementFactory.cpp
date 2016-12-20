@@ -6,52 +6,46 @@
 #include "elements/PLANE41.h"
 #include "elements/SOLID81.h"
 #include "elements/TRUSS3.h"
-#include "elements/TETRA.h"
+#include "elements/TETRA0.h"
 
 namespace nla3d {
 
-const char* const ElementFactory::elTypeLabels[]={"UNDEFINED",
-  "PLANE41",
-  "SOLID81",
-  "TRUSS3",
-  "TETRA"
-};
 
-ElementFactory::elTypes ElementFactory::elName2elType (std::string elName) {
-  for (uint16 i = 1; i < (uint16) ElementFactory::LAST; i++) {
-    if (elName.compare(ElementFactory::elTypeLabels[i]) == 0) {
-      return (ElementFactory::elTypes) i;
+ElementType ElementFactory::elName2elType (std::string elName) {
+  for (uint16 i = 0; i < (uint16) ElementType::UNDEFINED; i++) {
+    if (elName.compare(elTypeLabels[i]) == 0) {
+      return (ElementType) i;
     }
   }
-  return ElementFactory::NOT_DEFINED;
+  return ElementType::UNDEFINED;
 }
-void ElementFactory::createElements (elTypes elId, const uint32 n, std::vector<Element*>& ptr) {
-  if (elId == ElementFactory::NOT_DEFINED) {
+void ElementFactory::createElements (ElementType elId, const uint32 n, std::vector<Element*>& ptr) {
+  if (elId == ElementType::UNDEFINED) {
     LOG(WARNING) << "Element type is undefined";
   }
   switch (elId) {
-    case ElementFactory::PLANE41:
+    case ElementType::PLANE41:
       for (uint32 i = 0; i < n; i++) {
         ptr.push_back(new ElementPLANE41());
       }
       break;
-    case ElementFactory::SOLID81:
+    case ElementType::SOLID81:
       for (uint32 i = 0; i < n; i++) {
         ptr.push_back(new ElementSOLID81());
       }
       break;
-    case ElementFactory::TRUSS3:
+    case ElementType::TRUSS3:
       for (uint32 i = 0; i < n; i++) {
         ptr.push_back(new ElementTRUSS3());
       }
       break;
-    case ElementFactory::TETRA:
+    case ElementType::TETRA0:
       for (uint32 i = 0; i < n; i++) {
-        ptr.push_back(new ElementTETRA());
+        ptr.push_back(new ElementTETRA0());
       }
       break;
     default:
-      LOG(ERROR) << "Don't have an element with id " << elId;
+      LOG(ERROR) << "Don't have an element with id " << (uint16) elId;
   }
 }
 

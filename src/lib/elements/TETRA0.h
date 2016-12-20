@@ -8,12 +8,12 @@
 namespace nla3d {
 
 
-class ElementTETRA : public Element {
+class ElementTETRA0 : public ElementTETRA {
 public:
 // ElementTETRA () defines number of nodes in the element, number of dimensions (2D or 3D
 // elements). It creates an array for storing global nodes numbers. And also, it registers which
 // DoFs it is going to use (Dof::UX, Dof::UY, Dof::UZ in this case).
-  ElementTETRA ();
+  ElementTETRA0 ();
 
 // pre() - functions that is called just before the solution procedures. pre() should register
 // which element DoFs and nodal DoFs will be incorporated in the element stiffness matrix. On this

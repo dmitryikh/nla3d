@@ -145,4 +145,20 @@ struct MatchPathSeparator {
 
 std::string getFileNameFromPath(const std::string filename);
 
+enum class ElementType {
+  TRUSS3 = 0,
+  PLANE41,
+  SOLID81,
+  TETRA0,
+  UNDEFINED
+};
+
+
+const char* const elTypeLabels[] = {
+  "TRUSS3",
+  "PLANE41",
+  "SOLID81",
+  "TETRA0",
+  "UNDEFINED"
+};
 } // namespace nla3d

@@ -5,7 +5,7 @@ project (NLA3D)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
 #options
-set (nla3d_use_MKL OFF)
+set (nla3d_use_MKL ON)
 set (nla3d_multithreaded OFF)
 set (nla3d_debug OFF)
 #TODO: now SOLID81 can use blas, but results not converged.. need to fix

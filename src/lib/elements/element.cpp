@@ -6,26 +6,22 @@
 
 namespace nla3d {
 
-FEStorage* Element::storage = NULL;
-uint16 Element::number_of_dimensions=3;
-uint16 Element::number_of_nodes = 8;
-uint16 Element::number_of_integration_points = 2; 
-std::vector<Face> Element::faces;
+Element::Element () {
 
-uint16 Face::num_nodes_per_face = 4;
-
-//-------------Face----------------
-std::ostream& operator<< (std::ostream& stream,const Face& obj)
-{
-  for (uint16 i = 0; i < obj.num_nodes_per_face; i++)
-    stream << obj.nodes[i] << " ";
-  return stream;
 }
 
-//--------------Element---------------
+
+Element::~Element() {
+  if (nodes) {
+    delete[] nodes;
+    nodes = nullptr;
+  }
+}
+
+
 void Element::print (std::ostream& out) {
   out << "E " << getElNum() << ":";
-  for (uint16 i = 0; i < n_nodes(); i++) {
+  for (uint16 i = 0; i < getNNodes(); i++) {
     out << "\t" << getNodeNumber(i);
   }
 }
@@ -33,7 +29,7 @@ void Element::print (std::ostream& out) {
 Element& Element::operator= (const Element& from)
 {
   assert(nodes && from.nodes);
-  memcpy(nodes, from.nodes, sizeof(uint32)*number_of_nodes);
+  memcpy(nodes, from.nodes, sizeof(uint32)*getNNodes());
   return *this;
 }
 
@@ -43,11 +39,11 @@ void Element::assemble (Eigen::Ref<Eigen::MatrixXd> Ke, std::initializer_list<Do
   assert (Ke.rows() == Ke.cols());
   std::vector<Dof::dofType> nodeDof(_nodeDofs);
   uint16 dim = static_cast<uint16> (_nodeDofs.size());
-  assert (Element::n_nodes() * dim == Ke.rows());
+  assert (getNNodes() * dim == Ke.rows());
 
-  for (uint16 i=0; i < Element::n_nodes(); i++) {
+  for (uint16 i=0; i < getNNodes(); i++) {
     for (uint16 di=0; di < dim; di++) {
-      for (uint16 j=i; j < Element::n_nodes(); j++) {
+      for (uint16 j=i; j < getNNodes(); j++) {
         for (uint16 dj=0; dj < dim; dj++) {
           if ((i==j) && (dj<di)) {
             continue;

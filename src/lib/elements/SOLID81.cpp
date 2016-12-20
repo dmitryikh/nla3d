@@ -9,19 +9,23 @@ using namespace math;
 using namespace solidmech;
 
 void ElementSOLID81::pre() {
-	S.assign(npow(n_int(),n_dim()), Vec<6>(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
-	C.assign(npow(n_int(),n_dim()), Vec<6>(1.0, 0.0, 0.0, 1.0, 0.0, 1.0));
-	O.assign(npow(n_int(),n_dim()), Vec<9>(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+  // TODO: fix work with getIntegrationPoints
+  
 
-	if (det.size()==0) {
-		Node** nodes_p = new Node*[Element::n_nodes()];
-		storage->getElementNodes(getElNum(), nodes_p);	
-		make_Jacob(getElNum(), nodes_p);
+  if (det.size()==0) {
+    Node** nodes_p = new Node*[getNNodes()];
+    storage->getElementNodes(getElNum(), nodes_p);  
+    // TODO: CLudge:  make_Jacob can adjust nOfIntPoints
+    nOfIntPoints = make_Jacob(getElNum(), nodes_p, nOfIntPoints);
     delete[] nodes_p;
-	}
+  }
+
+  S.assign(nOfIntPoints, Vec<6>(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+  C.assign(nOfIntPoints, Vec<6>(1.0, 0.0, 0.0, 1.0, 0.0, 1.0));
+  O.assign(nOfIntPoints, Vec<9>(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
 
   // register element equations
-  for (uint16 i = 0; i < Element::n_nodes(); i++) {
+  for (uint16 i = 0; i < getNNodes(); i++) {
     storage->addNodeDof(getNodeNumber(i), {Dof::UX, Dof::UY, Dof::UZ});
   }
   storage->addElementDof(getElNum(), {Dof::HYDRO_PRESSURE});
@@ -31,158 +35,158 @@ void ElementSOLID81::pre() {
 void ElementSOLID81::build()
 {
 //построение матрицы жесткости и вектора нагрузки для элемента
-	double Kpp = 0.0;
-	double Fp = 0.0;
-	
-	Vec<24> Kup;
-	Vec<24> Fu; //вектор узловых сил элемента
-	Vec<24> F_ext; //вектор внешних сил (пока не подсчитывается)
+  double Kpp = 0.0;
+  double Fp = 0.0;
+  
+  Vec<24> Kup;
+  Vec<24> Fu; //вектор узловых сил элемента
+  Vec<24> F_ext; //вектор внешних сил (пока не подсчитывается)
   Mat_Hyper_Isotrop_General* mat = CHECK_NOTNULL( dynamic_cast<Mat_Hyper_Isotrop_General*> (storage->getMaterial()));
-	double k = mat->getK();
-	MatSym<6> matD_d;
-	Vec<6> vecD_p;
-	Vec<6> vecC;
+  double k = mat->getK();
+  MatSym<6> matD_d;
+  Vec<6> vecD_p;
+  Vec<6> vecC;
 
-	Mat<6,24> matB;
-	MatSym<9> matS;
-	Mat<6,9> matO;
-	Mat<9,24> matB_NL;
-	MatSym<24> Kuu; //матрица жесткости перед вектором перемещений
-	double p_e = storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE);
-	double dWt; //множитель при суммировании квадратур Гаусса
-	Kuu.zero();
-	for (uint16 nPoint=0; (int32) nPoint < npow(Element::n_int(),n_dim()); nPoint++) {
-		dWt = g_weight(nPoint);
+  Mat<6,24> matB;
+  MatSym<9> matS;
+  Mat<6,9> matO;
+  Mat<9,24> matB_NL;
+  MatSym<24> Kuu; //матрица жесткости перед вектором перемещений
+  double p_e = storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE);
+  double dWt; //множитель при суммировании квадратур Гаусса
+  Kuu.zero();
+  for (uint16 nPoint=0; (int32) nPoint < getIntegrationPoints(); nPoint++) {
+    dWt = g_weight(nPoint);
 
-		mat->getDdDp_UP(6, solidmech::defaultTensorComponents, C[nPoint].ptr(), p_e, matD_d.ptr(), vecD_p.ptr());
-		double J = solidmech::J_C(C[nPoint].ptr());
-		matB.zero();
-		matS.zero();
-		matO.zero();
-		matB_NL.zero();
+    mat->getDdDp_UP(6, solidmech::defaultTensorComponents, C[nPoint].ptr(), p_e, matD_d.ptr(), vecD_p.ptr());
+    double J = solidmech::J_C(C[nPoint].ptr());
+    matB.zero();
+    matS.zero();
+    matO.zero();
+    matB_NL.zero();
 
-		make_B_L(nPoint, matB);
-		make_S(nPoint, matS); //matrix 9x9 with 3x3 stress tenros blocks
-		make_Omega(nPoint, matO);
-		make_B_NL(nPoint, matB_NL);
+    make_B_L(nPoint, matB);
+    make_S(nPoint, matS); //matrix 9x9 with 3x3 stress tenros blocks
+    make_Omega(nPoint, matO);
+    make_B_NL(nPoint, matB_NL);
     // matB = matB + matO * matB_NL * 2
-		matABprod(matO, matB_NL, 2.0, matB);
+    matABprod(matO, matB_NL, 2.0, matB);
     // Kuu = Kuu + (matB^T * matD_d * matB) * 0.5*dWt
-		matBTDBprod(matB, matD_d, 0.5*dWt, Kuu);
+    matBTDBprod(matB, matD_d, 0.5*dWt, Kuu);
     // Kuu = Kuu + (matB_NL^T * matS * matB_NL) * dWt
-		matBTDBprod(matB_NL, matS, dWt, Kuu);
+    matBTDBprod(matB_NL, matS, dWt, Kuu);
 
-		// Fu = Fu +  matB^T * S[nPoint] * (-0.5*dWt);
-		matBTVprod(matB,S[nPoint], -0.5*dWt, Fu);
+    // Fu = Fu +  matB^T * S[nPoint] * (-0.5*dWt);
+    matBTVprod(matB,S[nPoint], -0.5*dWt, Fu);
 
-		// Kup = Kup +  matB^T * vecD_p * (dWt*0.5);
-		matBTVprod(matB,vecD_p, 0.5*dWt, Kup);
+    // Kup = Kup +  matB^T * vecD_p * (dWt*0.5);
+    matBTVprod(matB,vecD_p, 0.5*dWt, Kup);
 
-		Fp += -(J - 1 - p_e/k)*dWt;
-		Kpp += -1.0/k*dWt;
-	}//прошлись по всем точкам интегрирования
-	assemble3(Kuu, Kup, Kpp, Fu,Fp);
+    Fp += -(J - 1 - p_e/k)*dWt;
+    Kpp += -1.0/k*dWt;
+  }//прошлись по всем точкам интегрирования
+  assemble3(Kuu, Kup, Kpp, Fu,Fp);
 }
 
 
 void ElementSOLID81::update()
 {
-	// get nodal solutions from storage
-	Vec<24> U;
-  for (uint16 i = 0; i < Element::n_nodes(); i++) {
+  // get nodal solutions from storage
+  Vec<24> U;
+  for (uint16 i = 0; i < getNNodes(); i++) {
     U[i*3 + 0] = storage->getNodeDofSolution(getNodeNumber(i), Dof::UX);
     U[i*3 + 1] = storage->getNodeDofSolution(getNodeNumber(i), Dof::UY);
     U[i*3 + 2] = storage->getNodeDofSolution(getNodeNumber(i), Dof::UZ);
   }
-	Mat<9,24> B_NL;
-	Vec<6> vecC;
-	double p_e = storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE);
+  Mat<9,24> B_NL;
+  Vec<6> vecC;
+  double p_e = storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE);
 
   Mat_Hyper_Isotrop_General* mat = CHECK_NOTNULL(dynamic_cast<Mat_Hyper_Isotrop_General*> (storage->getMaterial()));
-	for (uint16 nPoint=0; (int32) nPoint < npow(Element::n_int(),n_dim()); nPoint++) {
-		B_NL.zero();
-		make_B_NL(nPoint, B_NL);
-		O[nPoint].zero();
+  for (uint16 nPoint=0; (int32) nPoint < getIntegrationPoints(); nPoint++) {
+    B_NL.zero();
+    make_B_NL(nPoint, B_NL);
+    O[nPoint].zero();
     // O[nPoint] = B_NL * U
-		matBVprod(B_NL, U, 1.0, O[nPoint]);
-		C[nPoint][M_XX] = 1.0+2*O[nPoint][0]+pow(O[nPoint][0],2)+pow(O[nPoint][3],2)+pow(O[nPoint][6],2);	//C11
-		C[nPoint][M_YY] = 1.0+2*O[nPoint][4]+pow(O[nPoint][1],2)+pow(O[nPoint][4],2)+pow(O[nPoint][7],2);	//C22
-		C[nPoint][M_ZZ] = 1.0+2*O[nPoint][8]+pow(O[nPoint][2],2)+pow(O[nPoint][5],2)+pow(O[nPoint][8],2);	//C33
-		C[nPoint][M_XY] = O[nPoint][1]+O[nPoint][3]+O[nPoint][0]*O[nPoint][1]+O[nPoint][3]*O[nPoint][4]+O[nPoint][6]*O[nPoint][7];  //C12
-		C[nPoint][M_YZ] = O[nPoint][5]+O[nPoint][7]+O[nPoint][1]*O[nPoint][2]+O[nPoint][4]*O[nPoint][5]+O[nPoint][7]*O[nPoint][8];	//C23
-		C[nPoint][M_XZ] = O[nPoint][2]+O[nPoint][6]+O[nPoint][0]*O[nPoint][2]+O[nPoint][3]*O[nPoint][5]+O[nPoint][6]*O[nPoint][8];	//C13
+    matBVprod(B_NL, U, 1.0, O[nPoint]);
+    C[nPoint][M_XX] = 1.0+2*O[nPoint][0]+pow(O[nPoint][0],2)+pow(O[nPoint][3],2)+pow(O[nPoint][6],2); //C11
+    C[nPoint][M_YY] = 1.0+2*O[nPoint][4]+pow(O[nPoint][1],2)+pow(O[nPoint][4],2)+pow(O[nPoint][7],2); //C22
+    C[nPoint][M_ZZ] = 1.0+2*O[nPoint][8]+pow(O[nPoint][2],2)+pow(O[nPoint][5],2)+pow(O[nPoint][8],2); //C33
+    C[nPoint][M_XY] = O[nPoint][1]+O[nPoint][3]+O[nPoint][0]*O[nPoint][1]+O[nPoint][3]*O[nPoint][4]+O[nPoint][6]*O[nPoint][7];  //C12
+    C[nPoint][M_YZ] = O[nPoint][5]+O[nPoint][7]+O[nPoint][1]*O[nPoint][2]+O[nPoint][4]*O[nPoint][5]+O[nPoint][7]*O[nPoint][8];  //C23
+    C[nPoint][M_XZ] = O[nPoint][2]+O[nPoint][6]+O[nPoint][0]*O[nPoint][2]+O[nPoint][3]*O[nPoint][5]+O[nPoint][6]*O[nPoint][8];  //C13
 
-		// get new PK2 stresses from update C tensor
-		mat->getS_UP (6, solidmech::defaultTensorComponents, C[nPoint].ptr(), p_e, S[nPoint].ptr());
-	}
+    // get new PK2 stresses from update C tensor
+    mat->getS_UP (6, solidmech::defaultTensorComponents, C[nPoint].ptr(), p_e, S[nPoint].ptr());
+  }
 }
 
 
 void ElementSOLID81::make_B_L (uint16 nPoint, Mat<6,24> &B)
 {
-	double *B_L = B.ptr();
-	for (uint16 i=0; i < 8; i++) {
-		B_L[0*24+(i*3+0)] += 2*NjXi[nPoint][0][i];//exx
-		B_L[1*24+(i*3+0)] += 2*NjXi[nPoint][1][i];//exy
-		B_L[1*24+(i*3+1)] += 2*NjXi[nPoint][0][i];//exy
-		B_L[2*24+(i*3+0)] += 2*NjXi[nPoint][2][i];//exz
-		B_L[2*24+(i*3+2)] += 2*NjXi[nPoint][0][i];//exz
-		B_L[3*24+(i*3+1)] += 2*NjXi[nPoint][1][i];//eyy
-		B_L[4*24+(i*3+1)] += 2*NjXi[nPoint][2][i];//eyz
-		B_L[4*24+(i*3+2)] += 2*NjXi[nPoint][1][i];//eyz
-		B_L[5*24+(i*3+2)] += 2*NjXi[nPoint][2][i];//ezz
-	}
+  double *B_L = B.ptr();
+  for (uint16 i=0; i < 8; i++) {
+    B_L[0*24+(i*3+0)] += 2*NjXi[nPoint][0][i];//exx
+    B_L[1*24+(i*3+0)] += 2*NjXi[nPoint][1][i];//exy
+    B_L[1*24+(i*3+1)] += 2*NjXi[nPoint][0][i];//exy
+    B_L[2*24+(i*3+0)] += 2*NjXi[nPoint][2][i];//exz
+    B_L[2*24+(i*3+2)] += 2*NjXi[nPoint][0][i];//exz
+    B_L[3*24+(i*3+1)] += 2*NjXi[nPoint][1][i];//eyy
+    B_L[4*24+(i*3+1)] += 2*NjXi[nPoint][2][i];//eyz
+    B_L[4*24+(i*3+2)] += 2*NjXi[nPoint][1][i];//eyz
+    B_L[5*24+(i*3+2)] += 2*NjXi[nPoint][2][i];//ezz
+  }
 }
 
 
 void ElementSOLID81::make_B_NL (uint16 nPoint,  Mat<9,24> &B)
 {
-	double *B_NL = B.ptr();
-	for (uint16 i=0; i < 8; i++) {
-		B_NL[0*24+(i*3+0)] += NjXi[nPoint][0][i];
-		B_NL[1*24+(i*3+0)] += NjXi[nPoint][1][i];
-		B_NL[2*24+(i*3+0)] += NjXi[nPoint][2][i];
-		B_NL[3*24+(i*3+1)] += NjXi[nPoint][0][i];
-		B_NL[4*24+(i*3+1)] += NjXi[nPoint][1][i];
-		B_NL[5*24+(i*3+1)] += NjXi[nPoint][2][i];
-		B_NL[6*24+(i*3+2)] += NjXi[nPoint][0][i];
-		B_NL[7*24+(i*3+2)] += NjXi[nPoint][1][i];
-		B_NL[8*24+(i*3+2)] += NjXi[nPoint][2][i];
-	}
+  double *B_NL = B.ptr();
+  for (uint16 i=0; i < 8; i++) {
+    B_NL[0*24+(i*3+0)] += NjXi[nPoint][0][i];
+    B_NL[1*24+(i*3+0)] += NjXi[nPoint][1][i];
+    B_NL[2*24+(i*3+0)] += NjXi[nPoint][2][i];
+    B_NL[3*24+(i*3+1)] += NjXi[nPoint][0][i];
+    B_NL[4*24+(i*3+1)] += NjXi[nPoint][1][i];
+    B_NL[5*24+(i*3+1)] += NjXi[nPoint][2][i];
+    B_NL[6*24+(i*3+2)] += NjXi[nPoint][0][i];
+    B_NL[7*24+(i*3+2)] += NjXi[nPoint][1][i];
+    B_NL[8*24+(i*3+2)] += NjXi[nPoint][2][i];
+  }
 }
 
 
 
 void ElementSOLID81::make_S (uint16 nPoint, MatSym<9> &B)
 {
-	double *Sp = B.ptr();
-	Sp[0]	+= S[nPoint][M_XX];
-	Sp[1]	+= S[nPoint][M_XY];
-	Sp[2]	+= S[nPoint][M_XZ];
-	Sp[9]	+= S[nPoint][M_YY];
-	Sp[10]+= S[nPoint][M_YZ];
-	Sp[17]+= S[nPoint][M_ZZ];
+  double *Sp = B.ptr();
+  Sp[0] += S[nPoint][M_XX];
+  Sp[1] += S[nPoint][M_XY];
+  Sp[2] += S[nPoint][M_XZ];
+  Sp[9] += S[nPoint][M_YY];
+  Sp[10]+= S[nPoint][M_YZ];
+  Sp[17]+= S[nPoint][M_ZZ];
 
-	Sp[24]+= S[nPoint][M_XX];
-	Sp[25]+= S[nPoint][M_XY];
-	Sp[26]+= S[nPoint][M_XZ];
-	Sp[30]+= S[nPoint][M_YY];
-	Sp[31]+= S[nPoint][M_YZ];
-	Sp[35]+= S[nPoint][M_ZZ];
+  Sp[24]+= S[nPoint][M_XX];
+  Sp[25]+= S[nPoint][M_XY];
+  Sp[26]+= S[nPoint][M_XZ];
+  Sp[30]+= S[nPoint][M_YY];
+  Sp[31]+= S[nPoint][M_YZ];
+  Sp[35]+= S[nPoint][M_ZZ];
 
-	Sp[39]	+= S[nPoint][M_XX];
-	Sp[40]	+= S[nPoint][M_XY];
-	Sp[41]	+= S[nPoint][M_XZ];
-	Sp[42]	+= S[nPoint][M_YY];
-	Sp[43]	+= S[nPoint][M_YZ];
+  Sp[39]  += S[nPoint][M_XX];
+  Sp[40]  += S[nPoint][M_XY];
+  Sp[41]  += S[nPoint][M_XZ];
+  Sp[42]  += S[nPoint][M_YY];
+  Sp[43]  += S[nPoint][M_YZ];
   Sp[44]  += S[nPoint][M_ZZ];
 }
 
 
 void ElementSOLID81::make_Omega (uint16 nPoint, Mat<6,9> &B)
 {
-	double *Omega = B.ptr();
-	for (uint16 i=0; i < 3; i++) {
+  double *Omega = B.ptr();
+  for (uint16 i=0; i < 3; i++) {
     Omega[0*9+(i*3+0)] = O[nPoint][0+i*3];//exx
     Omega[1*9+(i*3+0)] = O[nPoint][1+i*3];//exy
     Omega[1*9+(i*3+1)] = O[nPoint][0+i*3];//exy
@@ -192,29 +196,29 @@ void ElementSOLID81::make_Omega (uint16 nPoint, Mat<6,9> &B)
     Omega[4*9+(i*3+1)] = O[nPoint][2+i*3];//eyz
     Omega[4*9+(i*3+2)] = O[nPoint][1+i*3];//eyz
     Omega[5*9+(i*3+2)] = O[nPoint][2+i*3];//ezz
-	}
+  }
 }
 
 void ElementSOLID81::getScalar(double& scalar, query::scalarQuery code, uint16 gp, const double scale) {
-	//see codes in sys.h
-	//gp - needed gauss point 
+  //see codes in sys.h
+  //gp - needed gauss point 
   if (gp == query::GP_MEAN) { //need to average result over the element
     double dWtSum = volume();
     double dWt;
-    for (uint16 nPoint = 0; nPoint < npow(n_int(),n_dim()); nPoint ++) {
+    for (uint16 nPoint = 0; nPoint < getIntegrationPoints(); nPoint ++) {
       dWt = g_weight(nPoint);
       getScalar(scalar, code, nPoint, dWt/dWtSum*scale );
     }
     return;
   }
-	assert (gp < npow(n_int(),n_dim()));
+  assert (gp < getIntegrationPoints());
   double tmp[3];
   Mat_Hyper_Isotrop_General* mat;
   double J;
   switch (code) {
     case query::SCALAR_SP:
       scalar += storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE) * scale;
-			break;
+      break;
     case query::SCALAR_WU:
       tmp[0] = 0.0;
       tmp[1] = 0.0;
@@ -241,7 +245,7 @@ void ElementSOLID81::getVector(double* vector, query::vectorQuery code, uint16 g
   if (gp == query::GP_MEAN) { //need to average result over the element
     double dWtSum = volume();
     double dWt;
-    for (uint16 nPoint = 0; nPoint < npow(n_int(),n_dim()); nPoint ++) {
+    for (uint16 nPoint = 0; nPoint < getIntegrationPoints(); nPoint ++) {
       dWt = g_weight(nPoint);
       getVector(vector, code, nPoint, dWt/dWtSum*scale );
     }
@@ -267,13 +271,13 @@ void  ElementSOLID81::getTensor(math::MatSym<3>& tensor, query::tensorQuery code
   if (gp == query::GP_MEAN) { //need to average result over the element
     double dWtSum = volume();
     double dWt;
-    for (uint16 nPoint = 0; nPoint < npow(n_int(),n_dim()); nPoint ++) {
+    for (uint16 nPoint = 0; nPoint < getIntegrationPoints(); nPoint ++) {
       dWt = g_weight(nPoint);
       getTensor(tensor, code, nPoint, dWt/dWtSum*scale);
     }
     return;
   }
-	assert (gp < npow(n_int(),n_dim()));
+  assert (gp < getIntegrationPoints());
 
   Mat<3,3> matF;
   MatSym<3> matS;
@@ -281,7 +285,7 @@ void  ElementSOLID81::getTensor(math::MatSym<3>& tensor, query::tensorQuery code
   double cInv[6];
   double pe;
 
-	switch (code) {
+  switch (code) {
     case query::TENSOR_COUCHY:
 
       //matF^T  
@@ -300,7 +304,7 @@ void  ElementSOLID81::getTensor(math::MatSym<3>& tensor, query::tensorQuery code
       //deviatoric part of S: Sd = S[gp]
       //hydrostatic part of S: Sp = p * J * C^(-1)
       solidmech::invC_C (C[gp].ptr(), J, cInv); 
-	    pe = storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE);
+      pe = storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE);
       // TODO: it seems that S[gp] contains deviatoric + pressure already..
       // we dont need to sum it again
       for (uint16 i = 0; i < 6; i++) {
@@ -312,7 +316,7 @@ void  ElementSOLID81::getTensor(math::MatSym<3>& tensor, query::tensorQuery code
       // hydrostatic part of S: Sp = p * J * C^(-1)
       J = solidmech::J_C(C[gp].ptr());
       solidmech::invC_C (C[gp].ptr(), J, cInv); 
-	    pe = storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE);
+      pe = storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE);
       for (uint16 i = 0; i < 6; i++) {
         tensor.data[i] += (S[gp][i] + pe * J * cInv[i]) * scale;
       }
@@ -335,7 +339,7 @@ void  ElementSOLID81::getTensor(math::MatSym<3>& tensor, query::tensorQuery code
       break;
     default:
       LOG_N_TIMES(10, WARNING) << "No data for code " << code;
-	}
+  }
 }
 
 } // namespace nla3d

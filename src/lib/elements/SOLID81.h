@@ -14,10 +14,13 @@ namespace nla3d {
 //-------------------ElementSOLID81----------------------
 //-------------------------------------------------------
 //8-node brick nonlinear element based on mixed approach
-class ElementSOLID81 : public Element_SOLID8, public Element_Lagrange_Formulation<3,8>
+class ElementSOLID81 : public ElementHEXAHEDRON, public Element_Lagrange_Formulation<3,8>
 {
 public:
-	ElementSOLID81 () { }
+	ElementSOLID81 () {
+    nOfIntPoints = 2*2*2;
+    type = ElementType::SOLID81;
+  }
 	ElementSOLID81 (const ElementSOLID81& from) {
 		operator=(from);
 	}
@@ -51,68 +54,18 @@ public:
 	void assemble3(math::MatSym<dimM> &Kuu, math::Vec<dimM> &Kup, double Kpp, math::Vec<dimM> &Fu, double Fp);
 };
 
-//// for now this procedure is broken
-//template <uint16 dimM, uint16 dimN>
-//void ElementSOLID81::assemble2(math::MatSym<dimM> &Kuu, math::Mat<dimM,dimM> &Kup,
-//    math::Mat<dimN,dimN> &Kpp, math::Vec<dimM> &Fu, math::Vec<dimN> &Fp) {
-//  const uint16 dim = 3;
-//	assert (Element::n_nodes()*dim == dimM);
-//	assert (Element::n_dofs() == dimN);
-//	double *Kuu_p = Kuu.ptr();
-//	double *Kup_p = Kup.ptr();
-//	double *Kpp_p = Kpp.ptr();
-//	double *Fu_p = Fu.ptr();
-//	double *Fp_p = Fp.ptr();                               
-//
-//	for (uint16 i=0; i < Element::n_nodes(); i++)
-//		for (uint16 di=0; di < dim; di++)
-//			for (uint16 j=i; j < Element::n_nodes(); j++)
-//				for (uint16 dj=di; dj < dim; dj++)
-//				{
-//						storage->Kij_add(nodes[i],di,nodes[j],dj, *Kuu_p);
-//						Kuu_p++;
-//				}
-//	//upper diagonal process for nodes-el dofs
-//	for (uint16 i=0; i < Element::n_nodes(); i++)
-//		for(uint16 di=0; di < dim; di++)
-//			for (uint16 dj=0; dj < Element::n_dofs(); dj++)
-//			{
-//				storage->Kij_add(nodes[i],di, -(int32)getElNum(), dj, *Kup_p);
-//				Kup_p++;
-//			}
-//	//upper diagonal process for el-el dofs
-//	for (uint16 di=0; di < Element::n_dofs(); di++)
-//		for (uint16 dj=di; dj < Element::n_dofs(); dj++)
-//		{
-//			storage->Kij_add(-(int32)getElNum(), di, -(int32)getElNum(), dj,  *Kpp_p);
-//			Kpp_p++;
-//		}
-//
-//	for (uint16 i=0; i < Element::n_nodes(); i++)
-//		for (uint16 di=0; di < dim; di++)
-//		{
-//			storage->Fi_add(nodes[i],di, *Fu_p);
-//			Fu_p++;
-//		}
-//
-//	for (uint16 di=0; di < Element::n_dofs(); di++)
-//	{
-//		storage->Fi_add(-(int32)getElNum(), di, *Fp_p);
-//		Fp_p++;
-//	}
-//}
 
 template <uint16 dimM>
 void ElementSOLID81::assemble3(math::MatSym<dimM> &Kuu, math::Vec<dimM> &Kup, double Kpp, math::Vec<dimM> &Fu, double Fp) {
   const uint16 dim = 3;
-	assert (Element::n_nodes() * dim == dimM);
+	assert (getNNodes() * dim == dimM);
 	double *Kuu_p = Kuu.ptr();
 	double *Kup_p = Kup.ptr();
 	double *Fu_p = Fu.ptr();
   Dof::dofType dofVec[] = {Dof::UX, Dof::UY, Dof::UZ};
-	for (uint16 i=0; i < Element::n_nodes(); i++)
+	for (uint16 i=0; i < getNNodes(); i++)
 		for (uint16 di=0; di < dim; di++)
-		for (uint16 j=i; j < Element::n_nodes(); j++)
+		for (uint16 j=i; j < getNNodes(); j++)
 			
 				for (uint16 dj=0; dj < dim; dj++)
 				{
@@ -125,7 +78,7 @@ void ElementSOLID81::assemble3(math::MatSym<dimM> &Kuu, math::Vec<dimM> &Kup, do
 				}
 	//upper diagonal process for nodes-el dofs
   uint32 elEq = storage->getElementDofEqNumber(getElNum(), Dof::HYDRO_PRESSURE);
-	for (uint16 i=0; i < Element::n_nodes(); i++) {
+	for (uint16 i=0; i < getNNodes(); i++) {
 		for(uint16 di=0; di < dim; di++) {
       uint32 rowEq = storage->getNodeDofEqNumber(nodes[i], dofVec[di]);
       storage->Kij_add(rowEq, elEq, *Kup_p);
@@ -135,7 +88,7 @@ void ElementSOLID81::assemble3(math::MatSym<dimM> &Kuu, math::Vec<dimM> &Kup, do
 	//upper diagonal process for el-el dofs
   storage->Kij_add(elEq, elEq,  Kpp);
 
-	for (uint16 i=0; i < Element::n_nodes(); i++) {
+	for (uint16 i=0; i < getNNodes(); i++) {
 		for (uint16 di=0; di < dim; di++) {
 			storage->Fi_add(nodes[i], dofVec[di], *Fu_p);
 			Fu_p++;

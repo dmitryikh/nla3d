@@ -14,9 +14,13 @@ namespace nla3d {
 //-------------------ElementPLANE41----------------------
 //-------------------------------------------------------
 //4-node 2D QUAD nonlinear element based on mixed approach
-class ElementPLANE41 : public Element_PLANE4, public Element_Lagrange_Formulation<2,4> {
+class ElementPLANE41 : public ElementQUAD, public Element_Lagrange_Formulation<2,4> {
 public:
-  ElementPLANE41 () { }
+  ElementPLANE41 () {
+    nOfIntPoints = 2*2;
+    type = ElementType::PLANE41;
+  }
+
   ElementPLANE41 (const ElementPLANE41& from) {
     operator=(from);
   }
@@ -58,10 +62,10 @@ void ElementPLANE41::assemble (const math::Mat<el_dofs_num,el_dofs_num> &Ke, con
   uint16 eldofs = 1;
   Dof::dofType nodeDofVec[] = {Dof::UX, Dof::UY};
   Dof::dofType elementDofVec[] = {Dof::HYDRO_PRESSURE};
-  assert(Element::n_nodes() * dim + eldofs == el_dofs_num);
+  assert(getNNodes() * dim + eldofs == el_dofs_num);
   // upper diagonal process for nodal dofs
-  for (uint16 i=0; i < Element::n_nodes(); i++)
-    for (uint16 j=i; j < Element::n_nodes(); j++)
+  for (uint16 i=0; i < getNNodes(); i++)
+    for (uint16 j=i; j < getNNodes(); j++)
       for (uint16 di=0; di < dim; di++)
         for (uint16 dj=0; dj < dim; dj++)
           if ((i==j) && (dj>di)) continue;
@@ -69,7 +73,7 @@ void ElementPLANE41::assemble (const math::Mat<el_dofs_num,el_dofs_num> &Ke, con
             storage->Kij_add(nodes[i], nodeDofVec[di],nodes[j],nodeDofVec[dj], Ke[i*dim+di][j*dim+dj]);
 
   //upper diagonal process for nodes-el dofs
-  for (uint16 i=0; i < Element::n_nodes(); i++)
+  for (uint16 i=0; i < getNNodes(); i++)
     for(uint16 di=0; di < dim; di++) {
       uint32 noEq = storage->getNodeDofEqNumber(nodes[i], nodeDofVec[di]);
       for (uint16 dj=0; dj < eldofs; dj++) {
@@ -85,7 +89,7 @@ void ElementPLANE41::assemble (const math::Mat<el_dofs_num,el_dofs_num> &Ke, con
       storage->Kij_add(elEqi, elEqj, Ke[eds+di][eds+dj]);
     }
 
-  for (uint16 i=0; i < Element::n_nodes(); i++)
+  for (uint16 i=0; i < getNNodes(); i++)
     for (uint16 di=0; di < dim; di++)
       storage->Fi_add(nodes[i], nodeDofVec[di], Qe[i*dim+di]);
 

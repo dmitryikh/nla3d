@@ -22,7 +22,7 @@ namespace nla3d {
 // material we use (elastic, anisotropic, plastic, hyperelastic, etc). Then elements in nla3d have a
 // right to not use Material class (see src/lib/materials/material.h) at all.
 
-class ElementTRUSS3 : public Element {
+class ElementTRUSS3 : public ElementLINE {
 public:
 // Element in nla3d have to provide several obligatore functions in order to make it possible to use
 // it:

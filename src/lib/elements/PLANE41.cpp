@@ -13,17 +13,20 @@ const uint16 ElementPLANE41::num_components = 3;
 
 //------------------ElementPLANE41--------------------
 void ElementPLANE41::pre() {
-  S.assign(npow(n_int(),n_dim()), Vec<3>(0.0f, 0.0f, 0.0f));
-  C.assign(npow(n_int(),n_dim()), Vec<3>(1.0f, 1.0f, 0.0f));
-  O.assign(npow(n_int(),n_dim()), Vec<4>(0.0f, 0.0f, 0.0f, 0.0f));
+  // TODO: fix work with getIntegrationPoints
   if (det.size()==0) {
-    Node** nodes_p = new Node*[Element::n_nodes()];
+    Node** nodes_p = new Node*[getNNodes()];
     storage->getElementNodes(getElNum(), nodes_p);  
-    make_Jacob(getElNum(), nodes_p);
+    // TODO: CLudge:  make_Jacob can adjust nOfIntPoints
+    nOfIntPoints = make_Jacob(getElNum(), nodes_p, nOfIntPoints);
   }
 
+  S.assign(nOfIntPoints, Vec<3>(0.0f, 0.0f, 0.0f));
+  C.assign(nOfIntPoints, Vec<3>(1.0f, 1.0f, 0.0f));
+  O.assign(nOfIntPoints, Vec<4>(0.0f, 0.0f, 0.0f, 0.0f));
+
   // register element equations
-  for (uint16 i = 0; i < Element::n_nodes(); i++) {
+  for (uint16 i = 0; i < getNNodes(); i++) {
     storage->addNodeDof(getNodeNumber(i), {Dof::UX, Dof::UY});
   }
   storage->addElementDof(getElNum(), {Dof::HYDRO_PRESSURE});
@@ -50,7 +53,7 @@ void ElementPLANE41::build () {
 
   double k = mat->getK();
   double dWt; //Gaussian quadrature
-  for (uint16 nPoint=0; (int32) nPoint < npow(Element::n_int(),n_dim()); nPoint++) {
+  for (uint16 nPoint=0; (int32) nPoint < getIntegrationPoints(); nPoint++) {
     dWt = g_weight(nPoint);
     // all meterial functions are waiting [C] for 3D case. So we need to use CVec here.
     CVec[M_XX] = C[nPoint][0];
@@ -124,7 +127,7 @@ Mat<4,8> ElementPLANE41::make_Bomega(uint16 nPoint)
 void ElementPLANE41::update() {
   // get nodal solutions from storage
   Vec<8> U;
-  for (uint16 i = 0; i < Element::n_nodes(); i++) {
+  for (uint16 i = 0; i < getNNodes(); i++) {
     U[i*2 + 0] = storage->getNodeDofSolution(getNodeNumber(i), Dof::UX);
     U[i*2 + 1] = storage->getNodeDofSolution(getNodeNumber(i), Dof::UY);
   }
@@ -137,7 +140,7 @@ void ElementPLANE41::update() {
   //восстанавливаем преращение давления
   double p_e = storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE);
 
-  for (uint16 nPoint=0; (int32) nPoint < npow(Element::n_int(),n_dim()); nPoint++) {
+  for (uint16 nPoint=0; (int32) nPoint < getIntegrationPoints(); nPoint++) {
     Mat<4,8> matBomega = make_Bomega(nPoint);
     O[nPoint] = matBomega * U;
     C[nPoint][0] = 1.0f + 2*O[nPoint][0]+1.0f*(O[nPoint][0]*O[nPoint][0]+O[nPoint][2]*O[nPoint][2]);
@@ -158,13 +161,13 @@ void ElementPLANE41::getScalar(double& scalar, query::scalarQuery code, uint16 g
   if (gp == query::GP_MEAN) { //need to average result over the element
     double dWtSum = volume();
     double dWt;
-    for (uint16 nPoint = 0; nPoint < npow(n_int(),n_dim()); nPoint ++) {
+    for (uint16 nPoint = 0; nPoint < getIntegrationPoints(); nPoint ++) {
       dWt = g_weight(nPoint);
       getScalar(scalar, code, nPoint, dWt/dWtSum*scale );
     }
     return;
   }
-  assert (npow(n_int(),n_dim()));
+
   switch (code) {
     case query::SCALAR_SP:
       scalar += storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE) * scale;
@@ -178,7 +181,7 @@ void ElementPLANE41::getVector(double* vector, query::vectorQuery code, uint16 g
   if (gp == query::GP_MEAN) { //need to average result over the element
     double dWtSum = volume();
     double dWt;
-    for (uint16 nPoint = 0; nPoint < npow(n_int(),n_dim()); nPoint ++) {
+    for (uint16 nPoint = 0; nPoint < getIntegrationPoints(); nPoint ++) {
       dWt = g_weight(nPoint);
       getVector(vector, code, nPoint, dWt/dWtSum*scale );
     }
@@ -208,13 +211,13 @@ void  ElementPLANE41::getTensor(math::MatSym<3>& tensor, query::tensorQuery code
   if (gp == query::GP_MEAN) { //need to average result over the element
     double dWtSum = volume();
     double dWt;
-    for (uint16 nPoint = 0; nPoint < npow(n_int(),n_dim()); nPoint ++) {
+    for (uint16 nPoint = 0; nPoint < getIntegrationPoints(); nPoint ++) {
       dWt = g_weight(nPoint);
       getTensor(tensor, code, nPoint, dWt/dWtSum*scale);
     }
     return;
   }
-  assert (npow(n_int(),n_dim()));
+  assert (gp < getIntegrationPoints());
 
   MatSym<3> matS;
   Mat_Hyper_Isotrop_General* mat;
