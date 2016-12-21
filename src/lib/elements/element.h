@@ -54,7 +54,7 @@ static const uint16 _shape_dim[] = {
   2,  // QUADRATIC_TRIANGLE
   2,  // QUADRATIC_QUAD
   3,  // QUADRATIC_TETRA
-  3  // QUADRARIC_HEXAHEDRON
+  3   // QUADRARIC_HEXAHEDRON
 };
 
 
@@ -89,8 +89,8 @@ class Element {
     ElementType getType();
     uint32& getNodeNumber (uint16 num);
     FEStorage& getStorage();
-    uint16 getIntegrationPoints();
-    void setIntegrationPoints(uint16 _nint); // нельзя вызывать после выполнения функции pre() (начало решения)
+    uint16 getIntegrationOrder();
+    void setIntegrationOrder(uint16 _nint); // нельзя вызывать после выполнения функции pre() (начало решения)
 
     // heart of the element class
     virtual void pre()=0;
@@ -115,7 +115,7 @@ class Element {
 
     ElementType type = ElementType::UNDEFINED;
     ElementShape shape = ElementShape::UNDEFINED;
-    uint16 nOfIntPoints = 0; // number of int points overall
+    uint16 intOrder = 0; // number of int points overall
     uint32 elNum = 0;
     uint32 *nodes = nullptr;
     FEStorage* storage = nullptr;
@@ -185,7 +185,7 @@ void Element::assemble (math::MatSym<dimM> &Ke, std::initializer_list<Dof::dofTy
   assert (nodes != NULL);
   double* Ke_p = Ke.ptr();
   std::vector<Dof::dofType> nodeDof(_nodeDofs);
-  uint16 dim = static_cast<uint16> (_nodeDofs.size());  // TODO: not true!
+  uint16 dim = static_cast<uint16> (_nodeDofs.size());
   assert (getNNodes() * dim == dimM);
 
   for (uint16 i=0; i < getNNodes(); i++) {
@@ -229,14 +229,13 @@ inline uint32& Element::getNodeNumber (uint16 num) {
 }
 
 
-inline uint16 Element::getIntegrationPoints() {
-  return nOfIntPoints;
+inline uint16 Element::getIntegrationOrder() {
+  return intOrder;
 }
 
 
-// TODO: how to avoid changing of nOfIntPoints after pre() command?
-inline void Element::setIntegrationPoints(uint16 _nint) {
-  nOfIntPoints = _nint; 
+inline void Element::setIntegrationOrder(uint16 _nint) {
+  intOrder = _nint; 
 }
 
 

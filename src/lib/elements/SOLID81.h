@@ -4,54 +4,50 @@
 
 #pragma once
 #include "elements/element.h"
-#include "elements/element_lagrange.h"
+#include "elements/isoparametric.h"
 #include "FEStorage.h"
 #include "solidmech.h"
 
 namespace nla3d {
 
-//-------------------------------------------------------
-//-------------------ElementSOLID81----------------------
-//-------------------------------------------------------
-//8-node brick nonlinear element based on mixed approach
-class ElementSOLID81 : public ElementHEXAHEDRON, public Element_Lagrange_Formulation<3,8>
-{
-public:
-	ElementSOLID81 () {
-    nOfIntPoints = 2*2*2;
-    type = ElementType::SOLID81;
-  }
-	ElementSOLID81 (const ElementSOLID81& from) {
-		operator=(from);
-	}
+//8-node hexahedron nonlinear element based on mixed approach
+class ElementSOLID81 : public ElementIsoParamHEXAHEDRON {
+  public:
+    ElementSOLID81 () {
+      intOrder = 2;
+      type = ElementType::SOLID81;
+    }
+    ElementSOLID81 (const ElementSOLID81& from) {
+      operator=(from);
+    }
 
-  //solving procedures
-	void pre();
-	void build();
-	void update();
+    //solving procedures
+    void pre();
+    void build();
+    void update();
 
-	void make_B_L (uint16 nPoint, math::Mat<6,24> &B);	//функция создает линейную матрицу [B]
-	void make_B_NL (uint16 nPoint,  math::Mat<9,24> &B); //функция создает линейную матрицу [Bomega]
-	void make_S (uint16 nPoint, math::MatSym<9> &B);
-	void make_Omega (uint16 nPoint, math::Mat<6,9> &B);
+    void make_B_L (uint16 nPoint, math::Mat<6,24> &B);	//функция создает линейную матрицу [B]
+    void make_B_NL (uint16 nPoint,  math::Mat<9,24> &B); //функция создает линейную матрицу [Bomega]
+    void make_S (uint16 nPoint, math::MatSym<9> &B);
+    void make_Omega (uint16 nPoint, math::Mat<6,9> &B);
 
-  //postproc procedures
-	void getScalar(double& scalar, query::scalarQuery code, uint16 gp, const double scale);
-	void getVector(double* vector, query::vectorQuery code, uint16 gp, const double scale);
-	void getTensor(math::MatSym<3>& tensor, query::tensorQuery code, uint16 gp, const double scale);
+    //postproc procedures
+    void getScalar(double& scalar, query::scalarQuery code, uint16 gp, const double scale);
+    void getVector(double* vector, query::vectorQuery code, uint16 gp, const double scale);
+    void getTensor(math::MatSym<3>& tensor, query::tensorQuery code, uint16 gp, const double scale);
 
-  // internal element data
-	//S[M_XX], S[M_XY], S[M_XZ], S[M_YY], S[M_YZ], S[M_ZZ]
-	std::vector<math::Vec<6> > S; //S[номер т. интегр.][номер напряжения] - напряжения Пиолы-Кирхгоффа
-	//C[M_XX], C[M_XY], C[M_XZ], C[M_YY], C[M_YZ], C[M_ZZ]
-	std::vector<math::Vec<6> > C; //C[номер т. интегр.][номер деформ.] - компоненты тензора меры деформации
-	// O[0]-dU/dx	O[1]-dU/dy	O[2]-dU/dz	O[3]-dV/dx	O[4]-dV/dy	O[5]-dV/dz	O[6]-dW/dx	O[7]-dW/dy	O[8]-dW/dz
-	std::vector<math::Vec<9> > O; //S[номер т. интегр.][номер омеги]
+    // internal element data
+    //S[M_XX], S[M_XY], S[M_XZ], S[M_YY], S[M_YZ], S[M_ZZ]
+    std::vector<math::Vec<6> > S; //S[номер т. интегр.][номер напряжения] - напряжения Пиолы-Кирхгоффа
+    //C[M_XX], C[M_XY], C[M_XZ], C[M_YY], C[M_YZ], C[M_ZZ]
+    std::vector<math::Vec<6> > C; //C[номер т. интегр.][номер деформ.] - компоненты тензора меры деформации
+    // O[0]-dU/dx	O[1]-dU/dy	O[2]-dU/dz	O[3]-dV/dx	O[4]-dV/dy	O[5]-dV/dz	O[6]-dW/dx	O[7]-dW/dy	O[8]-dW/dz
+    std::vector<math::Vec<9> > O; //S[номер т. интегр.][номер омеги]
 
-	template <uint16 dimM, uint16 dimN>
-	void assemble2(math::MatSym<dimM> &Kuu, math::Mat<dimM,dimM> &Kup, math::Mat<dimN,dimN> &Kpp, math::Vec<dimM> &Fu, math::Vec<dimN> &Fp);
-	template <uint16 dimM>
-	void assemble3(math::MatSym<dimM> &Kuu, math::Vec<dimM> &Kup, double Kpp, math::Vec<dimM> &Fu, double Fp);
+    template <uint16 dimM, uint16 dimN>
+    void assemble2(math::MatSym<dimM> &Kuu, math::Mat<dimM,dimM> &Kup, math::Mat<dimN,dimN> &Kpp, math::Vec<dimM> &Fu, math::Vec<dimN> &Fp);
+    template <uint16 dimM>
+    void assemble3(math::MatSym<dimM> &Kuu, math::Vec<dimM> &Kup, double Kpp, math::Vec<dimM> &Fu, double Fp);
 };
 
 

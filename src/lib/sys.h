@@ -58,7 +58,7 @@ const char SYS_DATA[] = "16.03.15";
 // singleton for configuring the logger
 class LogInitializer {
 public:
-	LogInitializer () {
+  LogInitializer () {
     el::Configurations conf;
     conf.setToDefault();
     conf.setGlobally(el::ConfigurationType::Format, "%datetime{%H:%m:%s.%g} [%level] %msg");
@@ -78,7 +78,7 @@ public:
     // reconfigure all loggers
     el::Loggers::reconfigureAllLoggers(conf);
     el::Loggers::addFlag(el::LoggingFlag::ColoredTerminalOutput);
-	};
+  };
 };
 
 uint32 tick();
@@ -106,28 +106,28 @@ void del_spaces (std::string &str);
 
 class Timer {
 public:
-	Timer(bool _start = false) : start_time(0), end_time(0) {
-		if (_start) {
-			start();
+  Timer(bool _start = false) : start_time(0), end_time(0) {
+    if (_start) {
+      start();
     }
-	}
+  }
 
-	void start() {
-		start_time = clock();
-		end_time = start_time;
-	}
+  void start() {
+    start_time = clock();
+    end_time = start_time;
+  }
 
-	double stop() {
-		end_time = clock();
-		return time();
-	}
+  double stop() {
+    end_time = clock();
+    return time();
+  }
 
-	double time() {
-		return ((double)end_time - start_time) / CLOCKS_PER_SEC;
-	}
+  double time() {
+    return ((double)end_time - start_time) / CLOCKS_PER_SEC;
+  }
 private:
-	clock_t start_time;
-	clock_t end_time;
+  clock_t start_time;
+  clock_t end_time;
 };
 
 // this function is used by FEStorage::read_ans_data funciton
