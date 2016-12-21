@@ -5,13 +5,23 @@ project (NLA3D)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
 #options
-set (nla3d_use_MKL OFF)
-set (nla3d_multithreaded OFF)
-set (nla3d_debug OFF)
+set (NLA3D_USE_MKL OFF
+     CACHE BOOL "Use MKL library for math routines")
+set (nla3d_multithreaded OFF
+    CACHE BOOL "Compile with OpenMP (not supported now)" FORCE)
 #TODO: now SOLID81 can use blas, but results not converged.. need to fix
-# Do not use nla3d_blas for now..
-set (nla3d_blas OFF)
+# Do not use NLA3D_BLAS for now..
+set (NLA3D_BLAS OFF
+     CACHE BOOL "Use blas routines for matrix manipulations (not worked properly)")
 
+# TODO:
+# CMAKE_BUILD_TYPE empty or Release means the same for us
+set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -msse2")
+
+# TODO: this should depend on compiler
+if(UNIX) 
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
+endif()
 
 if (nla3d_multithreaded)
   if(UNIX)
@@ -20,29 +30,17 @@ if (nla3d_multithreaded)
   set(MKL_MULTI_THREADED ON)
   find_package(OpenMP)
   if (OPENMP_FOUND)
-      set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
       set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   endif()
 else()
   set(MKL_MULTI_THREADED OFF)
 endif() #nla3d_multithreaded
 
-if (nla3d_debug)
-  if(UNIX) 
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=gnu++11")
-  endif()
-  #todo make config=Debug by default for MSVC
-else()
-  if(UNIX) 
-    # in case of release under linux use -O2 option
-    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -O2 -msse2 -std=gnu++11")
-  endif()
-endif()
 
-if (nla3d_use_MKL)
+if (NLA3D_USE_MKL)
     add_definitions( -DNLA3D_USE_MKL)
     # we can use blas procedures only if MKL library is used
-    if (nla3d_blas)
+    if (NLA3D_BLAS)
       add_definitions( -DNLA3D_USE_BLAS)
     endif()
 
@@ -61,7 +59,7 @@ if (nla3d_use_MKL)
     else()
       message(WARNING "Can't find MKL")
     endif()
-endif() # nla3d_use_MKL
+endif() # NLA3D_USE_MKL
 
 
 find_package(EASYLOGGINGPP)
