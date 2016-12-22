@@ -13,31 +13,29 @@ const uint16 ElementPLANE41::num_components = 3;
 
 //------------------ElementPLANE41--------------------
 void ElementPLANE41::pre() {
-  S.assign(npow(n_int(),n_dim()), Vec<3>(0.0f, 0.0f, 0.0f));
-  C.assign(npow(n_int(),n_dim()), Vec<3>(1.0f, 1.0f, 0.0f));
-  O.assign(npow(n_int(),n_dim()), Vec<4>(0.0f, 0.0f, 0.0f, 0.0f));
   if (det.size()==0) {
-    Node** nodes_p = new Node*[Element::n_nodes()];
-    storage->getElementNodes(getElNum(), nodes_p);  
-    make_Jacob(getElNum(), nodes_p);
+    makeJacob();
   }
 
+  S.assign(nOfIntPoints(), Vec<3>(0.0f, 0.0f, 0.0f));
+  C.assign(nOfIntPoints(), Vec<3>(1.0f, 1.0f, 0.0f));
+  O.assign(nOfIntPoints(), Vec<4>(0.0f, 0.0f, 0.0f, 0.0f));
+
   // register element equations
-  for (uint16 i = 0; i < Element::n_nodes(); i++) {
+  for (uint16 i = 0; i < getNNodes(); i++) {
     storage->addNodeDof(getNodeNumber(i), {Dof::UX, Dof::UY});
   }
   storage->addElementDof(getElNum(), {Dof::HYDRO_PRESSURE});
 }
 
 void ElementPLANE41::build () {
-//построение матрицы жесткости и вектора нагрузки для элемента
-  Mat<8,8> Kuu; //матрица жесткости элемента
+  Mat<8,8> Kuu;  // displacement stiff. matrix
   Mat<8,1> Kup;
-  Mat<9,9> Ke;
+  Mat<9,9> Ke;  // element stiff. matrix
   double Kpp = 0.0;
   double Fp = 0.0;
-  Vec<8> Qe; //вектор узловых сил элемента
-  Vec<9> Fe;
+  Vec<8> Qe;  // displacement rhs
+  Vec<9> Fe;  // element
   Vec<6> CVec;
   CVec[M_XZ] = 0.0;
   CVec[M_YZ] = 0.0;
@@ -50,12 +48,12 @@ void ElementPLANE41::build () {
 
   double k = mat->getK();
   double dWt; //Gaussian quadrature
-  for (uint16 nPoint=0; (int32) nPoint < npow(Element::n_int(),n_dim()); nPoint++) {
-    dWt = g_weight(nPoint);
+  for (uint16 np=0; np < nOfIntPoints(); np++) {
+    dWt = g_weight(np);
     // all meterial functions are waiting [C] for 3D case. So we need to use CVec here.
-    CVec[M_XX] = C[nPoint][0];
-    CVec[M_YY] = C[nPoint][1];
-    CVec[M_XY] = C[nPoint][2];
+    CVec[M_XX] = C[np][0];
+    CVec[M_YY] = C[np][1];
+    CVec[M_XY] = C[np][2];
     mat->getDdDp_UP(num_components, components, CVec.ptr(), p_e, matD_d.ptr(), vecD_p.ptr());
     //matD_d will be 3x3 symmetric matrix. We need to convert it onto 3x3 usual matrix
     Mat<3,3> matE_c = matD_d.toMat();
@@ -65,24 +63,24 @@ void ElementPLANE41::build () {
     matE_p[2][0] = vecD_p[2];
     double J = solidmech::J_C(CVec.ptr());
 
-    Mat<3,8> matB = make_B(nPoint);
+    Mat<3,8> matB = make_B(np);
     //матрица S для матричного умножения
-    Mat<4,4> matS = Mat<4,4>(S[nPoint][0],S[nPoint][2], 0.0, 0.0, 
-                S[nPoint][2],S[nPoint][1], 0.0, 0.0,
-                0.0, 0.0, S[nPoint][0],S[nPoint][2],
-                0.0, 0.0, S[nPoint][2],S[nPoint][1]);
+    Mat<4,4> matS = Mat<4,4>(S[np][0],S[np][2], 0.0, 0.0, 
+                S[np][2],S[np][1], 0.0, 0.0,
+                0.0, 0.0, S[np][0],S[np][2],
+                0.0, 0.0, S[np][2],S[np][1]);
     //матрица Омега.используется для составления 
     //матр. накопленных линейных деформаций к текущему шагу
-    Mat<3,4> matO = Mat<3,4>(O[nPoint][0], 0.0, O[nPoint][2], 0.0,
-                0.0, O[nPoint][1], 0.0, O[nPoint][3],
-                O[nPoint][1], O[nPoint][0], O[nPoint][3], O[nPoint][2]);
+    Mat<3,4> matO = Mat<3,4>(O[np][0], 0.0, O[np][2], 0.0,
+                0.0, O[np][1], 0.0, O[np][3],
+                O[np][1], O[np][0], O[np][3], O[np][2]);
 
-    Mat<4,8> matBomega = make_Bomega(nPoint);
+    Mat<4,8> matBomega = make_Bomega(np);
     Mat<3,8> matBl = matO * matBomega;
     matB += matBl;
     Kuu += (matB.transpose() * matE_c * matB * 2.0 + matBomega.transpose() * matS * matBomega)*dWt;
     Fp += (J - 1 - p_e/k)*dWt;
-    Qe += (matB.transpose() * S[nPoint] * dWt);
+    Qe += (matB.transpose() * S[np] * dWt);
     Kup+= matB.transpose()*matE_p *dWt;
     Kpp -= 1.0/k*dWt;
 
@@ -105,26 +103,25 @@ void ElementPLANE41::build () {
   assemble(Ke, Fe);
 }
 //
-inline Mat<3,8> ElementPLANE41::make_B(uint16 nPoint) {
-  Mat<3,8> B = Mat<3,8>(NjXi[nPoint][0][0], 0.0f, NjXi[nPoint][0][1], 0.0f, NjXi[nPoint][0][2], 0.0f, NjXi[nPoint][0][3], 0.0f,
-                  0.0f, NjXi[nPoint][1][0], 0.0f, NjXi[nPoint][1][1], 0.0f, NjXi[nPoint][1][2], 0.0f, NjXi[nPoint][1][3],
-                  NjXi[nPoint][1][0], NjXi[nPoint][0][0], NjXi[nPoint][1][1], NjXi[nPoint][0][1], NjXi[nPoint][1][2], NjXi[nPoint][0][2], NjXi[nPoint][1][3], NjXi[nPoint][0][3]);
+inline Mat<3,8> ElementPLANE41::make_B(uint16 np) {
+  Mat<3,8> B = Mat<3,8>(NiXj[np][0][0], 0.0f, NiXj[np][1][0], 0.0f, NiXj[np][2][0], 0.0f, NiXj[np][3][0], 0.0f,
+                  0.0f, NiXj[np][0][1], 0.0f, NiXj[np][1][1], 0.0f, NiXj[np][2][1], 0.0f, NiXj[np][3][1],
+                  NiXj[np][0][1], NiXj[np][0][0], NiXj[np][1][1], NiXj[np][1][0], NiXj[np][2][1], NiXj[np][2][0], NiXj[np][3][1], NiXj[np][3][0]);
   return B;
 }
 //
-Mat<4,8> ElementPLANE41::make_Bomega(uint16 nPoint)
-{
-  Mat<4,8> Bomega = Mat<4,8>(NjXi[nPoint][0][0], 0.0f, NjXi[nPoint][0][1], 0.0f, NjXi[nPoint][0][2], 0.0f, NjXi[nPoint][0][3], 0.0f,
-                    NjXi[nPoint][1][0], 0.0f, NjXi[nPoint][1][1], 0.0f, NjXi[nPoint][1][2], 0.0f, NjXi[nPoint][1][3], 0.0f,
-                    0.0f, NjXi[nPoint][0][0], 0.0f, NjXi[nPoint][0][1], 0.0f, NjXi[nPoint][0][2], 0.0f, NjXi[nPoint][0][3],
-                    0.0f, NjXi[nPoint][1][0], 0.0f, NjXi[nPoint][1][1], 0.0f, NjXi[nPoint][1][2], 0.0f, NjXi[nPoint][1][3]);
+Mat<4,8> ElementPLANE41::make_Bomega(uint16 np) {
+  Mat<4,8> Bomega = Mat<4,8>(NiXj[np][0][0], 0.0f, NiXj[np][1][0], 0.0f, NiXj[np][2][0], 0.0f, NiXj[np][3][0], 0.0f,
+                    NiXj[np][0][1], 0.0f, NiXj[np][1][1], 0.0f, NiXj[np][2][1], 0.0f, NiXj[np][3][1], 0.0f,
+                    0.0f, NiXj[np][0][0], 0.0f, NiXj[np][1][0], 0.0f, NiXj[np][2][0], 0.0f, NiXj[np][3][0],
+                    0.0f, NiXj[np][0][1], 0.0f, NiXj[np][1][1], 0.0f, NiXj[np][2][1], 0.0f, NiXj[np][3][1]);
   return Bomega;
 }
 
 void ElementPLANE41::update() {
   // get nodal solutions from storage
   Vec<8> U;
-  for (uint16 i = 0; i < Element::n_nodes(); i++) {
+  for (uint16 i = 0; i < getNNodes(); i++) {
     U[i*2 + 0] = storage->getNodeDofSolution(getNodeNumber(i), Dof::UX);
     U[i*2 + 1] = storage->getNodeDofSolution(getNodeNumber(i), Dof::UY);
   }
@@ -137,18 +134,18 @@ void ElementPLANE41::update() {
   //восстанавливаем преращение давления
   double p_e = storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE);
 
-  for (uint16 nPoint=0; (int32) nPoint < npow(Element::n_int(),n_dim()); nPoint++) {
-    Mat<4,8> matBomega = make_Bomega(nPoint);
-    O[nPoint] = matBomega * U;
-    C[nPoint][0] = 1.0f + 2*O[nPoint][0]+1.0f*(O[nPoint][0]*O[nPoint][0]+O[nPoint][2]*O[nPoint][2]);
-    C[nPoint][1]=1.0f + 2*O[nPoint][3]+1.0f*(O[nPoint][3]*O[nPoint][3]+O[nPoint][1]*O[nPoint][1]);
-    C[nPoint][2]=O[nPoint][1]+O[nPoint][2]+O[nPoint][0]*O[nPoint][1]+O[nPoint][2]*O[nPoint][3];
+  for (uint16 np=0; np < nOfIntPoints(); np++) {
+    Mat<4,8> matBomega = make_Bomega(np);
+    O[np] = matBomega * U;
+    C[np][0] = 1.0f + 2*O[np][0]+1.0f*(O[np][0]*O[np][0]+O[np][2]*O[np][2]);
+    C[np][1]=1.0f + 2*O[np][3]+1.0f*(O[np][3]*O[np][3]+O[np][1]*O[np][1]);
+    C[np][2]=O[np][1]+O[np][2]+O[np][0]*O[np][1]+O[np][2]*O[np][3];
     //восстановление напряжений Пиолы-Кирхгоффа из текущего состояния
     //all meterial functions are waiting [C] for 3D case. So we need to use CVec here.
-    CVec[M_XX] = C[nPoint][0];
-    CVec[M_YY] = C[nPoint][1];
-    CVec[M_XY] = C[nPoint][2];
-    mat->getS_UP (num_components, components, CVec.ptr(), p_e, S[nPoint].ptr());
+    CVec[M_XX] = C[np][0];
+    CVec[M_YY] = C[np][1];
+    CVec[M_XY] = C[np][2];
+    mat->getS_UP (num_components, components, CVec.ptr(), p_e, S[np].ptr());
   }
 }
 
@@ -158,13 +155,13 @@ void ElementPLANE41::getScalar(double& scalar, query::scalarQuery code, uint16 g
   if (gp == query::GP_MEAN) { //need to average result over the element
     double dWtSum = volume();
     double dWt;
-    for (uint16 nPoint = 0; nPoint < npow(n_int(),n_dim()); nPoint ++) {
-      dWt = g_weight(nPoint);
-      getScalar(scalar, code, nPoint, dWt/dWtSum*scale );
+    for (uint16 np = 0; np < nOfIntPoints(); np ++) {
+      dWt = g_weight(np);
+      getScalar(scalar, code, np, dWt/dWtSum*scale );
     }
     return;
   }
-  assert (npow(n_int(),n_dim()));
+
   switch (code) {
     case query::SCALAR_SP:
       scalar += storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE) * scale;
@@ -178,9 +175,9 @@ void ElementPLANE41::getVector(double* vector, query::vectorQuery code, uint16 g
   if (gp == query::GP_MEAN) { //need to average result over the element
     double dWtSum = volume();
     double dWt;
-    for (uint16 nPoint = 0; nPoint < npow(n_int(),n_dim()); nPoint ++) {
-      dWt = g_weight(nPoint);
-      getVector(vector, code, nPoint, dWt/dWtSum*scale );
+    for (uint16 np = 0; np < nOfIntPoints(); np ++) {
+      dWt = g_weight(np);
+      getVector(vector, code, np, dWt/dWtSum*scale );
     }
     return;
   }
@@ -208,13 +205,13 @@ void  ElementPLANE41::getTensor(math::MatSym<3>& tensor, query::tensorQuery code
   if (gp == query::GP_MEAN) { //need to average result over the element
     double dWtSum = volume();
     double dWt;
-    for (uint16 nPoint = 0; nPoint < npow(n_int(),n_dim()); nPoint ++) {
-      dWt = g_weight(nPoint);
-      getTensor(tensor, code, nPoint, dWt/dWtSum*scale);
+    for (uint16 np = 0; np < nOfIntPoints(); np ++) {
+      dWt = g_weight(np);
+      getTensor(tensor, code, np, dWt/dWtSum*scale);
     }
     return;
   }
-  assert (npow(n_int(),n_dim()));
+  assert (gp < nOfIntPoints());
 
   MatSym<3> matS;
   Mat_Hyper_Isotrop_General* mat;
@@ -245,7 +242,7 @@ void  ElementPLANE41::getTensor(math::MatSym<3>& tensor, query::tensorQuery code
       //In order to complete matS (3x3 symmetric matrix, PK2 tensor) we need 
       //to know S33 component: 
       //1) One solution is to calculate S33 on every solution step
-      //and store it in S[nPoint] vector.
+      //and store it in S[np] vector.
       //2) Second solution is to resotre S33 right here.
       //Now 2) is working.
       p_e = storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE);

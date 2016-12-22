@@ -13,9 +13,9 @@ double SparseSymmetricMatrix::dummy = 0.0;
 
 SparseMatrix::SparseMatrix(uint32 nrows, uint32 ncolumns) : numberOfRows(nrows), numberOfColumns(ncolumns) {
 	is_training = false;
-	values = NULL;
-	columns = NULL;
-	numberOfElementsInRow = NULL;
+	values = nullptr;
+	columns = nullptr;
+	numberOfElementsInRow = nullptr;
 	numberOfValues = 0;
 }
 
@@ -24,7 +24,6 @@ SparseMatrix::~SparseMatrix() {
 }
 
 void SparseMatrix::startTraining() {
-	assert(numberOfRows && numberOfColumns);
 	clear();
   LOG_IF (is_training, WARNING) << "Strart trainig before ending the previus one. The previus one has been deleted.";
 	is_training = true;
@@ -33,6 +32,8 @@ void SparseMatrix::startTraining() {
 	training_data.clear();
 }
 
+
+// row & column indexes starts from 1
 void SparseMatrix::addValue(uint32 row, uint32 column, double value) {
 	assert(row > 0 && row < numberOfRows+1);
 	assert(column > 0 && column < numberOfColumns+1);
@@ -81,7 +82,7 @@ void SparseMatrix::stopTraining(bool copyValuesToMatrix) {
 	// delete all training information (not need any more)
 	if (numberOfElementsInRow) {
     delete[] numberOfElementsInRow;
-    numberOfElementsInRow = NULL;
+    numberOfElementsInRow = nullptr;
   }
 	training_data.clear();
 	is_training = false;
@@ -95,21 +96,19 @@ void SparseMatrix::clear() {
 	numberOfValues = 0;
 	if (values) {
     delete[] values;
-    values = NULL;
+    values = nullptr;
   }
 	if (columns) {
     delete[] columns;
-    columns = NULL;
+    columns = nullptr;
   }
 	if (numberOfElementsInRow) {
     delete[] numberOfElementsInRow;
-    numberOfElementsInRow = NULL;
+    numberOfElementsInRow = nullptr;
   }
 }
 
 void SparseMatrix::zero() {
-  //TODO: do we need to work with zero sized matrices?
-	//assert(numberOfValues);
 	memset(values, 0, sizeof(double)*numberOfValues);
 }
 
@@ -119,7 +118,8 @@ uint64 SparseMatrix::getGeneralIndex(uint32 row, uint32 column) {
 }
 
 bool SparseMatrix::searchIndex(uint32 row, uint32 column, uint32* ind) {
-	assert(numberOfValues);
+  assert(columns);
+  assert(iofeir);
 	assert(row > 0 && row < numberOfRows+1);
 	assert(column > 0 && column < numberOfColumns+1);
 
@@ -160,6 +160,7 @@ bool SparseMatrix::searchIndex(uint32 row, uint32 column, uint32* ind) {
 }
 
 double& SparseMatrix::operator() (uint32 row, uint32 column) {
+  assert(values);
 	uint32 index;
 	if (searchIndex(row, column, &index)) {
 		return values[index];
@@ -290,9 +291,9 @@ uint32 SparseMatrix::getNumberOfColumns() {
 
 SparseSymmetricMatrix::SparseSymmetricMatrix(uint32 nrows) : numberOfRows(nrows) {
 	is_training = false;
-	values = NULL;
-	columns = NULL;
-	numberOfElementsInRow = NULL;
+	values = nullptr;
+	columns = nullptr;
+	numberOfElementsInRow = nullptr;
 	numberOfValues = 0;
 }
 
@@ -301,7 +302,6 @@ SparseSymmetricMatrix::~SparseSymmetricMatrix() {
 }
 
 void SparseSymmetricMatrix::startTraining() {
-	assert(numberOfRows);
 	clear();
 	LOG_IF (is_training, WARNING) << "Strart trainig before ending the previus one. The previus one has been deleted.";
 
@@ -371,7 +371,7 @@ void SparseSymmetricMatrix::stopTraining(bool copyValuesToMatrix) {
 	// delete all training inforamtion (Don't need more)
 	if (numberOfElementsInRow) {
     delete[] numberOfElementsInRow;
-    numberOfElementsInRow = NULL;
+    numberOfElementsInRow = nullptr;
   }
 	training_data.clear();
 	is_training = false;
@@ -385,15 +385,15 @@ void SparseSymmetricMatrix::clear() {
 	numberOfValues = 0;
 	if (values) {
     delete[] values;
-    values = NULL;
+    values = nullptr;
   }
 	if (columns) {
     delete[] columns;
-    columns = NULL;
+    columns = nullptr;
   }
 	if (numberOfElementsInRow) {
     delete[] numberOfElementsInRow;
-    numberOfElementsInRow = NULL;
+    numberOfElementsInRow = nullptr;
   }
 }
 
@@ -408,7 +408,8 @@ uint64 SparseSymmetricMatrix::getGeneralIndex(uint32 row, uint32 column) {
 }
 
 bool SparseSymmetricMatrix::searchIndex(uint32 row, uint32 column, uint32* ind) {
-	assert(numberOfValues);
+  assert(columns);
+  assert(iofeir);
 	assert(row > 0 && row < numberOfRows+1);
 	assert(column > 0 && column < numberOfRows+1);
 	if (row > column) {
@@ -448,6 +449,7 @@ bool SparseSymmetricMatrix::searchIndex(uint32 row, uint32 column, uint32* ind) 
 }
 
 double& SparseSymmetricMatrix::operator() (uint32 row, uint32 column) {
+  assert(values);
 	uint32 index;
 	if (searchIndex(row, column, &index)) {
 		return values[index];

@@ -1,22 +1,19 @@
-#include "elements/TETRA.h"
+#include "elements/TETRA0.h"
 
 namespace nla3d {
 
-ElementTETRA::ElementTETRA () {
-  Element::number_of_nodes = 4;
-  number_of_dimensions = 3;
-  nodes = new uint32[Element::number_of_nodes];
-
+ElementTETRA0::ElementTETRA0 () {
+  type = ElementType::TETRA0;
 }
 
-void ElementTETRA::pre () {
-  for (uint16 i = 0; i < Element::n_nodes(); i++) {
+void ElementTETRA0::pre () {
+  for (uint16 i = 0; i < getNNodes(); i++) {
     storage->addNodeDof(getNodeNumber(i), {Dof::UX, Dof::UY, Dof::UZ});
   }
 }
 
 // here stiffness matrix is built
-void ElementTETRA::build () {
+void ElementTETRA0::build () {
   // Ke will store element stiffness matrix in global coordinates
   math::MatSym<12> matKe;
   matKe.zero();
@@ -45,7 +42,7 @@ void ElementTETRA::build () {
 }
 
 // after solution it's handy to calculate stresses, strains and other stuff in elements.
-void ElementTETRA::update () {
+void ElementTETRA0::update () {
   // matB is strain matrix
   math::Mat<6,12> matB;
   matB.zero();
@@ -60,7 +57,7 @@ void ElementTETRA::update () {
   makeB(matB);
   // get nodal solutions from storage
   math::Vec<12> U;
-  for (uint16 i = 0; i < Element::n_nodes(); i++) {
+  for (uint16 i = 0; i < getNNodes(); i++) {
     U[i*3 + 0] = storage->getNodeDofSolution(getNodeNumber(i), Dof::UX);
     U[i*3 + 1] = storage->getNodeDofSolution(getNodeNumber(i), Dof::UY);
     U[i*3 + 2] = storage->getNodeDofSolution(getNodeNumber(i), Dof::UZ);
@@ -78,7 +75,7 @@ void ElementTETRA::update () {
   // math::matBVprod(matC.toMat(), strains, 1.0, strains);
 }
 
-void ElementTETRA::makeB(math::Mat<6,12> &B)
+void ElementTETRA0::makeB(math::Mat<6,12> &B)
 {
     double *B_L = B.ptr();
     for (uint16 i=0; i < 4; i++) {
@@ -95,7 +92,7 @@ void ElementTETRA::makeB(math::Mat<6,12> &B)
     }
 }
 
-void ElementTETRA::makeC (math::MatSym<6> &C) {
+void ElementTETRA0::makeC (math::MatSym<6> &C) {
     // fill matrix here..
 }
 

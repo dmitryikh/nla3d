@@ -62,10 +62,15 @@ void VtkProcessor::write_geometry(std::ofstream &file, bool def) {
 	11
   */
 
-	file << "CELLS " << storage->getNumberOfElements() << " " <<  storage->getNumberOfElements()*(Element::n_nodes()+1) << std::endl;
+  // calculate overall size of element data
+  uint32 data_size = 0;
+	for (uint32 i=1; i <= storage->getNumberOfElements(); i++)
+              data_size += storage->getElement(i).getNNodes() + 1;
+
+	file << "CELLS " << storage->getNumberOfElements() << " " <<  data_size << std::endl;
 	for (uint32 i=1; i <= storage->getNumberOfElements(); i++)
 	{
-    uint16 nodesNum = storage->getElement(i).n_nodes();
+    uint16 nodesNum = storage->getElement(i).getNNodes();
 		file << nodesNum;
 		for (uint16 j=0; j < nodesNum; j++) 
 			file << " " << storage->getElement(i).getNodeNumber(j)-1;
@@ -73,13 +78,13 @@ void VtkProcessor::write_geometry(std::ofstream &file, bool def) {
 	}
 	file << "CELL_TYPES " << storage->getNumberOfElements() << std::endl;
 	for (uint32 i=1; i <= storage->getNumberOfElements(); i++) {
-    uint16 nodesNum = storage->getElement(i).n_nodes();
-    if (nodesNum == 4) {
+    ElementShape eltype = storage->getElement(i).getShape();
+    if (eltype == ElementShape::QUAD) {
       file << "9" << std::endl; //VTK_QUAD, see VTK file formats
-    } else if (nodesNum == 8) {
+    } else if (eltype == ElementShape::HEXAHEDRON) {
       file << "12" << std::endl; //VTK_HEXAHEDRON
-    } else if (nodesNum == 2) {
-      file << "3" << std::endl;
+    } else if (eltype == ElementShape::LINE) {
+      file << "3" << std::endl; //VTK_LINE
     } else {
       LOG_N_TIMES(10, ERROR) << "Don't now what type of elements here it is (el_num = " << i << ")";
     }

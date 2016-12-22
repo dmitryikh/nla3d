@@ -23,8 +23,6 @@ FEStorage::FEStorage()  {
 	Kcs = NULL;
 	Kcc = NULL;
 
-  elType = ElementFactory::NOT_DEFINED;
-
 };
 
 FEStorage::~FEStorage () {
@@ -123,9 +121,7 @@ void FEStorage::zeroF() {
   std::fill(externalForces.begin(),externalForces.end(), 0.0); 
   std::fill(solutionDeltaValues.begin(), solutionDeltaValues.end(), 0.0); 
 
-  if (numberOfMpcEq > 0) {
-    std::fill(mpcConstantValues.begin(),mpcConstantValues.end(), 0.0); 
-  }
+  std::fill(mpcConstantValues.begin(),mpcConstantValues.end(), 0.0); 
 }
 
 // getGlobalEqMatrix:
@@ -201,12 +197,10 @@ void FEStorage::assembleGlobalEqMatrix() {
   if (KssCsT->isInTrainingMode()) {
     TIMED_SCOPE(t, "SparseMatrix::stopTraining");
     assert(Kcc->isInTrainingMode() && Kcs->isInTrainingMode());
-    if (numberOfMpcEq) {
-      assert(Cc->isInTrainingMode());
-      Cc->stopTraining();
-    }
+    assert(Cc->isInTrainingMode());
+
+    Cc->stopTraining();
     KssCsT->stopTraining();
-    
     Kcc->stopTraining();
     Kcs->stopTraining();
   }
@@ -334,8 +328,9 @@ Node& FEStorage::getNode(uint32 _nn) {
 void FEStorage::getElementNodes(uint32 el, Node** node_ptr)
 {
 	assert(el <= numberOfElements);
-	for (uint16 i=0; i<Element::n_nodes(); i++)
-		node_ptr[i] = nodes[elements[el-1]->getNodeNumber(i)-1];
+  Element* elp = elements[el-1];
+	for (uint16 i=0; i<elp->getNNodes(); i++)
+		node_ptr[i] = nodes[elp->getNodeNumber(i)-1];
 }
 
 // n starts from 1
@@ -439,23 +434,24 @@ void FEStorage::createNodes (uint32 _nn) {
 }
 
 void FEStorage::addElement (Element* el) {
+  el->storage = this;
 	numberOfElements++;
+  el->elNum = numberOfElements;
   //TODO: try-catch of memory overflow
 	elements.push_back(el);
-  Element::storage = this;
 }
 
 //createElements(_en)
-void FEStorage::createElements(uint32 _en) {
+void FEStorage::createElements(uint32 _en, ElementType elType) {
   deleteElements();
 	numberOfElements = _en;
   //TODO: catch if not enough memory
   elements.reserve(_en);
   ElementFactory::createElements (elType, numberOfElements, elements); 
-  Element::storage = this;
   for (uint32 i = 0; i < _en; i++) {
     //access elNum protected values as friend
     elements[i]->elNum = i+1;
+    elements[i]->storage = this;
   }
 }
 
@@ -600,14 +596,16 @@ bool FEStorage::initializeSolutionData () {
 
   // Total number of dofs (only registered by elements)
 	numberOfDofs = elementDofs.getNumberOfUsedDofs() + nodeDofs.getNumberOfUsedDofs();
+  CHECK(numberOfDofs);
 
-  //TODO: make it possible to work without any constrained dofs
-  // (in case of only MPC)
+  // TODO: we should avoid duplicates and overrides  in constraints
   numberOfConstrainedDofs = static_cast<uint32> (constraints.size());
 	numberOfMpcEq = static_cast<uint32> (mpcs.size());
 
   // numberOfUnknownDofs - number of Dof need to be found on every step
 	numberOfUnknownDofs = numberOfDofs - numberOfConstrainedDofs;
+  CHECK(numberOfUnknownDofs);
+
   // In nla3d solution procedure there are 3 distinguish types of unknowns. First one "c" - constrained degress of freedom,
   // and consequently known at solution time. Second one "s" - degrees of freedom need to be found (solved).
   // And last one "lambda" - lagrange multipliers for applied MPC constraints.
@@ -633,9 +631,8 @@ bool FEStorage::initializeSolutionData () {
   //  2. Then to restore reaction forces:
   //  constrainedDofExternalForces = Kcc*qc + Kcs*qs + Cc^T*lambda
   //
-	if (numberOfMpcEq) {
-    Cc = new math::SparseMatrix(numberOfMpcEq, numberOfConstrainedDofs);
-  }
+
+  Cc = new math::SparseMatrix(numberOfMpcEq, numberOfConstrainedDofs);
 	KssCsT = new math::SparseSymmetricMatrix(numberOfUnknownDofs + numberOfMpcEq);
 	Kcs = new math::SparseMatrix(numberOfConstrainedDofs, numberOfUnknownDofs);
 	Kcc = new math::SparseSymmetricMatrix(numberOfConstrainedDofs);
@@ -704,9 +701,7 @@ bool FEStorage::initializeSolutionData () {
 	unknownDofExternalForces = externalForces.begin() + numberOfConstrainedDofs;
 
 
-	if (numberOfMpcEq) {
-		mpcConstantValues.assign(numberOfMpcEq, 0.0);
-	}
+  mpcConstantValues.assign(numberOfMpcEq, 0.0);
 
 	// size of rhs [numberOfUnknownDofs + numberOfMpcEq]
 	rhs.assign(numberOfUnknownDofs + numberOfMpcEq, 0.0);
@@ -737,9 +732,8 @@ bool FEStorage::initializeSolutionData () {
   // That is a bad thing in, for example, non-linear MPC, where number of DoFs involved could be differ
   // during the solution.
   // To see where is training procedures ended look for finishSparseMatricesTraining comment.
-	if (numberOfMpcEq) {
-    Cc->startTraining();
-  }
+  
+  Cc->startTraining();
 	KssCsT->startTraining();
 
 	Kcc->startTraining();
@@ -804,7 +798,7 @@ void FEStorage::applyBoundaryConditions (double time, double timeDelta) {
   //t.checkpoint("apply fixations");
 }
 
-bool readCdbFile(const char *filename, FEStorage *storage)
+bool readCdbFile(const char *filename, FEStorage *storage, ElementType elType)
 {
 	uint32 n_number, en;
 	ifstream file(filename);
@@ -860,7 +854,7 @@ bool readCdbFile(const char *filename, FEStorage *storage)
             << "is different. Note that nla3d needs compressed numbering for nodes and elements";
         exit(1);
       }
-			storage->createElements(en);
+			storage->createElements(en, elType);
 			file.getline(buf, 1024);
       // we need to take a format of columns "3i9"
       // in Ansys 12 here is 8 symbols per number (19i8), but in ansys 15 (19i9) is used. 
@@ -880,10 +874,12 @@ bool readCdbFile(const char *filename, FEStorage *storage)
 //          buf[len-1] = 0;
 //        }
         //TODO: It seems that getline keeps windows line ending
-        if (len != 11*frmt+frmt*Element::n_nodes()) {
-          LOG_N_TIMES(10, WARNING) << "in EBLOCK for element " << i << " the number of nodes provided is not equal to " << Element::n_nodes();
+        if (len != 11*frmt+frmt*storage->getElement(i).getNNodes()) {
+          LOG_N_TIMES(10, WARNING) << "in EBLOCK for element " << i 
+                                   << " the number of nodes provided is not equal to "
+                                   << storage->getElement(i).getNNodes();
         }
-				for (uint16 j=0; j<Element::n_nodes();j++)
+				for (uint16 j=0; j<storage->getElement(i).getNNodes();j++)
 					if (len>=11*frmt+frmt*(j+1))
 						storage->getElement(i).getNodeNumber(j) = atoi(string((char*) (buf+11*frmt+frmt*j),frmt).c_str());
 			}

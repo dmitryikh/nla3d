@@ -3,3 +3,7 @@ ctest . -C Release -j 2
 
 to build a whole project
 cmake --build . --config Release
+
+cmake .. -DCMAKE_BUILD_TYPE=Debug
+
+cmake .. -DCMAKE_BUILD_TYPE=Release -DNLA3D_USE_MKL=ON

@@ -40,6 +40,10 @@
 #undef CHECK_NOTNULL
 #define CHECK_NOTNULL(x) x
 
+// usefull macros to check floats with threshold
+#define CHECK_EQTH(a, b, th) CHECK(fabs(a-b) < th)
+
+
 #define int8 char //-127 to +127
 #define uint8 unsigned char //0 to +255
 #define int16 short //-32 767 to +32 767
@@ -58,7 +62,7 @@ const char SYS_DATA[] = "16.03.15";
 // singleton for configuring the logger
 class LogInitializer {
 public:
-	LogInitializer () {
+  LogInitializer () {
     el::Configurations conf;
     conf.setToDefault();
     conf.setGlobally(el::ConfigurationType::Format, "%datetime{%H:%m:%s.%g} [%level] %msg");
@@ -78,7 +82,7 @@ public:
     // reconfigure all loggers
     el::Loggers::reconfigureAllLoggers(conf);
     el::Loggers::addFlag(el::LoggingFlag::ColoredTerminalOutput);
-	};
+  };
 };
 
 uint32 tick();
@@ -106,28 +110,28 @@ void del_spaces (std::string &str);
 
 class Timer {
 public:
-	Timer(bool _start = false) : start_time(0), end_time(0) {
-		if (_start) {
-			start();
+  Timer(bool _start = false) : start_time(0), end_time(0) {
+    if (_start) {
+      start();
     }
-	}
+  }
 
-	void start() {
-		start_time = clock();
-		end_time = start_time;
-	}
+  void start() {
+    start_time = clock();
+    end_time = start_time;
+  }
 
-	double stop() {
-		end_time = clock();
-		return time();
-	}
+  double stop() {
+    end_time = clock();
+    return time();
+  }
 
-	double time() {
-		return ((double)end_time - start_time) / CLOCKS_PER_SEC;
-	}
+  double time() {
+    return ((double)end_time - start_time) / CLOCKS_PER_SEC;
+  }
 private:
-	clock_t start_time;
-	clock_t end_time;
+  clock_t start_time;
+  clock_t end_time;
 };
 
 // this function is used by FEStorage::read_ans_data funciton
@@ -145,4 +149,20 @@ struct MatchPathSeparator {
 
 std::string getFileNameFromPath(const std::string filename);
 
+enum class ElementType {
+  TRUSS3 = 0,
+  PLANE41,
+  SOLID81,
+  TETRA0,
+  UNDEFINED
+};
+
+
+const char* const elTypeLabels[] = {
+  "TRUSS3",
+  "PLANE41",
+  "SOLID81",
+  "TETRA0",
+  "UNDEFINED"
+};
 } // namespace nla3d

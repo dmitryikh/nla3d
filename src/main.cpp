@@ -21,7 +21,7 @@ namespace options {
   uint16 numberOfIterations = 15;
   uint16 numberOfLoadsteps = 10;
   std::string materialName = "";
-  ElementFactory::elTypes elementType = ElementFactory::SOLID81;
+  ElementType elementType = ElementType::SOLID81;
   bool useVtk = true;
   std::string modelFilename = "";
   std::vector<double> materialConstants;
@@ -162,8 +162,7 @@ int main (int argc, char* argv[]) {
 
 	Timer pre_solve(true);
 	FEStorage storage;
-  storage.elType = options::elementType;
-  if (!readCdbFile (options::modelFilename.c_str(), &storage)) {
+  if (!readCdbFile (options::modelFilename.c_str(), &storage, options::elementType)) {
     LOG(ERROR) << "Can't read FE info from " << options::modelFilename << "file. exiting..";
     exit(1);
   }

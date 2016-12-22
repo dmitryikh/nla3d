@@ -34,10 +34,6 @@ public:
   // pass it to FEStorage. Then FEStorage takes a control on material. The material will be deleted in ~FEStorage().
 	Material* material;
 
-  // element type that used in the analysis
-  // NOTE: for now all elements in FE model are of a single type elType
-  ElementFactory::elTypes elType;
-
   // Operations for prepearing the global system of equations
   //
   // The function add value to an element of global system of equations matrix (stifness matrix).
@@ -170,7 +166,7 @@ public:
   // NOTE: elements will be created with default constructor. Outer procedure should then fill node
   // numbers (by Element::getNodeNumber(..)) and other stuff related to particular realisation of
   // Element class.
-	void createElements (uint32 en);
+	void createElements (uint32 en, ElementType elType);
 
   // delete procedures
   //
@@ -338,5 +334,5 @@ private:
 
 // read Ansys Mechanical APDL *.cdb file. Nodes, Elements, Displacement BC and MPC (Constraint equations) is supported
 // readCdbFile repcales storage's mesh.
-bool readCdbFile (const char *filename, FEStorage *storage);
+bool readCdbFile (const char *filename, FEStorage *storage, ElementType elType);
 } // namespace nla3d 

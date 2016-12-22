@@ -25,5 +25,5 @@ install: true
 
 script: 
  - cmake --version
- - mkdir build && cd build && cmake -DCMAKE_CXX_COMPILER=$COMPILER ..
- - make && make test
+ - mkdir build && cd build && cmake -DCMAKE_CXX_COMPILER=$COMPILER -DCMAKE_BUILD_TYPE=Release ..
+ - make && ctest -L FUNC
