@@ -40,6 +40,10 @@
 #undef CHECK_NOTNULL
 #define CHECK_NOTNULL(x) x
 
+// usefull macros to check floats with threshold
+#define CHECK_EQTH(a, b, th) CHECK(fabs(a-b) < th)
+
+
 #define int8 char //-127 to +127
 #define uint8 unsigned char //0 to +255
 #define int16 short //-32 767 to +32 767

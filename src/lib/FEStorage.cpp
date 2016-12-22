@@ -121,9 +121,7 @@ void FEStorage::zeroF() {
   std::fill(externalForces.begin(),externalForces.end(), 0.0); 
   std::fill(solutionDeltaValues.begin(), solutionDeltaValues.end(), 0.0); 
 
-  if (numberOfMpcEq > 0) {
-    std::fill(mpcConstantValues.begin(),mpcConstantValues.end(), 0.0); 
-  }
+  std::fill(mpcConstantValues.begin(),mpcConstantValues.end(), 0.0); 
 }
 
 // getGlobalEqMatrix:
@@ -199,12 +197,10 @@ void FEStorage::assembleGlobalEqMatrix() {
   if (KssCsT->isInTrainingMode()) {
     TIMED_SCOPE(t, "SparseMatrix::stopTraining");
     assert(Kcc->isInTrainingMode() && Kcs->isInTrainingMode());
-    if (numberOfMpcEq) {
-      assert(Cc->isInTrainingMode());
-      Cc->stopTraining();
-    }
+    assert(Cc->isInTrainingMode());
+
+    Cc->stopTraining();
     KssCsT->stopTraining();
-    
     Kcc->stopTraining();
     Kcs->stopTraining();
   }
@@ -440,6 +436,7 @@ void FEStorage::createNodes (uint32 _nn) {
 void FEStorage::addElement (Element* el) {
   el->storage = this;
 	numberOfElements++;
+  el->elNum = numberOfElements;
   //TODO: try-catch of memory overflow
 	elements.push_back(el);
 }
@@ -599,14 +596,16 @@ bool FEStorage::initializeSolutionData () {
 
   // Total number of dofs (only registered by elements)
 	numberOfDofs = elementDofs.getNumberOfUsedDofs() + nodeDofs.getNumberOfUsedDofs();
+  CHECK(numberOfDofs);
 
-  //TODO: make it possible to work without any constrained dofs
-  // (in case of only MPC)
+  // TODO: we should avoid duplicates and overrides  in constraints
   numberOfConstrainedDofs = static_cast<uint32> (constraints.size());
 	numberOfMpcEq = static_cast<uint32> (mpcs.size());
 
   // numberOfUnknownDofs - number of Dof need to be found on every step
 	numberOfUnknownDofs = numberOfDofs - numberOfConstrainedDofs;
+  CHECK(numberOfUnknownDofs);
+
   // In nla3d solution procedure there are 3 distinguish types of unknowns. First one "c" - constrained degress of freedom,
   // and consequently known at solution time. Second one "s" - degrees of freedom need to be found (solved).
   // And last one "lambda" - lagrange multipliers for applied MPC constraints.
@@ -632,9 +631,8 @@ bool FEStorage::initializeSolutionData () {
   //  2. Then to restore reaction forces:
   //  constrainedDofExternalForces = Kcc*qc + Kcs*qs + Cc^T*lambda
   //
-	if (numberOfMpcEq) {
-    Cc = new math::SparseMatrix(numberOfMpcEq, numberOfConstrainedDofs);
-  }
+
+  Cc = new math::SparseMatrix(numberOfMpcEq, numberOfConstrainedDofs);
 	KssCsT = new math::SparseSymmetricMatrix(numberOfUnknownDofs + numberOfMpcEq);
 	Kcs = new math::SparseMatrix(numberOfConstrainedDofs, numberOfUnknownDofs);
 	Kcc = new math::SparseSymmetricMatrix(numberOfConstrainedDofs);
@@ -703,9 +701,7 @@ bool FEStorage::initializeSolutionData () {
 	unknownDofExternalForces = externalForces.begin() + numberOfConstrainedDofs;
 
 
-	if (numberOfMpcEq) {
-		mpcConstantValues.assign(numberOfMpcEq, 0.0);
-	}
+  mpcConstantValues.assign(numberOfMpcEq, 0.0);
 
 	// size of rhs [numberOfUnknownDofs + numberOfMpcEq]
 	rhs.assign(numberOfUnknownDofs + numberOfMpcEq, 0.0);
@@ -736,9 +732,8 @@ bool FEStorage::initializeSolutionData () {
   // That is a bad thing in, for example, non-linear MPC, where number of DoFs involved could be differ
   // during the solution.
   // To see where is training procedures ended look for finishSparseMatricesTraining comment.
-	if (numberOfMpcEq) {
-    Cc->startTraining();
-  }
+  
+  Cc->startTraining();
 	KssCsT->startTraining();
 
 	Kcc->startTraining();

@@ -52,8 +52,20 @@ add_test(NAME TimeControlTest COMMAND TimeControlTestExe)
 set_tests_properties(TimeControlTest PROPERTIES LABELS "FUNC")
 
 
+add_executable(IsoparametricTestExe isoparametric_test.cpp)
+target_link_libraries(IsoparametricTestExe  nla3d_lib)
+add_test(NAME IsoparametricTest COMMAND IsoparametricTestExe)
+set_tests_properties(IsoparametricTest PROPERTIES LABELS "FUNC")
+
+
 add_test(NAME truss3D_test COMMAND nla3d_truss)
 set_tests_properties(truss3D_test PROPERTIES LABELS "FUNC")
+
+
+add_executable(sparse_mathTestExe sparse_math.cpp ${CMAKE_SOURCE_DIR}/src/lib/sys.cpp)
+target_link_libraries(sparse_mathTestExe math)
+add_test(NAME sparse_mathTest COMMAND sparse_mathTestExe)
+set_tests_properties(sparse_mathTest PROPERTIES LABELS "FUNC")
 
 
 # BENCH tests
