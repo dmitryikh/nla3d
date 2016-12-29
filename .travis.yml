@@ -10,6 +10,7 @@ matrix:
           packages:
             - g++-4.9
       env: COMPILER=g++-4.9
+      dist: trusty
 
     - compiler: clang
       addons:
@@ -20,10 +21,11 @@ matrix:
           packages:
             - clang-3.6
       env: COMPILER=clang++-3.6
+      dist: trusty
 
 install: true
 
 script: 
  - cmake --version
  - mkdir build && cd build && cmake -DCMAKE_CXX_COMPILER=$COMPILER -DCMAKE_BUILD_TYPE=Release ..
- - make && ctest -L FUNC
+ - make -j 2 && make check -j 2

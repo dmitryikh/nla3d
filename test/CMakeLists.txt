@@ -4,10 +4,14 @@
 
 
 # FUNC tests
-add_executable(mat_math_test_exe mat_math.cpp ${CMAKE_SOURCE_DIR}/src/lib/sys.cpp)
-target_link_libraries(mat_math_test_exe math)
-add_test(NAME mat_math_test COMMAND mat_math_test_exe)
-set_tests_properties(mat_math_test PROPERTIES LABELS "FUNC")
+# ${CMAKE_SOURCE_DIR}/src/lib/sys.cpp
+set (TEST_SOURCES "mat_math.cpp")
+set (TEST_NAME "mat_math")
+add_executable(${TEST_NAME} ${TEST_SOURCES})
+target_link_libraries(${TEST_NAME} nla3d_lib)
+add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+set_tests_properties(${TEST_NAME} PROPERTIES LABELS "FUNC")
+add_dependencies(check ${TEST_NAME})
 
 
 # TODO: undone! (see commented lines in the source code)
@@ -17,16 +21,22 @@ set_tests_properties(mat_math_test PROPERTIES LABELS "FUNC")
 # set_tests_properties(mat_sparse_pardiso_test PROPERTIES LABELS "FUNC")
 
 
-add_executable(mat_prod_test_exe mat_prod/mat_prod_test.cpp ${CMAKE_SOURCE_DIR}/src/lib/sys.cpp)
-target_link_libraries(mat_prod_test_exe math)
-add_test(NAME mat_prod_test COMMAND mat_prod_test_exe -dir ${PROJECT_SOURCE_DIR}/test/mat_prod/matlab -num 100)
-set_tests_properties(mat_prod_test PROPERTIES LABELS "FUNC")
+set (TEST_SOURCES "mat_prod_test.cpp")
+set (TEST_NAME "mat_prod")
+add_executable(${TEST_NAME} ${TEST_SOURCES})
+target_link_libraries(${TEST_NAME} nla3d_lib)
+add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME} -dir ${PROJECT_SOURCE_DIR}/test/mat_prod/matlab -num 100)
+set_tests_properties(${TEST_NAME} PROPERTIES LABELS "FUNC")
+add_dependencies(check ${TEST_NAME})
 
 
-add_executable(eigen_mat_prod_test_exe mat_prod/eigen_mat_prod_test.cpp ${CMAKE_SOURCE_DIR}/src/lib/sys.cpp)
-target_link_libraries(eigen_mat_prod_test_exe math)
-add_test(NAME eigen_mat_prod_test COMMAND eigen_mat_prod_test_exe -dir ${PROJECT_SOURCE_DIR}/test/mat_prod/matlab -num 100)
-set_tests_properties(eigen_mat_prod_test PROPERTIES LABELS "FUNC")
+set (TEST_SOURCES "eigen_mat_prod_test.cpp")
+set (TEST_NAME "eigen_mat_prod")
+add_executable(${TEST_NAME} ${TEST_SOURCES})
+target_link_libraries(${TEST_NAME} nla3d_lib)
+add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME} -dir ${PROJECT_SOURCE_DIR}/test/mat_prod/matlab -num 100)
+set_tests_properties(${TEST_NAME} PROPERTIES LABELS "FUNC")
+add_dependencies(check ${TEST_NAME})
 
 
 # This test fails
@@ -39,33 +49,56 @@ set_tests_properties(eigen_mat_prod_test PROPERTIES LABELS "FUNC")
 # set_tests_properties(rigid_body_mpc_block_ROTY PROPERTIES LABELS "FUNC")
 
 
-add_test(NAME rigid_body_mpc_block_ROTX COMMAND nla3d ${PROJECT_SOURCE_DIR}/test/rigid_body_mpc/block_ROTX.cdb
+set (TEST_NAME "rigid_body_mpc_block_ROTX")
+add_test(NAME ${TEST_NAME} COMMAND nla3d ${PROJECT_SOURCE_DIR}/test/rigid_body_mpc/block_ROTX.cdb
     -element SOLID81 -material Neo-Hookean 1 500 -loadsteps 20 -novtk
     -refcurve ${PROJECT_SOURCE_DIR}/test/rigid_body_mpc/reference_MOMZ_reaction.txt
     -threshold 0.0001 -rigidbody 9 TOP_SIDE -reaction MASTER_NODE ROTX)
-set_tests_properties(rigid_body_mpc_block_ROTX PROPERTIES LABELS "FUNC")
+set_tests_properties(${TEST_NAME} PROPERTIES LABELS "FUNC")
+add_dependencies(check nla3d)
 
 
-add_executable(TimeControlTestExe TimeControlTest.cpp)
-target_link_libraries(TimeControlTestExe  nla3d_lib)
-add_test(NAME TimeControlTest COMMAND TimeControlTestExe)
-set_tests_properties(TimeControlTest PROPERTIES LABELS "FUNC")
+set (TEST_SOURCES "TimeControlTest.cpp")
+set (TEST_NAME "TimeControl")
+add_executable(${TEST_NAME} ${TEST_SOURCES})
+target_link_libraries(${TEST_NAME} nla3d_lib)
+add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+set_tests_properties(${TEST_NAME} PROPERTIES LABELS "FUNC")
+add_dependencies(check ${TEST_NAME})
 
 
-add_executable(IsoparametricTestExe isoparametric_test.cpp)
-target_link_libraries(IsoparametricTestExe  nla3d_lib)
-add_test(NAME IsoparametricTest COMMAND IsoparametricTestExe)
-set_tests_properties(IsoparametricTest PROPERTIES LABELS "FUNC")
+set (TEST_SOURCES "isoparametric_test.cpp")
+set (TEST_NAME "Isoparametric")
+add_executable(${TEST_NAME} ${TEST_SOURCES})
+target_link_libraries(${TEST_NAME} nla3d_lib)
+add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+set_tests_properties(${TEST_NAME} PROPERTIES LABELS "FUNC")
+add_dependencies(check ${TEST_NAME})
 
 
-add_test(NAME truss3D_test COMMAND nla3d_truss)
-set_tests_properties(truss3D_test PROPERTIES LABELS "FUNC")
+set (TEST_NAME "truss3D")
+add_test(NAME ${TEST_NAME} COMMAND nla3d_truss)
+set_tests_properties(${TEST_NAME} PROPERTIES LABELS "FUNC")
+add_dependencies(check nla3d_truss)
 
 
-add_executable(sparse_mathTestExe sparse_math.cpp ${CMAKE_SOURCE_DIR}/src/lib/sys.cpp)
-target_link_libraries(sparse_mathTestExe math)
-add_test(NAME sparse_mathTest COMMAND sparse_mathTestExe)
-set_tests_properties(sparse_mathTest PROPERTIES LABELS "FUNC")
+set (TEST_SOURCES "sparse_math.cpp")
+set (TEST_NAME "SparseMath")
+add_executable(${TEST_NAME} ${TEST_SOURCES})
+target_link_libraries(${TEST_NAME} nla3d_lib)
+add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+set_tests_properties(${TEST_NAME} PROPERTIES LABELS "FUNC")
+add_dependencies(check ${TEST_NAME})
+
+
+set (TEST_SOURCES "QUADTH_test.cpp")
+set (TEST_NAME "QUADTH_test")
+add_executable(${TEST_NAME} ${TEST_SOURCES})
+target_link_libraries(${TEST_NAME} nla3d_lib)
+add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME} ${CMAKE_SOURCE_DIR}/test/QUADTH/for_nla3d.cdb
+  ${CMAKE_SOURCE_DIR}/test/QUADTH/temp.txt)
+set_tests_properties(${TEST_NAME} PROPERTIES LABELS "FUNC")
+add_dependencies(check ${TEST_NAME})
 
 
 # BENCH tests

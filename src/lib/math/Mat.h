@@ -566,10 +566,15 @@ public:
 		return data;
 	}
 
+	const double* ptr() const {
+		return data;
+	}
+
 	void zero() {
 		memset((void*) data, 0, sizeof(double)*getLength());
 	}
 	
+  // indexing from 0
 	double& comp (uint16 i, uint16 j) {
 		uint16 b;
 		if (i > j) {
@@ -588,6 +593,8 @@ public:
   Mat<dimM, dimM> toMat();
 	void simple_read (std::istream &st);
 	bool compare (MatSym<dimM> &B, double eps = 0.00001);
+	MatSym& operator+= (const MatSym &op);
+
 	double data[dimM*(dimM+1)/2];
 };
 
@@ -632,6 +639,20 @@ Mat<dimM, dimM> MatSym<dimM>::toMat() {
     }
   }
   return mat;
+}
+
+
+template<uint16 dimM>
+MatSym<dimM>& MatSym<dimM>::operator+= (const MatSym<dimM> &op) {
+  double* thisp = this->ptr();
+  const double* opp = op.ptr();
+  for (uint16 i = 0; i < getLength(); i++) {
+    *thisp += *opp;
+    thisp++;
+    opp++;
+  }
+
+	return *this;
 }
 
 // [R] = coef * [B]^T*[D]*[B]
@@ -722,6 +743,18 @@ void matBVprod(Mat<dimM,dimN> &B,Vec<dimN> &V, double coef, Vec<dimM> &R) {
 #else
   cblas_dgemv(CblasRowMajor, CblasNoTrans, dimM, dimN, coef, B.ptr(), dimN, V.ptr(), 1, 0.0, R.ptr(), 1);
 #endif
+}
+
+template<uint16 dimM>
+void matBVprod(MatSym<dimM> &B,Vec<dimM> &V, double coef, Vec<dimM> &R) {
+  // TODO: this this inefficient version
+  // convert to regular matrix
+  Mat<dimM, dimM> mB = B.toMat();
+	double *Bp = mB.ptr();
+	uint16 i,j;
+	for (i=0;i<dimM;i++)
+		for (j=0;j<dimM;j++)
+			R[i] += Bp[i*dimM+j]*V[j]*coef;
 }
 
 

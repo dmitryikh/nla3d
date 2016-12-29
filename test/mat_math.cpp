@@ -151,5 +151,53 @@ int main()
 	cout << "dmat2:" << endl << dmat2 << endl;
 	dmat1 = dmat2;
 	cout << "dmat1 = dmat2:" << endl << dmat1 << endl;
+
+  // test some functions
+  // Check matBVprod for symmetric matrices
+  MatSym<3> sym3;
+  sym3.zero();
+  sym3.comp(0,0) = 5.0; 
+  sym3.comp(0,1) = -35.0; 
+  sym3.comp(0,2) = 12.0; 
+
+  sym3.comp(1,1) = 15.0; 
+  sym3.comp(1,2) = -3.0; 
+  sym3.comp(2,2) = 14.0; 
+
+	Vec<3> vec3(1.0f,2.0f,3.0f);
+
+  Vec<3> res1;
+  res1.zero();
+  Vec<3> res2;
+  res2.zero();
+
+  matBVprod(sym3, vec3, 2.1, res1);
+  Mat<3,3> sym3_to_mat = sym3.toMat();
+  matBVprod(sym3_to_mat, vec3, 2.1, res2);
+  CHECK_EQTH(res1[0], res2[0], 1.0e-9);
+  CHECK_EQTH(res1[1], res2[1], 1.0e-9);
+  CHECK_EQTH(res1[2], res2[2], 1.0e-9);
+
+  // check for operator+= for SymMat
+  MatSym<3> sym3_2;
+  sym3_2.zero();
+  sym3_2.comp(0,0) = 7.0; 
+  sym3_2.comp(0,1) = -25.0; 
+  sym3_2.comp(0,2) = 19.0; 
+
+  sym3_2.comp(1,1) = 0.0; 
+  sym3_2.comp(1,2) = -7.0; 
+  sym3_2.comp(2,2) = -3.3; 
+
+  sym3 += sym3_2;
+  CHECK(sym3.comp(0,0) == 5.0 + 7.0);
+  CHECK(sym3.comp(0,1) == -35.0 - 25.0);
+  CHECK(sym3.comp(1,0) == -35.0 - 25.0);
+  CHECK(sym3.comp(0,2) == 12.0 + 19.0);
+  CHECK(sym3.comp(2,0) == 12.0 + 19.0);
+  CHECK(sym3.comp(1,1) == 15.0 + 0.0);
+  CHECK(sym3.comp(1,2) == -3.0 - 7.0);
+  CHECK(sym3.comp(2,1) == -3.0 - 7.0);
+  CHECK(sym3.comp(2,2) == 14.0 - 3.3);
 }
 

@@ -13,6 +13,8 @@
 #include <sstream>
 #include <iostream>
 #include <vector>
+#include <set>
+#include <list>
 #include <algorithm>
 #include <stdlib.h>
 
@@ -154,6 +156,8 @@ enum class ElementType {
   PLANE41,
   SOLID81,
   TETRA0,
+  QUADTH,
+  SurfaceLINETH,
   UNDEFINED
 };
 
@@ -163,6 +167,8 @@ const char* const elTypeLabels[] = {
   "PLANE41",
   "SOLID81",
   "TETRA0",
+  "QUADTH",
+  "SurfaceLINETH",
   "UNDEFINED"
 };
 } // namespace nla3d

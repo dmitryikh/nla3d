@@ -4,9 +4,8 @@ namespace nla3d {
 
 const uint16 Dof::numberOfDofTypes = Dof::UNDEFINED;
 const char* const Dof::dofTypeLabels[] = {"UX", "UY", "UZ", "ROTX", "ROTY",
-  "ROTZ", "HYDRO_PRESSURE", "UNDEFINED"};
+  "ROTZ", "HYDRO_PRESSURE", "TEMP", "UNDEFINED"};
 
-uint32 DofCollection::empty = 0xFFFFFFFF;
 
 // Check that TypeLabels has the same length as numberOfDofTypes
 static_assert(Dof::numberOfDofTypes == sizeof(Dof::dofTypeLabels)/sizeof(Dof::dofTypeLabels[0]) - 1,
@@ -24,23 +23,17 @@ Dof::dofType Dof::label2dofType (const std::string& label) {
 
 
 void DofCollection::initDofTable(uint32 _numberOfEntities) {
-  //TODO: make it possible to buildDofTable many times
-  assert(dofPos.size() == 0);
-  assert(dofs.size() == 0);
-
+  clearDofTable();
   numberOfEntities = _numberOfEntities;
-  // dofPos.assign(numberOfEntities + 1, empty);
   dofPos.assign(numberOfEntities + 1, 0);
-  numberOfUsedDofs = 0;
 }
 
 
 // n index starts from 1
-//
-void DofCollection::addDof(uint32 n, std::initializer_list<Dof::dofType> _dofs) {
+void DofCollection::addDof(uint32 n, std::initializer_list<Dof::dofType> __dofs) {
   assert(n <= numberOfEntities);
   assert(dofPos.size() > 0);
-
+  std::set<Dof::dofType> _dofs(__dofs);
   std::vector<Dof> newDofs;
   // if already registered - just return
   if (dofPos[n-1] == dofPos[n]) {
@@ -64,9 +57,10 @@ void DofCollection::addDof(uint32 n, std::initializer_list<Dof::dofType> _dofs) 
   if (newDofs.size() == 0) return;
 
   dofs.insert(dofs.begin() + dofPos[n], newDofs.begin(), newDofs.end());
-  uint32 i = n;
+  uniqueDofTypes.insert(std::begin(_dofs), std::end(_dofs));
 
   // incement dofPos with newDofs.size() for all above
+  uint32 i = n;
   while (i <= numberOfEntities) dofPos[i++] += newDofs.size();
 
   numberOfUsedDofs += newDofs.size();
@@ -76,6 +70,7 @@ void DofCollection::addDof(uint32 n, std::initializer_list<Dof::dofType> _dofs) 
 void DofCollection::clearDofTable() {
   dofs.clear();
   dofPos.clear();
+  uniqueDofTypes.clear();
   numberOfUsedDofs = 0;
   numberOfEntities = 0;
 }
@@ -85,7 +80,7 @@ void DofCollection::clearDofTable() {
 bool DofCollection::isDofUsed(uint32 n, Dof::dofType dof) {
   assert(n <= numberOfEntities);
   assert(dofPos.size() > 0);
-  if (dofPos[n-1] == empty || dofPos[n] == empty || dofPos[n-1] == dofPos[n]) return false;
+  if (dofPos[n-1] == dofPos[n]) return false;
   for (auto it = dofs.begin() + dofPos[n-1]; it < dofs.begin() + dofPos[n]; it++) {
     if (it->type == dof) return true;
   }
@@ -93,6 +88,7 @@ bool DofCollection::isDofUsed(uint32 n, Dof::dofType dof) {
 }
 
 
+// return nullptr if Dof was not found
 Dof* DofCollection::getDof(uint32 n, Dof::dofType dof) {
   assert(n <= numberOfEntities);
   assert(dofPos.size() > 0);
@@ -106,6 +102,16 @@ Dof* DofCollection::getDof(uint32 n, Dof::dofType dof) {
     }
   }
   return pdof;
+}
+
+uint16 DofCollection::getNumberOfUniqueDofTypes() {
+  return uniqueDofTypes.size();
+}
+
+
+Dof::dofType DofCollection::getNthUniqueDofType(uint16 i) {
+  assert(i < uniqueDofTypes.size());
+  return *std::next(uniqueDofTypes.begin(), i);
 }
 
 } // namespace nla3d

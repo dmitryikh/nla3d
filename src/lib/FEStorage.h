@@ -89,6 +89,12 @@ public:
   void addNodeDof(uint32 node, std::initializer_list<Dof::dofType> _dofs);
   // element number is always > 0
   void addElementDof(uint32 el, std::initializer_list<Dof::dofType> _dofs);
+  // functions to determine how many uniques DoF types are used for nodes and elements
+  uint16 getNumberOfUniqueNodeDofTypes();
+  uint16 getNumberOfUniqueElementDofTypes();
+  // getNthUniqueNodeDofType returns dof type
+  Dof::dofType getNthUniqueNodeDofType(uint16 i);
+  Dof::dofType getNthUniqueElementDofType(uint16 i);
   // return true if the corresponding DoF was registered as used in nodeDofs or elementDofs.
   bool isElementDofUsed(uint32 el, Dof::dofType dof);
   bool isNodeDofUsed(uint32 node, Dof::dofType dof);
@@ -141,10 +147,10 @@ public:
   
   // add DoF constraint boundary condition 
   // n > 0 - nodal DoF, n < 0 element DoF.
-  void addFixation (int32 n, Dof::dofType dof, const double value = 0.0);
+  void addDofFixation (int32 n, Dof::dofType dof, const double value = 0.0);
   // add DoF load (force) boundary condition 
   // n > 0 - nodal DoF, n < 0 element DoF.
-  void addForce(int32 n, Dof::dofType dof, const double value = 0.0);
+  void addDofLoad(int32 n, Dof::dofType dof, const double value = 0.0);
 	void addBoundaryCondition (BC_dof_constraint &bc) ;
 	void addBoundaryCondition (BC_dof_force &bc) ;
 	void addMpc (Mpc* mpc);

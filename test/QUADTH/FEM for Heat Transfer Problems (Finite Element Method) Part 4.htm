@@ -1,0 +1,298 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!-- saved from url=(0111)http://what-when-how.com/the-finite-element-method/fem-for-heat-transfer-problems-finite-element-method-part-4/ -->
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en-US"><head profile="http://gmpg.org/xfn/11"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<title>FEM for Heat Transfer Problems (Finite Element Method) Part 4</title>
+<meta name="robots" content="noodp, noydir">
+<meta name="description" content="Boundary Conditions and Vector b(e) Previously, it is mentioned that the vector, b(e), for the 2D element as defined by Eq. (12.119) is associated with the derivatives of temperature (or heat flux) on the boundaries of the element. In this […]">
+<link rel="stylesheet" href="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/style.css" type="text/css" media="screen, projection">
+<link rel="stylesheet" href="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/layout.css" type="text/css" media="screen, projection">
+<!--[if lte IE 8]><link rel="stylesheet" href="http://what-when-how.com/wp-content/themes/thesis_182/lib/css/ie.css" type="text/css" media="screen, projection" /><![endif]-->
+<link rel="shortcut icon" href="http://what-when-how.com/wp-content/uploads/2011/08/favicon.ico">
+<link rel="alternate" type="application/rss+xml" title="what-when-how RSS Feed" href="http://feeds.feedburner.com/what-when-how">
+<link rel="pingback" href="http://what-when-how.com/xmlrpc.php">
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://what-when-how.com/xmlrpc.php?rsd">
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://what-when-how.com/wp-includes/wlwmanifest.xml">
+<link rel="stylesheet" id="cntctfrm_stylesheet-css" href="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/style(1).css" type="text/css" media="all">
+<script type="text/javascript">try {
+window.AG_onLoad = function(func) { if (window.addEventListener) { window.addEventListener('DOMContentLoaded', func); } };
+window.AG_removeElementById = function(id) { var element = document.getElementById(id); if (element && element.parentNode) { element.parentNode.removeChild(element); }};
+window.AG_removeElementBySelector = function(selector) { if (!document.querySelectorAll) { return; } var nodes = document.querySelectorAll(selector); if (nodes) { for (var i = 0; i < nodes.length; i++) { if (nodes[i] && nodes[i].parentNode) { nodes[i].parentNode.removeChild(nodes[i]); } } } };
+window.AG_each = function(selector, fn) { if (!document.querySelectorAll) return; var elements = document.querySelectorAll(selector); for (var i = 0; i < elements.length; i++) { fn(elements[i]); }; };
+var AG_removeParent = function(el, fn) { while (el && el.parentNode) { if (fn(el)) { el.parentNode.removeChild(el); return; } el = el.parentNode; } };
+var AG_onLoad=function(func){if(document.readyState==="complete"||document.readyState==="interactive")func();else if(document.addEventListener)document.addEventListener("DOMContentLoaded",func);else if(document.attachEvent)document.attachEvent("DOMContentLoaded",func)};
+var AG_removeElementById = function(id) { var element = document.getElementById(id); if (element && element.parentNode) { element.parentNode.removeChild(element); }};
+var AG_removeElementBySelector = function(selector) { if (!document.querySelectorAll) { return; } var nodes = document.querySelectorAll(selector); if (nodes) { for (var i = 0; i < nodes.length; i++) { if (nodes[i] && nodes[i].parentNode) { nodes[i].parentNode.removeChild(nodes[i]); } } } };
+var AG_each = function(selector, fn) { if (!document.querySelectorAll) return; var elements = document.querySelectorAll(selector); for (var i = 0; i < elements.length; i++) { fn(elements[i]); }; };
+var AdFox_getCodeScript = function() {};
+AG_onLoad(function() { AG_each('iframe[id^="AdFox_iframe_"]', function(el) { if (el && el.parentNode) { el.parentNode.removeChild(el); } }); });
+try { Object.defineProperty(window, 'noAdsAtAll', { get: function() { return true; } }); } catch (ex) {}
+window.uabInject = function() {};
+} catch (ex) { console.error('Error executing AG js: ' + ex); }</script></head>
+<body>
+<div id="header_area" class="full_width">
+<div class="page">
+<ul class="menu">
+</ul>
+	<div id="header">
+		<p id="logo"><a href="http://what-when-how.com/">what-when-how</a></p>
+		<p id="tagline">In Depth Tutorials and Information</p>
+	</div>
+</div>
+</div>
+<div id="content_area" class="full_width">
+<div class="page">
+	<div id="content_box">
+		<div id="content" class="hfeed">
+
+				   
+
+
+
+						<script language="javascript">
+
+
+
+						//	navigator.CustomTag = null;
+
+
+
+						</script>				   				   
+
+
+
+							<div class="post-257991 post type-post status-publish format-standard hentry category-the-finite-element-method post_box top" id="post-257991">
+				<div class="headline_area">
+					<h1 class="entry-title">FEM for Heat Transfer Problems (Finite Element Method) Part 4</h1>
+				</div>
+				<div class="format_text entry-content">
+
+<script type="text/javascript">
+    google_ad_client = "ca-pub-3548356617924720";
+    google_ad_slot = "9774666650";
+    google_ad_width = 728;
+    google_ad_height = 90;
+</script>
+<!-- Above the fold 728x90 -->
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+
+<h3>Boundary Conditions and Vector b(e)</h3>
+<p><strong>Previously, it is mentioned that the vector,</strong> b(e), for the 2D element as defined by Eq. (12.119) is associated with the derivatives of temperature (or heat flux) on the boundaries of the element. In this section, the relationship of vector, b(e), with the boundaries of the element and hence the boundaries of the problem domain, will be studied in detail.</p>
+<p><strong>The vector b(e) defined in Eq. (12.119) is first split into two parts:</strong></p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b115_thumb22.png" target="_blank"><img title="tmp556b115_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="60" alt="tmp556b115_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b115_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>where bg comes from integration of the element boundaries lying inside the problem domain, and bg is that which lies on the boundary of the problem domain. It can then be proven that bg should vanish, which we have seen for the one-dimensional case.</p>
+<p><strong>Figure 12.14</strong> shows two adjacent elements numbered, for example, 1 and 2. In evaluating the vector, b(e) as defined in Eq. (12.119), the integration needs to be done on all the edges of these elements. As Eq. (12.119) involves a line integral, the results will be direction-dependent. The direction of integration has to be consistent for all the elements in the system, either clockwise or counter-clockwise. For elements 1 and 2, their directions of integration are assumed to be counter-clockwise, as shown by arrows in Figure 12.14. Note that on their common edge j-k, the value of be obtained for element 2 is the same as that obtained for element 1, except that their signs are opposite because the direction of integration on this edge of both elements are opposite. Therefore, when these elements are assembled together, values of be will cancel each other out and vanish. This happens for all other edges of all the elements in the interior of the problem domain. Therefore, when the edge lies on the boundary of the problem domain, bg has to be evaluated.</p><!--Ad Injection:random-->
+<div style="float:left;margin-top:3px;margin-bottom:3px;padding-top:3px;padding-bottom:3px;"><script type="text/javascript">
+    google_ad_client = "ca-pub-3548356617924720";
+    google_ad_slot = "9654707454";
+    google_ad_width = 336;
+    google_ad_height = 280;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script></div><br clear="all">
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b116_thumb22.png" target="_blank"><img title="Direction of integration path for evaluating b(e). For element edges that are located in the interior of the problem domain, b(e) vanishes after assembly of the elements, because the values of b(e&#39;) obtained for the same edge of the two adjacent elements possess opposite signs." style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="369" alt="Direction of integration path for evaluating b(e). For element edges that are located in the interior of the problem domain, b(e) vanishes after assembly of the elements, because the values of b(e&#39;) obtained for the same edge of the two adjacent elements possess opposite signs." src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b116_thumb22_thumb.png" width="640" border="0"></a></p>
+<p><strong>Figure 12.14. Direction of integration path for evaluating b(e). For element edges that are located in the interior of the problem domain, b(e) vanishes after assembly of the elements, because the values of b(e’) obtained for the same edge of the two adjacent elements possess opposite signs.</strong></p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b117_thumb22.png" target="_blank"><img title="Types of boundary conditions. Γ;: essential boundary where the temperature is known; Γ2: natural boundary where the heat flux (derivative of temperature) is known." style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="480" alt="Types of boundary conditions. Γ;: essential boundary where the temperature is known; Γ2: natural boundary where the heat flux (derivative of temperature) is known." src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b117_thumb22_thumb.png" width="625" border="0"></a></p>
+<p><strong>Figure 12.15. Types of boundary conditions. Γ;: essential boundary where the temperature is known; Γ2: natural boundary where the heat flux (derivative of temperature) is known.</strong></p>
+<p><strong>The boundary of the problem domain can</strong> be divided broadly into two categories. One is the boundary where the field variable temperature φ is specified, as noted by Γ1 in Figure 12.15, which is known as the essential boundary condition. The other is the boundary where the derivatives of the field variable of temperature (heat flux) are specified, as shown in Figure 12.15. This second type of boundary condition is known as the natural boundary condition. For the essential boundary, we need not evaluate bB at the stage of formulating and solving the FEM equations, as the temperature is already known, and the corresponding columns and rows will be removed from the global FEM equations. We have seen such a treatment in examples such as Example 12.1. Because b(e) is derived naturally from the weighted residual weak form, it relates to the natural boundary condition. Therefore, our concern is only for elements that are on the natural boundaries, where the derivatives of the field variable are specified, and special methods of evaluating the integral are required, as in the 1D case (Example 12.2).</p>
+<p><strong>In heat transfer problems,</strong> the natural boundary often refers to a boundary where heat convection occurs. The integrand in Eq. (12.119) can be generally rewritten in the form</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b118_thumb22.png" target="_blank"><img title="tmp556b118_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="57" alt="tmp556b118_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b118_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>where θ is the angle of the outwards normal on the boundary with respect to the x-axis, and M and S are given constants depending on the type of the natural boundaries, and φb is the unknown temperature on the boundary. Note that the left-hand side of Eq. (12.141) is in fact the heat flux across the boundary; it can therefore be re-written as</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b119_thumb22.png" target="_blank"><img title="tmp556b119_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="61" alt="tmp556b119_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b119_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>where k is the heat conductivity at the boundary point in the direction of the boundary normal. For heat transfer problems, there are the following types of boundary conditions:</p>
+<p><strong>•&nbsp;&nbsp;&nbsp; Heat insulation boundary:</strong> on the boundary where the heat is insulated from heat exchange, there will be no heat flux across the boundary and the derivatives of temperature there will be zero. In such cases, we have M = S = 0, and the value of bB is simply zero.</p>
+<p><strong>•&nbsp;&nbsp;&nbsp; Convective boundary condition:</strong> Figure 12.16 shows the situation whereby there are exchanges of heat via convection. Following the Fourier’s heat convection flow, the heat flux across the boundary due to the heat conduction can be given by</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b120_thumb22.png" target="_blank"><img title="tmp556b120_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="86" alt="tmp556b120_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b120_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b121_thumb22.png" target="_blank"><img title="Heat convection on the boundary." style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="329" alt="Heat convection on the boundary." src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b121_thumb22_thumb.png" width="640" border="0"></a></p>
+<p><strong>Figure 12.16. Heat convection on the boundary.</strong></p>
+<p>where k is the heat conductivity at the boundary point in the direction of the boundary normal. On the other hand, following the Fourier’s heat convection law, the heat flux across the boundary due to the heat convection can be given by</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b122_thumb22.png" target="_blank"><img title="tmp556b122_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="52" alt="tmp556b122_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b122_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>where h is the heat convection coefficient at the boundary point in the direction of the boundary normal. At the same boundary point the heat flux by conduction should be the same as that by convection, i.e. qk = qh, which leads to</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b123_thumb22.png" target="_blank"><img title="tmp556b123_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="105" alt="tmp556b123_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b123_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>The values of M and S for the heat convection boundary are then found to be</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b124_thumb22.png" target="_blank"><img title="tmp556b124_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="44" alt="tmp556b124_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b124_thumb22_thumb.png" width="640" border="0"></a></p>
+<p><strong>• Specified heat flux on boundary:</strong> when there is a heat flux specified on the boundary, as shown in Figure 12.17. The heat flux across the boundary due to the heat conduction can be given by Eq. (12.143). The heat flux by conduction should be the same as the specified heat flux, i.e. qk = qs, which leads to</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b125_thumb22.png" target="_blank"><img title="tmp556b125_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="99" alt="tmp556b125_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b125_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>The values of M and S for the heat convection boundary are then found to be</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b126_thumb22.png" target="_blank"><img title="tmp556b126_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="34" alt="tmp556b126_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b126_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>From Figure 12.17, it can be seen that</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b127_thumb22.png" target="_blank"><img title="tmp556b127_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="101" alt="tmp556b127_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b127_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>&nbsp;</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b128_thumb22.png" target="_blank"><img title="Specified heat flux applied on the boundary." style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="390" alt="Specified heat flux applied on the boundary." src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b128_thumb22_thumb.png" width="640" border="0"></a></p>
+<p><strong>Figure 12.17. Specified heat flux applied on the boundary.</strong></p>
+<p><strong>For other cases where M and/or S is not zero,</strong> be can be given by</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b129_thumb22.png" target="_blank"><img title="tmp556b129_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="143" alt="tmp556b129_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b129_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>where φb can be expressed using shape function as follows:</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b130_thumb22.png" target="_blank"><img title="tmp556b130_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="77" alt="tmp556b130_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b130_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>Substituting Eq. (12.151) back into Eq. (12.150) leads to</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b131_thumb22.png" target="_blank"><img title="tmp556b131_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="197" alt="tmp556b131_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b131_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>or</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b132_thumb22.png" target="_blank"><img title="tmp556b132_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="83" alt="tmp556b132_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b132_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>in which</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b133_thumb22.png" target="_blank"><img title="tmp556b133_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="84" alt="tmp556b133_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b133_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>is the contribution by the natural boundaries to the ‘stiffness’ matrix, and</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b134_thumb22.png" target="_blank"><img title="tmp556b134_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="112" alt="tmp556b134_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b134_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>is the force vector contribution from the natural boundaries.</p>
+<p><strong>Let us now calculate the force vector fSe)</strong> for a rectangular element shown in Figure 7.8. Assuming that S is specified over side 1-2,</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b135_thumb22.png" target="_blank"><img title="tmp556b135_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="126" alt="tmp556b135_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b135_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>where the shape functions are given by Eq. (7.51) in the natural coordinate system. Note, however, that N3 = N4 = 0 along edge 1-2. Substituting the non-zero shape functions into</p>
+<p><strong>Eq. (12.156),</strong> we obtain</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b136_thumb22.png" target="_blank"><img title="tmp556b136_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="136" alt="tmp556b136_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b136_thumb22_thumb.png" width="640" border="0"></a></p>
+<p><strong>The above equation implies that the</strong> quantity of (2aS) is shared equally between nodes 1 and 2 on the edge. This even distribution among the nodes on the edge is valid for all the elements with a linear shape function. Therefore, if the natural boundary is on the other three edges of the rectangular element, the force vector can be simply written as follows:</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b137_thumb22.png" target="_blank"><img title="tmp556b137_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="114" alt="tmp556b137_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b137_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>Note that if S is specified on more than one side of an element, the values for {f(e} for the appropriate sides are added together.</p>
+<p>The same principle of equal sharing can be applied to the linear triangular element shown in Figure 12.13. The expression for the force vectors on the three edges can be simply written as</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b138_thumb22.png" target="_blank"><img title="tmp556b138_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="77" alt="tmp556b138_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b138_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>The quantities Li2, L23 and L13 are the lengths of the respective edges of the triangular element.</p>
+<p>To derive for the rectangular element shown in Figure 7.8 using Eq. (12.154), we have</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b139_thumb22.png" target="_blank"><img title="tmp556b139_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="119" alt="tmp556b139_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b139_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>Note that the line integration is performed round the edge of the rectangular element. If we assume that M is specified over edge 1-2, then N3 = N4 = 0, and the above equation becomes</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b140_thumb22.png" target="_blank"><img title="tmp556b140_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="120" alt="tmp556b140_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b140_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>Evaluation of the individual coefficients after noting η = -1 gives</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b141_thumb22.png" target="_blank"><img title="tmp556b141_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="216" alt="tmp556b141_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b141_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>Equation (12.161) thus becomes</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b142_thumb22.png" target="_blank"><img title="tmp556b142_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="115" alt="tmp556b142_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b142_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>It is observed that the amount of (2aM) is shared by four components k\\, k12, k21 and k22 2 11 2 in ratios of 6, 6, 6 and |. This sharing principle can be used to directly obtain the matrices kM for a situation where M is specified on the other three edges. They are</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b143_thumb22.png" target="_blank"><img title="tmp556b143_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="204" alt="tmp556b143_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b143_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>This sharing principle can also be applied to linear triangular elements, since the shape functions are also linear. We therefore obtain</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b144_thumb22.png" target="_blank"><img title="tmp556b144_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="173" alt="tmp556b144_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b144_thumb22_thumb.png" width="640" border="0"></a></p>
+<h3>Point Heat Source or Sink</h3>
+<p>If there is a heat source or sink in the domain of the problem, it is best recommended that in the modelling, a node is placed at the point where the source or sink is located, so that</p>
+<p>the source or sink can be directly added into the force vector, as shown in Figure 12.18. If, for some reason, this cannot be done, then we have to distribute the source or sink into the nodes of the element, in which the source or sink is located. To do this, we have to go back to Eq. (12.122), which is once again rewritten:</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b145_thumb22.png" target="_blank"><img title="tmp556b145_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="83" alt="tmp556b145_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b145_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>Consider a point source or sink in a triangular element, shown in Figure 12.19. The source or sink can be mathematically expressed using the delta function</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b146_thumb22.png" target="_blank"><img title="tmp556b146_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="32" alt="tmp556b146_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b146_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>&nbsp;</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b147_thumb22.png" target="_blank"><img title="A heat source or sink at a node of the FE model." style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="414" alt="A heat source or sink at a node of the FE model." src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b147_thumb22_thumb.png" width="640" border="0"></a></p>
+<p><strong>Figure 12.18. A heat source or sink at a node of the FE model.</strong></p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b148_thumb22.png" target="_blank"><img title="A heat source or sink in a triangular element." style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="480" alt="A heat source or sink in a triangular element." src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b148_thumb22_thumb.png" width="568" border="0"></a></p>
+<p><strong>Figure 12.19. A heat source or sink in a triangular element.</strong></p>
+<p>where Q* represents the strength of the source or sink, and (X0, Y0) is the location of the source or sink. Substitute Eq. (12.167) into Eq. (12.166), and we have</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b149_thumb22.png" target="_blank"><img title="tmp556b149_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="90" alt="tmp556b149_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b149_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>which becomes</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b150_thumb22.png" target="_blank"><img title="tmp556b150_thumb[2][2]" style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="119" alt="tmp556b150_thumb[2][2]" src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b150_thumb22_thumb.png" width="640" border="0"></a></p>
+<p>This implies that the source or sink is shared by the nodes of the elements in the ratios of shape functions evaluated at the location of the source or sink. This sharing principle can be applied to any type of elements, and also other types of physical problems. For example, for a concentrated force applied in the middle of a 2D element.</p>
+<h2>Summary</h2>
+<p><strong>Finite element formulation for</strong> field problems governed by the general form of a Helmholtz equation can be summarized as follows.</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b151_thumb22.png" target="_blank"><img title="Cross-section of a road with heating cables." style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="480" alt="Cross-section of a road with heating cables." src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b151_thumb22_thumb.png" width="369" border="0"></a></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmp556b152_thumb22.png" target="_blank"><img title="Cross-section of a road with heating cables." style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="272" alt="Cross-section of a road with heating cables." src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmp556b152_thumb22_thumb.png" width="640" border="0"></a></p>
+<p><strong>Figure 12.20. Cross-section of a road with heating cables.</strong></p><!--Ad Injection:random-->
+<div style="float:left;margin-top:3px;margin-bottom:3px;padding-top:3px;padding-bottom:3px;"><script type="text/javascript">
+    google_ad_client = "ca-pub-3548356617924720";
+    google_ad_slot = "9654707454";
+    google_ad_width = 336;
+    google_ad_height = 280;
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script></div><br clear="all">
+<p><a href="http://what-when-how.com/wp-content/uploads/2012/06/tmpc9ac153.png" target="_blank"><img title="2D finite element mesh with boundary conditions." style="border-top-width: 0px; display: inline; border-left-width: 0px; border-bottom-width: 0px; border-right-width: 0px" height="768" alt="2D finite element mesh with boundary conditions." src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/tmpc9ac153_thumb.png" width="590" border="0"></a></p>
+<p><strong>Figure 12.21. 2D finite element mesh with boundary conditions.</strong></p>
+
+<script type="text/javascript">
+    google_ad_client = "ca-pub-3548356617924720";
+    google_ad_slot = "4305259831";
+    google_ad_width = 200;
+    google_ad_height = 90;
+</script>
+<!-- At end of article Link unit 200x90 -->
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+
+<script type="text/javascript">
+    google_ad_client = "ca-pub-3548356617924720";
+    google_ad_slot = "4305259831";
+    google_ad_width = 200;
+    google_ad_height = 90;
+</script>
+<!-- At end of article Link unit 200x90 -->
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+
+
+				</div>
+			</div>
+
+			<div id="comments">
+			</div>
+					<div class="prev_next post_nav">
+						<p class="previous">Next post: <a href="http://what-when-how.com/the-finite-element-method/fem-for-heat-transfer-problems-finite-element-method-part-5/" rel="prev">FEM for Heat Transfer Problems (Finite Element Method) Part 5</a></p>
+						<p>Previous post: <a href="http://what-when-how.com/the-finite-element-method/fem-for-heat-transfer-problems-finite-element-method-part-3/" rel="next">FEM for Heat Transfer Problems (Finite Element Method) Part 3</a></p>
+					</div>
+		</div>
+
+		<div id="sidebars">
+			<div id="sidebar_1" class="sidebar">
+				<ul class="sidebar_list">
+<li class="widget widget_nrc" id="related-links-by-category"><h3>Related Links</h3>			<ul>
+				<li class="serif"><span class="cat-name"><a href="http://what-when-how.com/category/the-finite-element-method/" title="The Finite Element Method">The Finite Element Method</a></span><ul><li class="cat-item" id="related-cat-post-260255"><a href="http://what-when-how.com/the-finite-element-method/computational-modelling-finite-element-method/" title="Computational Modelling (Finite Element Method)">Computational Modelling (Finite Element Method)</a></li><li class="cat-item" id="related-cat-post-260235"><a href="http://what-when-how.com/the-finite-element-method/introduction-to-mechanics-for-solids-and-structures-finite-element-method-part-1/" title="Introduction to Mechanics for Solids and Structures (Finite Element Method) Part 1">Introduction to Mechanics for Solids and Structures (Finite Element Method) Part 1</a></li><li class="cat-item" id="related-cat-post-260155"><a href="http://what-when-how.com/the-finite-element-method/introduction-to-mechanics-for-solids-and-structures-finite-element-method-part-2/" title="Introduction to Mechanics for Solids and Structures (Finite Element Method) Part 2">Introduction to Mechanics for Solids and Structures (Finite Element Method) Part 2</a></li><li class="cat-item" id="related-cat-post-260095"><a href="http://what-when-how.com/the-finite-element-method/introduction-to-mechanics-for-solids-and-structures-finite-element-method-part-3/" title="Introduction to Mechanics for Solids and Structures (Finite Element Method) Part 3">Introduction to Mechanics for Solids and Structures (Finite Element Method) Part 3</a></li><li class="cat-item" id="related-cat-post-260007"><a href="http://what-when-how.com/the-finite-element-method/fundamentals-for-finite-element-method-part-1/" title="Fundamentals for Finite Element Method Part 1">Fundamentals for Finite Element Method Part 1</a></li></ul></li>			</ul>
+			</li><li class="widget thesis_widget_google_cse" id="google-custom-search">
+<h3>:: Search WWH ::</h3>
+<style type="text/css">
+@import url(http://www.google.com/cse/api/branding.css);
+</style>
+<div class="cse-branding-bottom" style="background-color:#FFFFFF;color:#000000">
+  <div class="cse-branding-form">
+    <form action="http://www.google.com/cse" id="cse-search-box" target="_blank">
+      <div>
+        <input type="hidden" name="cx" value="partner-pub-3548356617924720:u0h0be-i8eq">
+        <input type="hidden" name="ie" value="ISO-8859-1">
+        <input type="text" name="q" size="60">
+        <input type="submit" name="sa" value="Search">
+      </div>
+    </form>
+  </div>
+  <div class="cse-branding-logo">
+    <img src="./FEM for Heat Transfer Problems (Finite Element Method) Part 4 - page 1_files/poweredby_FFFFFF.gif" alt="Google">
+  </div>
+  <div class="cse-branding-text">
+    Custom Search
+  </div>
+</div>
+</li>
+				</ul>
+			</div>
+			<div id="sidebar_2" class="sidebar">
+				<ul class="sidebar_list">
+				</ul>
+			</div>
+		</div>
+	</div>
+</div>
+</div>
+<div id="footer_area" class="full_width">
+<div class="page">
+	<div id="footer">
+
+<p><a href="http://what-when-how.com/help-unprivileged-children/" rel="nofollow">Help Unprivileged Children</a> &nbsp;¶&nbsp;
+
+<a href="http://what-when-how.com/careers/" rel="nofollow">Careers</a> &nbsp;¶&nbsp;
+
+<a href="http://what-when-how.com/privacy-statement/" rel="nofollow">Privacy Statement</a> &nbsp;¶&nbsp;
+
+<a href="http://what-when-how.com/copyright-information/" rel="nofollow">Copyright Information</a></p>
+
+
+<script type="text/javascript">
+var sc_project=4900976; 
+var sc_invisible=1; 
+var sc_security="2107041e"; 
+</script>
+<script type="text/javascript" src="http://www.statcounter.com/counter/counter_xhtml.js"></script>
+<noscript>&lt;div class="statcounter"&gt;&lt;a 
+class="statcounter"&gt;&lt;img class="statcounter"
+src="http://c.statcounter.com/4900976/0/2107041e/1/"
+alt="" /&gt;&lt;/a&gt;&lt;/div&gt;</noscript>
+
+	</div>
+</div>
+</div>
+<!--[if lte IE 8]>
+<div id="ie_clear"></div>
+<![endif]-->
+
+</body></html>

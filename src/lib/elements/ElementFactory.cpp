@@ -7,6 +7,7 @@
 #include "elements/SOLID81.h"
 #include "elements/TRUSS3.h"
 #include "elements/TETRA0.h"
+#include "elements/QUADTH.h"
 
 namespace nla3d {
 
@@ -42,6 +43,11 @@ void ElementFactory::createElements (ElementType elId, const uint32 n, std::vect
     case ElementType::TETRA0:
       for (uint32 i = 0; i < n; i++) {
         ptr.push_back(new ElementTETRA0());
+      }
+      break;
+    case ElementType::QUADTH:
+      for (uint32 i = 0; i < n; i++) {
+        ptr.push_back(new ElementQUADTH());
       }
       break;
     default:

@@ -108,6 +108,8 @@ class Element {
     // may be useful for derived particular class
     template <uint16 dimM>
     void assemble (math::MatSym<dimM> &Ke, std::initializer_list<Dof::dofType> _nodeDofs);
+    template <uint16 dimM>
+    void assemble (math::MatSym<dimM> &Ke, math::Vec<dimM> &Fe, std::initializer_list<Dof::dofType> _nodeDofs);
     void assemble (Eigen::Ref<Eigen::MatrixXd> Ke, std::initializer_list<Dof::dofType> _nodeDofs);
 
     friend class FEStorage;
@@ -200,6 +202,40 @@ void Element::assemble (math::MatSym<dimM> &Ke, std::initializer_list<Dof::dofTy
           }
         }
       }
+    }
+  }
+}
+
+template <uint16 dimM>
+void assemble (math::MatSym<dimM> &Ke, math::Vec<dimM> &Fe, std::initializer_list<Dof::dofType> _nodeDofs);
+template <uint16 dimM>
+void Element::assemble (math::MatSym<dimM> &Ke, math::Vec<dimM> &Fe, std::initializer_list<Dof::dofType> _nodeDofs) {
+  assert (nodes != NULL);
+  double* Ke_p = Ke.ptr();
+  std::vector<Dof::dofType> nodeDof(_nodeDofs);
+  uint16 dim = static_cast<uint16> (_nodeDofs.size());
+  assert (getNNodes() * dim == dimM);
+
+  for (uint16 i=0; i < getNNodes(); i++) {
+    for (uint16 di=0; di < dim; di++) {
+      for (uint16 j=i; j < getNNodes(); j++) {
+        for (uint16 dj=0; dj < dim; dj++) {
+          if ((i==j) && (dj<di)) {
+            continue;
+          } else {
+            storage->Kij_add(nodes[i], nodeDof[di], nodes[j], nodeDof[dj], *Ke_p);
+            Ke_p++;
+          }
+        }
+      }
+    }
+  }
+
+  double* Fe_p = Fe.ptr();
+  for (uint16 i=0; i < getNNodes(); i++) {
+    for (uint16 di=0; di < dim; di++) {
+            storage->Fi_add(nodes[i], nodeDof[di], *Fe_p);
+            Fe_p++;
     }
   }
 }

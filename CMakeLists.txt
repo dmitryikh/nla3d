@@ -4,6 +4,10 @@ project (NLA3D)
 # Use mine findFoo.cmake modules
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
+# cotire module will speed up compilation time
+# see https://github.com/sakra/cotire
+include(cotire)
+
 #options
 set (NLA3D_USE_MKL OFF
      CACHE BOOL "Use MKL library for math routines")
@@ -79,12 +83,14 @@ endif()
 
 SET (CMAKE_COLOR_MAKEFILE ON)
 enable_testing()
+# now we can use `make check` to build and run tests
+add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} -L FUNC -j 2)
 
 include_directories (src)
 include_directories (src/lib)
 
 add_subdirectory (src/lib)
-add_subdirectory (test)
+add_subdirectory (test EXCLUDE_FROM_ALL)
 
 
 # here is a main target - nla3d.exe

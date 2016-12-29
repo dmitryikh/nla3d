@@ -49,7 +49,7 @@ void ElementSOLID81::build() {
   double dWt; //множитель при суммировании квадратур Гаусса
   Kuu.zero();
   for (uint16 np = 0; np < nOfIntPoints(); np++) {
-    dWt = g_weight(np);
+    dWt = intWeight(np);
 
     mat->getDdDp_UP(6, solidmech::defaultTensorComponents, C[np].ptr(), p_e, matD_d.ptr(), vecD_p.ptr());
     double J = solidmech::J_C(C[np].ptr());
@@ -197,7 +197,7 @@ void ElementSOLID81::getScalar(double& scalar, query::scalarQuery code, uint16 g
     double dWtSum = volume();
     double dWt;
     for (uint16 np = 0; np < nOfIntPoints(); np ++) {
-      dWt = g_weight(np);
+      dWt = intWeight(np);
       getScalar(scalar, code, np, dWt/dWtSum*scale);
     }
     return;
@@ -237,7 +237,7 @@ void ElementSOLID81::getVector(double* vector, query::vectorQuery code, uint16 g
     double dWtSum = volume();
     double dWt;
     for (uint16 np = 0; np < nOfIntPoints(); np ++) {
-      dWt = g_weight(np);
+      dWt = intWeight(np);
       getVector(vector, code, np, dWt/dWtSum*scale );
     }
     return;
@@ -263,7 +263,7 @@ void  ElementSOLID81::getTensor(math::MatSym<3>& tensor, query::tensorQuery code
     double dWtSum = volume();
     double dWt;
     for (uint16 np = 0; np < nOfIntPoints(); np ++) {
-      dWt = g_weight(np);
+      dWt = intWeight(np);
       getTensor(tensor, code, np, dWt/dWtSum*scale);
     }
     return;

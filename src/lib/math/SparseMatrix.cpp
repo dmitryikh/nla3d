@@ -50,7 +50,7 @@ void SparseMatrix::addValue(uint32 row, uint32 column, double value) {
 		if (searchIndex(row, column, &index)) {
 			values[index] += value;
     } else {
-			LOG(WARNING) << "The position(" << row << ", " << column << ") is absent in the matrix";
+			LOG_N_TIMES(10, WARNING) << "The position(" << row << ", " << column << ") is absent in the matrix";
     }
 	}
 }
@@ -339,7 +339,7 @@ void SparseSymmetricMatrix::addValue(uint32 row, uint32 column, double value) {
 		if (searchIndex(row, column, &index)) {
 			values[index] += value;
     } else {
-			LOG(WARNING) << "The position(" << row << ", " << column << ") is absent in the matrix";
+			LOG_N_TIMES(10, WARNING) << "The position(" << row << ", " << column << ") is absent in the matrix";
     }
 	}
 }
@@ -454,7 +454,7 @@ double& SparseSymmetricMatrix::operator() (uint32 row, uint32 column) {
 	if (searchIndex(row, column, &index)) {
 		return values[index];
   } else {
-    LOG(WARNING) << "The position(" << row << ", " << column << ") is absent in the matrix";
+    LOG_N_TIMES(10, WARNING) << "The position(" << row << ", " << column << ") is absent in the matrix";
     return dummy;
   }
 }

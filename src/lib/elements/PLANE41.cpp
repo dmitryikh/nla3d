@@ -49,7 +49,7 @@ void ElementPLANE41::build () {
   double k = mat->getK();
   double dWt; //Gaussian quadrature
   for (uint16 np=0; np < nOfIntPoints(); np++) {
-    dWt = g_weight(np);
+    dWt = intWeight(np);
     // all meterial functions are waiting [C] for 3D case. So we need to use CVec here.
     CVec[M_XX] = C[np][0];
     CVec[M_YY] = C[np][1];
@@ -156,7 +156,7 @@ void ElementPLANE41::getScalar(double& scalar, query::scalarQuery code, uint16 g
     double dWtSum = volume();
     double dWt;
     for (uint16 np = 0; np < nOfIntPoints(); np ++) {
-      dWt = g_weight(np);
+      dWt = intWeight(np);
       getScalar(scalar, code, np, dWt/dWtSum*scale );
     }
     return;
@@ -176,7 +176,7 @@ void ElementPLANE41::getVector(double* vector, query::vectorQuery code, uint16 g
     double dWtSum = volume();
     double dWt;
     for (uint16 np = 0; np < nOfIntPoints(); np ++) {
-      dWt = g_weight(np);
+      dWt = intWeight(np);
       getVector(vector, code, np, dWt/dWtSum*scale );
     }
     return;
@@ -206,7 +206,7 @@ void  ElementPLANE41::getTensor(math::MatSym<3>& tensor, query::tensorQuery code
     double dWtSum = volume();
     double dWt;
     for (uint16 np = 0; np < nOfIntPoints(); np ++) {
-      dWt = g_weight(np);
+      dWt = intWeight(np);
       getTensor(tensor, code, np, dWt/dWtSum*scale);
     }
     return;

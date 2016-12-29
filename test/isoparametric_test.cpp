@@ -10,6 +10,15 @@ using namespace std;
 using namespace nla3d;
 using namespace nla3d::math;
 
+class LINEdummy : public ElementIsoParamLINE {
+    virtual void pre() {
+      makeJacob();
+      storage->addElementDof(elNum, {Dof::UX});
+    };
+    virtual void build() { };
+    virtual void update() { };
+};
+
 class QUADdummy : public ElementIsoParamQUAD {
     virtual void pre() {
       makeJacob();
@@ -30,6 +39,109 @@ class HEXAHEDRONdummy : public ElementIsoParamHEXAHEDRON {
 
 
 int main() {
+
+  cout << "Checking ElementIsoParamLINE..." << endl;
+  for (uint16 intOrder = 0; intOrder <= 3; intOrder++) {
+    cout << "  Checking for " << intOrder << "number of int. order..." << endl;
+    const uint32 numberOfNodes = 8;
+    double nodeTable[numberOfNodes][3] = {
+// an element like in local coord system
+                          {-1.0,  0.0, 0.0},       // 1
+                          {+1.0,  0.0, 0.0},       // 2
+// an element like in local coord system, but stretched x2
+                          {-2.0,  0.0, 0.0},       // 3
+                          {+2.0,  0.0, 0.0},       // 4
+// arbitrary element nodes
+                          {-12.0, 1.0, 3.0},       // 5
+                          {4.0, -5.0, -5.0},       // 6
+// arbitrary element nodes translated by 
+                          {-12.0 + 9.0, +1.0 - 5.0, 3.0 - 3.0},   // 7
+                          {+4.0  + 9.0, -5.0 -5.0, -5.0 - 3.0}};  // 8
+
+  // Create an instance of FEStorage.
+	FEStorage storage;
+  // Create and add nodes into FEStorage
+  for (uint32 i = 1; i <= numberOfNodes; i++) {
+    Node* no = new Node;
+    no->pos[0] = nodeTable[i-1][0];
+    no->pos[1] = nodeTable[i-1][1];
+    no->pos[2] = nodeTable[i-1][2];
+    storage.addNode(no);
+  }
+
+  // Create elements instances, define needed element parameters and add them into FEStorage.
+  LINEdummy* el = new LINEdummy;
+  el->getNodeNumber(0) = 1;
+  el->getNodeNumber(1) = 2;
+  el->setIntegrationOrder(intOrder);
+  storage.addElement(el);       // 1
+
+  el = new LINEdummy;
+  el->getNodeNumber(0) = 3;
+  el->getNodeNumber(1) = 4;
+  el->setIntegrationOrder(intOrder);
+  storage.addElement(el);       // 2
+
+  // arbitrary node position
+  el = new LINEdummy;
+  el->getNodeNumber(0) = 5;
+  el->getNodeNumber(1) = 6;
+  el->setIntegrationOrder(intOrder);
+  storage.addElement(el);       // 3
+
+  // translated node positions
+  el = new LINEdummy;
+  el->getNodeNumber(0) = 7;
+  el->getNodeNumber(1) = 8;
+  el->setIntegrationOrder(intOrder);
+  storage.addElement(el);       // 4
+
+  // switch node numbers
+  el = new LINEdummy;
+  el->getNodeNumber(0) = 6;  
+  el->getNodeNumber(1) = 5;
+  el->setIntegrationOrder(intOrder);
+  storage.addElement(el);       // 5
+
+  // toggle Element::pre() for all
+  storage.initializeSolutionData();
+
+  cout << "Checking ElementIsoParamLINE (-1),(+1) element.." << endl;
+  el = dynamic_cast<LINEdummy*>(&storage.getElement(1));
+  cout << "el->det : " << el->det << endl;
+  CHECK_EQTH(el->det, 1.0, th);
+  cout << "Volume = " << el->volume() << endl;
+  CHECK_EQTH(el->volume(), 2.0, th);
+
+
+  cout << "Checking ElementIsoParamLINE (-2),(+2) element.." << endl;
+  el = dynamic_cast<LINEdummy*>(&storage.getElement(2));
+  cout << "el->det : " << el->det << endl;
+  CHECK_EQTH(el->det, 2.0, th);
+  cout << "Volume = " << el->volume() << endl;
+  CHECK_EQTH(el->volume(), 4.0, th);
+
+
+  cout << "Checking ElementIsoParamLINE with arbitrary nodes .." << endl;
+  LINEdummy* el1 = dynamic_cast<LINEdummy*>(&storage.getElement(3));
+  LINEdummy* el2 = dynamic_cast<LINEdummy*>(&storage.getElement(4));
+  LINEdummy* el3 = dynamic_cast<LINEdummy*>(&storage.getElement(5));
+  assert(el1->getIntegrationOrder() == el2->getIntegrationOrder());
+  assert(el2->getIntegrationOrder() == el3->getIntegrationOrder());
+  cout << "el1->det : " << el1->det << endl;
+  cout << "el2->det : " << el2->det << endl;
+  cout << "el3->det : " << el3->det << endl;
+  CHECK_EQTH(el1->det, el2->det, th);
+  CHECK_EQTH(el2->det, el3->det, th);
+
+  cout << "el1->Volume = " << el1->volume() << endl;
+  cout << "el2->Volume = " << el2->volume() << endl;
+  cout << "el3->Volume = " << el3->volume() << endl;
+  CHECK_EQTH(el1->volume(), el2->volume(), th);
+  CHECK_EQTH(el2->volume(), el3->volume(), th);
+  }
+
+
   cout << "Checking ElementIsoParamQUAD..." << endl;
   for (uint16 intOrder = 0; intOrder <= 3; intOrder++) {
     cout << "  Checking for " << intOrder << "number of int. order..." << endl;
@@ -159,7 +271,8 @@ int main() {
       cout << "el3->Volume = " << el3->volume() << endl;
       CHECK_EQTH(el1->volume(), el2->volume(), th);
       CHECK_EQTH(el2->volume(), el3->volume(), th);
-    }
+  }
+ 
 
 
 

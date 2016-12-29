@@ -192,5 +192,6 @@ template<uint16 dim> void Vec<dim>::simple_read(std::istream& st)
 	}
 }
 
+
 } // namespace math
 } // namespace nla3d

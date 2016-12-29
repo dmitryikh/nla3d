@@ -10,6 +10,48 @@
 namespace nla3d {
 
 
+void ElementIsoParamLINE::makeJacob() {
+  const uint16 dim = 2;
+  const uint16 nodes_num = 4;
+
+  // bound user-provided intOrder
+  intOrder = (intOrder < 1) ? 1 : intOrder;
+  intOrder = (intOrder > 3) ? 3 : intOrder;
+  // we store integration scheme index in i_int
+  // thus last change of intOrder will not affect the solution procedure
+  i_int = intOrder-1;
+
+  math::Vec<3> n1pos = storage->getNode(getNodeNumber(0)).pos;
+  math::Vec<3> n2pos = storage->getNode(getNodeNumber(1)).pos;
+  det = (n2pos-n1pos).length() * 0.5;
+}
+
+
+double ElementIsoParamLINE::volume() {
+  double volume = 0.0;
+  // NOTE: actually straight line can be integrated in constant time
+  for (uint16 np = 0; np < _np_line[i_int]; np++)
+      volume += intWeight(np);
+  return volume;
+}
+
+
+math::Vec<2> ElementIsoParamLINE::formFunc(double r) {
+  return math::Vec<2>(0.5 * (1.0 - r),
+                      0.5 * (1.0 + r));
+}
+
+
+math::Vec<2> ElementIsoParamLINE::formFunc(uint16 np) {
+  return formFunc(_table_line[i_int][np].r);
+}
+
+
+math::Mat<2, 1> ElementIsoParamLINE::formFuncDeriv(double r) {
+    return math::Mat<2, 1>(-0.5, 0.5);
+}
+
+
 void ElementIsoParamQUAD::makeJacob() {
   const uint16 dim = 2;
   const uint16 nodes_num = 4;
@@ -72,6 +114,13 @@ math::Vec<4> ElementIsoParamQUAD::formFunc(double r, double s) {
 }
 
 
+math::Vec<4> ElementIsoParamQUAD::formFunc(uint16 np) {
+  QuadPt2D q = _table_quad[i_int][np];
+  return formFunc(q.r, q.s);
+}
+
+
+
 math::Mat<4, 2> ElementIsoParamQUAD::formFuncDeriv(double r, double s) {
   return math::Mat<4, 2> (-0.25 * (1.0 - s), -0.25 * (1.0 - r),
                           +0.25 * (1.0 - s), -0.25 * (1.0 + r),
@@ -83,7 +132,7 @@ math::Mat<4, 2> ElementIsoParamQUAD::formFuncDeriv(double r, double s) {
 double ElementIsoParamQUAD::volume() {
   double volume = 0.0;
   for (uint16 np = 0; np < _np_quad[i_int]; np++)
-      volume += g_weight(np);
+      volume += intWeight(np);
   return volume;
 }
 
@@ -153,6 +202,12 @@ math::Vec<8> ElementIsoParamHEXAHEDRON::formFunc(double r, double s, double t) {
 }
 
 
+math::Vec<8> ElementIsoParamHEXAHEDRON::formFunc(uint16 np) {
+  QuadPt3D q = _table_hexahedron[i_int][np];
+  return formFunc(q.r, q.s, q.t);
+}
+
+
 math::Mat<8, 3> ElementIsoParamHEXAHEDRON::formFuncDeriv(double r, double s, double t) {
   return math::Mat<8, 3> (-0.125 * (1.0 - s) * (1.0 - t), -0.125 * (1.0 - r) * (1.0 - t), -0.125 * (1.0 - r) * (1.0 - s),
                           +0.125 * (1.0 - s) * (1.0 - t), -0.125 * (1.0 + r) * (1.0 - t), -0.125 * (1.0 + r) * (1.0 - s),
@@ -169,7 +224,7 @@ math::Mat<8, 3> ElementIsoParamHEXAHEDRON::formFuncDeriv(double r, double s, dou
 double ElementIsoParamHEXAHEDRON::volume() {
   double volume = 0.0;
   for (uint16 np = 0; np < _np_hexahedron[i_int]; np++)
-      volume += g_weight(np);
+      volume += intWeight(np);
   return volume;
 }
 

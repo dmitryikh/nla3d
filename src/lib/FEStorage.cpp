@@ -237,6 +237,26 @@ void FEStorage::addElementDof(uint32 el, std::initializer_list<Dof::dofType> _do
 }
 
 
+uint16 FEStorage::getNumberOfUniqueNodeDofTypes() {
+  return nodeDofs.getNumberOfUniqueDofTypes();
+}
+
+
+uint16 FEStorage::getNumberOfUniqueElementDofTypes() {
+  return elementDofs.getNumberOfUniqueDofTypes();
+}
+
+
+Dof::dofType FEStorage::getNthUniqueNodeDofType(uint16 i) {
+  return nodeDofs.getNthUniqueDofType(i);
+}
+
+
+Dof::dofType FEStorage::getNthUniqueElementDofType(uint16 i) {
+  return elementDofs.getNthUniqueDofType(i);
+}
+
+
 bool FEStorage::isElementDofUsed (uint32 el, Dof::dofType dof) {
   assert(elementDofs.getNumberOfEntities() > 0);
   return elementDofs.isDofUsed(el, dof);
@@ -305,9 +325,9 @@ double FEStorage::getReaction(uint32 node, Dof::dofType dof) {
 
 
 double FEStorage::getReaction(uint32 eq) {
-  assert(constrainedDofReactions.size() > 0);
   //assert(eq_num > 0 && eq_num <= numberOfConstrainedDofs);
   if (eq > 0 && eq <= numberOfConstrainedDofs) {
+    assert(constrainedDofReactions.size() > 0);
     return constrainedDofReactions[eq-1];
   } else {
     return 0.0;
@@ -377,13 +397,13 @@ FEComponent* FEStorage::getFEComponent(const std::string& name) {
   return NULL;
 }
 
-void FEStorage::addFixation (int32 n, Dof::dofType dof, const double value) {
+void FEStorage::addDofFixation (int32 n, Dof::dofType dof, const double value) {
   // FEStorage believes that all BC_dof_constraint are distinct!
   // Do not pass to it the same BC twice!
   constraints.push_back(BC_dof_constraint(n, dof, value));
 }
 
-void FEStorage::addForce(int32 n, Dof::dofType dof, const double value) {
+void FEStorage::addDofLoad(int32 n, Dof::dofType dof, const double value) {
   forces.push_back(BC_dof_force (n, dof, value));
 }
 
@@ -662,7 +682,6 @@ bool FEStorage::initializeSolutionData () {
     }
   }
 
-
   for (uint32 i = 1; i <= getNumberOfNodes(); i++) {
     for (uint16 it = 0; it < Dof::numberOfDofTypes; it++) {
       Dof::dofType t = static_cast<Dof::dofType> (it);
@@ -708,12 +727,31 @@ bool FEStorage::initializeSolutionData () {
 	unknownDofRhs = rhs.begin();
 	mpcEquationRhs = rhs.begin() + numberOfUnknownDofs;
 
-  std::stringstream ss;
-  ss << " Number of nodal DoFs: " << nodeDofs.getNumberOfUsedDofs();
-  ss << std::endl;
-  ss << " Number of element DoFs: " << elementDofs.getNumberOfUsedDofs();
+  if (nodeDofs.getNumberOfUniqueDofTypes()) {
+    std::stringstream ss;
+    ss << "Types of nodal DoFs:";
+    for (auto i = 0;  
+              i < nodeDofs.getNumberOfUniqueDofTypes();
+              i++) {
+      ss << " " << Dof::dofType2label(nodeDofs.getNthUniqueDofType(i));
+    }
+    LOG(INFO) << ss.str();
+  }
+  LOG(INFO) << "Number of nodal DoFs: " << nodeDofs.getNumberOfUsedDofs();
 
-  LOG(INFO) << ss.str();
+
+  if (elementDofs.getNumberOfUniqueDofTypes()) {
+    std::stringstream ss;
+    ss << "Types of element DoFs:";
+    for (auto i = 0;  
+              i < elementDofs.getNumberOfUniqueDofTypes();
+              i++) {
+      ss << " " << Dof::dofType2label(elementDofs.getNthUniqueDofType(i));
+    }
+    LOG(INFO) << ss.str();
+  }
+  LOG(INFO) << "Number of element DoFs: " << elementDofs.getNumberOfUsedDofs();
+
 	LOG(INFO) << "DoFs = " << numberOfDofs << ", constrained DoFs = " <<  numberOfConstrainedDofs << ", MPC eq. = "
       <<  numberOfMpcEq << ", TOTAL eq. = " << numberOfUnknownDofs + numberOfMpcEq;
 
@@ -828,9 +866,14 @@ bool readCdbFile(const char *filename, FEStorage *storage, ElementType elType)
 			file.getline(buf, 1024);
       string buf_str(buf);
       // we need to take a format of columns "3i9"
-      size_t start = buf_str.find("i")+1;
-      size_t  stop = buf_str.find(",");
+      size_t start = buf_str.find("(")+1;
+      size_t  stop = buf_str.find("i");
       string tmp;
+      tmp.assign((char*) (buf + start), stop-start);
+			uint16 frmtn = atoi(tmp.c_str());
+
+      start = buf_str.find("i")+1;
+      stop = buf_str.find(",");
       tmp.assign((char*) (buf + start), stop-start);
 			uint16 frmt = atoi(tmp.c_str());
 
@@ -838,10 +881,10 @@ bool readCdbFile(const char *filename, FEStorage *storage, ElementType elType)
 				file.getline(buf, 1024);
 				size_t len=strlen(buf);
 				for (uint16 j=0; j<3;j++)
-					if (len>=3*frmt+20*(j+1))
+					if (len>=frmtn*frmt+20*(j+1))
             //note that last column in NBLOCK table could be avoided if Z=0.0
             //but storage->createNodes(n_number) initialize the node table with (0,0,0)
-						storage->getNode(i).pos[j] = atof(string((char*) (buf+3*frmt+20*j),20).c_str());
+						storage->getNode(i).pos[j] = atof(string((char*) (buf+frmtn*frmt+20*j),20).c_str());
 			}
 		}//NBLOCK
 		else if (vec[0].find("EBLOCK")!=vec[0].npos)

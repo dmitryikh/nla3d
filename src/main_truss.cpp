@@ -64,18 +64,18 @@ int main (int argc, char* argv[]) {
 
   // we deal with 2D system, then fix all UZ DoFs
   for (uint32 i = 1; i <= numberOfNodes; i++) {
-    storage.addFixation(i, Dof::UZ);
+    storage.addDofFixation(i, Dof::UZ);
   }
 
   // add fixations for the system
-  storage.addFixation(1, Dof::UX);
-  storage.addFixation(1, Dof::UY);
-  storage.addFixation(4, Dof::UX);
-  storage.addFixation(4, Dof::UY);
+  storage.addDofFixation(1, Dof::UX);
+  storage.addDofFixation(1, Dof::UY);
+  storage.addDofFixation(4, Dof::UX);
+  storage.addDofFixation(4, Dof::UY);
 
   // add forces
-  storage.addForce(2, Dof::UY, -100.0);
-  storage.addForce(5, Dof::UX, 50.0);
+  storage.addDofLoad(2, Dof::UY, -100.0);
+  storage.addDofLoad(5, Dof::UX, 50.0);
 
   // We have a deal with linear FE. Then it's ok to use linear solver (just one equilibrium iteration without
   // convergence controls)

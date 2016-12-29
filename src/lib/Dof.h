@@ -20,6 +20,7 @@ class Dof {
       ROTY,
       ROTZ,
       HYDRO_PRESSURE,
+      TEMP,
       UNDEFINED // should be last
     };
 
@@ -50,8 +51,10 @@ class DofCollection {
     void initDofTable(uint32 _numberOfEntities);
     void addDof(uint32 n, std::initializer_list<Dof::dofType> _dofs);
     void clearDofTable();
-
     bool isDofUsed(uint32 n, Dof::dofType dof);
+
+    uint16 getNumberOfUniqueDofTypes();
+    Dof::dofType getNthUniqueDofType(uint16 i);
 
   private:
     uint32 numberOfUsedDofs = 0;
@@ -62,7 +65,8 @@ class DofCollection {
     // array of indexes to find where dofs for particular entity is located in dofs
     // Dof for entity n will be located from dofPos[n-1] included to dofPos[n] excluded 
     std::vector<uint32> dofPos;
-    static uint32 empty;
+    // set of unique dofs used in collection
+    std::set<Dof::dofType> uniqueDofTypes;
 };
 
 

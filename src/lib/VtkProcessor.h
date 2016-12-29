@@ -33,6 +33,10 @@ private:
   std::vector<query::vectorQuery> cellVectorQuery;
   std::vector<query::tensorQuery> cellTensorQuery;
 private:
+  bool useDisplacementsDofs = false;
+
+  std::set<Dof::dofType> nodalDofTypes;
+  std::set<Dof::dofType> elementDofTypes;
 };
 
 } // namespace nla3d
