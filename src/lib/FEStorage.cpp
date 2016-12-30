@@ -17,11 +17,11 @@ FEStorage::FEStorage()  {
 	numberOfUnknownDofs = 0;
 	numberOfMpcEq = 0;
 
-	material = NULL;
-	KssCsT = NULL;
-	Cc = NULL;
-	Kcs = NULL;
-	Kcc = NULL;
+	material = nullptr;
+	KssCsT = nullptr;
+	Cc = nullptr;
+	Kcs = nullptr;
+	Kcc = nullptr;
 
 };
 
@@ -108,9 +108,7 @@ void FEStorage::zeroK() {
 	KssCsT->zero();
 	Kcc->zero();
 	Kcs->zero();
-  if (Cc) {
-    Cc->zero();
-  }
+  Cc->zero();
 }
 
 // zeroF:
@@ -125,7 +123,7 @@ void FEStorage::zeroF() {
 }
 
 // getGlobalEqMatrix:
-math::SparseSymmetricMatrix* FEStorage::getGlobalEqMatrix() {
+math::SparseSymMatrix* FEStorage::getGlobalEqMatrix() {
 	assert(KssCsT && Kcc && Kcs);
 	return KssCsT;
 }
@@ -155,14 +153,19 @@ double* FEStorage::getGlobalEqUnknowns () {
 }
 
 void FEStorage::assembleGlobalEqMatrix() {
+	assert(KssCsT && Kcc && Kcs && Cc);
+  // all matrices should be in compressed state already
+  assert(KssCsT->isCompressed());
+  assert(Kcc->isCompressed());
+  assert(Kcs->isCompressed());
+  assert(Cc->isCompressed());
+
   TIMED_SCOPE(t, "assembleGlobalEqMatrix");
   LOG(INFO) << "Start formulation of elements stiffness matrices ( " << getNumberOfElements() << " elements)";
-	CHECK(KssCsT && Kcc && Kcs);
 
-  if (!KssCsT->isInTrainingMode()) {
-    zeroK();
-    zeroF();
-  }
+  // zero values
+  zeroK();
+  zeroF();
 
   for (uint32 el = 0; el < getNumberOfElements(); el++) {
     elements[el]->build();
@@ -171,10 +174,10 @@ void FEStorage::assembleGlobalEqMatrix() {
 
   // because of non-linear MPC we need to update
   // MPC coefficients every step
-  //
   for (size_t i = 0; i < mpcCollections.size(); i++) {
     mpcCollections[i]->update();
-    //mpcCollections[i]->printEquations(std::cout);
+    // DEBUG:
+    // mpcCollections[i]->printEquations(std::cout);
   }
   //t.checkpoint("MpcCollection::update()");
 
@@ -192,18 +195,6 @@ void FEStorage::assembleGlobalEqMatrix() {
     mpc++;
   }
 
-  // finishSparseMatricesTraining
-  // for details on it see a comment with startSparseMatricesTraining mark
-  if (KssCsT->isInTrainingMode()) {
-    TIMED_SCOPE(t, "SparseMatrix::stopTraining");
-    assert(Kcc->isInTrainingMode() && Kcs->isInTrainingMode());
-    assert(Cc->isInTrainingMode());
-
-    Cc->stopTraining();
-    KssCsT->stopTraining();
-    Kcc->stopTraining();
-    Kcs->stopTraining();
-  }
 }
 
 uint32 FEStorage::getNumberOfNodes () {
@@ -541,19 +532,19 @@ void FEStorage::deleteSolutionData() {
 
   if (Cc) {
     delete Cc;
-    Cc = NULL;
+    Cc = nullptr;
   }
   if (KssCsT) {
     delete KssCsT;
-    KssCsT = NULL;
+    KssCsT = nullptr;
   }
   if (Kcs) {
     delete Kcs;
-    Kcs = NULL;
+    Kcs = nullptr;
   }
   if (Kcc) {
     delete Kcc;
-    Kcc = NULL;
+    Kcc = nullptr;
   }
   
   deleteDofArrays();
@@ -653,9 +644,9 @@ bool FEStorage::initializeSolutionData () {
   //
 
   Cc = new math::SparseMatrix(numberOfMpcEq, numberOfConstrainedDofs);
-	KssCsT = new math::SparseSymmetricMatrix(numberOfUnknownDofs + numberOfMpcEq);
+	KssCsT = new math::SparseSymMatrix(numberOfUnknownDofs + numberOfMpcEq);
 	Kcs = new math::SparseMatrix(numberOfConstrainedDofs, numberOfUnknownDofs);
-	Kcc = new math::SparseSymmetricMatrix(numberOfConstrainedDofs);
+	Kcc = new math::SparseSymMatrix(numberOfConstrainedDofs);
 
 	// Fill elementsDofs and nodeDofs with isConstrained information
   // and then give them an equation numbers
@@ -739,7 +730,6 @@ bool FEStorage::initializeSolutionData () {
   }
   LOG(INFO) << "Number of nodal DoFs: " << nodeDofs.getNumberOfUsedDofs();
 
-
   if (elementDofs.getNumberOfUniqueDofTypes()) {
     std::stringstream ss;
     ss << "Types of element DoFs:";
@@ -760,22 +750,7 @@ bool FEStorage::initializeSolutionData () {
 		LOG(WARNING) << "FEStorage::initializeSolutionData: material isn't defined";
 	}
 
-  // startSparseMatricesTraining
-  // Because apriori FEStorage doesn't know about which elements in sparse matrices are non zero.
-  // To estimate this here is a specual procedure named Training (see SparseMatrix classes).
-  // Training need to be done on the first global matrix assembling. After training is done a data
-  // obout sparse matrix elements are astored in special arrays in SparseMatrix classes. After this
-  // an action of writing to zero (non-existent) element into a SparseMatrix will be enede with errors.
-  // That means that elements and MPC can't change number of used DoFs during solving procedures. 
-  // That is a bad thing in, for example, non-linear MPC, where number of DoFs involved could be differ
-  // during the solution.
-  // To see where is training procedures ended look for finishSparseMatricesTraining comment.
-  
-  Cc->startTraining();
-	KssCsT->startTraining();
-
-	Kcc->startTraining();
-	Kcs->startTraining();
+  // Need to restore non-zero entries in Sparse Matrices based on mesh topology and registered Dofs
 	return true;
 }
 

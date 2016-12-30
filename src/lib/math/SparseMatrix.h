@@ -19,142 +19,222 @@ namespace math {
 // 2. Use typedef int SparseIndex_t
 // 3. Use #define SparseIndex_t int
 
-struct ValueInfoForSparseMatrix {
-	ValueInfoForSparseMatrix() : value(0.0), row(0), column(0) { }
-	ValueInfoForSparseMatrix(double v, uint32 r, uint32 c) : value(v), row(r), column(c) { }
-	double value;
-	uint32 row;
-	uint32 column;
+
+class SparsityInfo {
+  public:
+    SparsityInfo(uint32 _nrows, uint32 _ncols, uint32 _max_in_row);
+
+    // add information than (_row, _column) element has non-zero value
+    // row and column positions are started from 1
+    void add(uint32 _i, uint32 _j);
+    // perform compression procedure. After that positions of non-zero elements can't be changed
+    void compress();
+    bool isCompressed();
+
+    uint32 nElementsInRow(uint32 _row);
+    uint32 getIndex(uint32 _i, uint32 _j);
+
+    friend class BaseSparseMatrix;
+    friend class SparseMatrix;
+    friend class SparseSymMatrix;
+  private:
+
+    // Data arrays to implement compressed sparse row format with 3 arrays (3-array CSR).
+    // Format was implemented by using MKL manual.
+    // Here we don't need to know excactly values. We need to store only info about non-zeros
+    // elemenets in matrix.
+    // columns arrays stores column number of element: columns[element_number] = element_column
+    uint32* columns = nullptr;
+    // index of first element in row: iofeir[row-1] first element in row,
+    // ifeir[row]-1 - last element in row
+    uint32* iofeir = nullptr;
+    // number of non-zero elements in the matrix. Also, size of values array.
+    // If numberOfValues > 0 that means that the matrix is ready for work (a training has been completed already)
+    uint32 numberOfValues = 0;
+    uint32 maxInRow = 0;
+    bool compressed = false;
+
+    // size of the matrix
+    uint32 nRows;
+    uint32 nColumns;
+
+    static const uint32 invalid;
 };
+
 
 
 // general Sparse Matrix in a row-oriented data format
 // The implementation of compressed sparse row format with 3 arrays (3-array CSR).
-class SparseMatrix {
-public:
-	SparseMatrix (uint32 nrows, uint32 ncolumns);
-	~SparseMatrix ();
-  
-	void startTraining ();
-	void stopTraining (bool copyValuesToMatrix = true);
-  bool isInTrainingMode();
+class BaseSparseMatrix {
+  public:
+    BaseSparseMatrix(uint32 nrows, uint32 ncolumns, uint32 max_in_row = 100);
+    BaseSparseMatrix(std::shared_ptr<SparsityInfo> spar_info);
+    ~BaseSparseMatrix();
+    
+    void compress();
 
-	void addValue (uint32 row, uint32 column, double value);
+    void add(uint32 _i, uint32 _j);
+    void addValue (uint32 _i, uint32 _j, double value);
 
-  // TODO: It would be better to use a BLAS routine for sparse matrices for speedup
-	double mult_vec_i (double *vec, uint32 n);
-	double transpose_mult_vec_i (double *vec, uint32 n);
-	void transpose_mult_vec (double *vec, double *res);
+    void clear();
 
-	void clear();
+    // debug methods
+    void printInternalData (std::ostream& out);
 
-  // debug methods
-  void printInternalData (std::ostream& out);
-  void print (std::ostream& out);
+    void zero();
 
-	void zero();
+    // getters
+    double* getValuesArray();
+    uint32* getColumnsArray();
+    uint32* getIofeirArray();
+    uint32 getNumberOfValues();
+    uint32 getNumberOfRows();
+    uint32 getNumberOfColumns();
+    std::shared_ptr<SparsityInfo> getSparsityInfo();
 
-  // getters
-	double& operator() (uint32 row, uint32 column);
-	double* getValuesArray();
-	uint32* getColumnsArray();
-	uint32* getIofeirArray();
-	uint32 getNumberOfValues();
-	uint32 getNumberOfRows();
-	uint32 getNumberOfColumns();
+    bool isCompressed();
 
-private:
-  // stuff for training of a sparse matrix
-	uint64 getGeneralIndex(uint32 row, uint32 column);
-	bool is_training;
-  // the training procedure works by mean of std::map container
-	std::map<uint64, ValueInfoForSparseMatrix> training_data;
-  // counter for number of non-zero element in the every row
-	uint32 *numberOfElementsInRow;
+  protected:
+    // Data arrays to implement compressed sparse row format with 3 arrays (3-array CSR).
+    double *values = nullptr;
+    // is our matrix is symmetric. If so only upper triangle is stored
 
-  // get index in the values array for [row, column] element
-	bool searchIndex (uint32 row, uint32 column, uint32* ind);
-
-  // just a variable to return a pointer to a zero value
-	static double dummy;
-
-  // Data arrays to implement compressed sparse row format with 3 arrays (3-array CSR).
-  // Format was implemented by using MKL manual.
-	double *values;
-	uint32 *columns;
-  // index of first element in row
-	uint32 *iofeir;
-  // number of non-zero elements in the matrix. Also, size of values array.
-  // If numberOfValues > 0 that means that the matrix is ready for work (a training has been completed already)
-	uint32 numberOfValues;
-
-  // size of the matrix
-	uint32 numberOfRows;
-	uint32 numberOfColumns;
+    std::shared_ptr<SparsityInfo> si;
 };
 
 
+class SparseMatrix : public BaseSparseMatrix {
+  public:
+    SparseMatrix(uint32 nrows, uint32 ncolumns, uint32 max_in_row = 100);
+    SparseMatrix(std::shared_ptr<SparsityInfo> spar_info);
+    
+    void add(uint32 _i, uint32 _j);
+    void addValue (uint32 _i, uint32 _j, double value);
 
-// SparseSymmetricMatrix (UpperTriangle)
-// The implementation of compressed sparse row format with 3 arrays (3-array CSR).
-// TODO: make one template class for SparseMatrix and SparseSymmetricMatrix
-class SparseSymmetricMatrix {
-public:
-	SparseSymmetricMatrix (uint32 nrows);
-	~SparseSymmetricMatrix ();
 
-	void startTraining ();
-	void stopTraining (bool copyValuesToMatrix = true);
-  bool isInTrainingMode();
+    // TODO: It would be better to use a BLAS routine for sparse matrices for speedup
+    double mult_vec_i (double *vec, uint32 i);
+    double transpose_mult_vec_i (double *vec, uint32 i);
+    void transpose_mult_vec (double *vec, double *res);
 
-	void addValue (uint32 row, uint32 column, double value);
+    // debug methods
+    void print (std::ostream& out);
 
-  // TODO: It would be better to use a BLAS routine for sparse matrices for speedup
-	double mult_vec_i(double *vec, uint32 n);
-	void clear();
+    // getters
+    // return reference to the value, if the value doesn't exist in the matrix - fatal error
+    double& operator()(uint32 _i, uint32 _j);
 
-	void zero();
-	void zeroBlock(uint32 n);
-
-  // getters
-  double& operator() (uint32 row, uint32 column);
-	double* getValuesArray();
-	uint32* getColumnsArray();
-	uint32* getIofeirArray();
-	uint32 getNumberOfValues();
-	uint32 getNumberOfRows();
-
-  // debug methods
-  void printInternalData (std::ostream& out);
-  void print (std::ostream& out);
-
-private:
-  // stuff for training of a sparse matrix
-	uint64 getGeneralIndex(uint32 row, uint32 column);
-	bool is_training;
-  // the training procedure works by mean of std::map container
-  std::map<uint64, ValueInfoForSparseMatrix> training_data;
-  // counter for number of non-zero element in the every row
-	uint32 *numberOfElementsInRow;
-
-  // just a variable to return a pointer to a zero value
-	static double dummy;
-
-  // get index in the values array for [row, column] element
-	bool searchIndex(uint32 row, uint32 column, uint32* ind);
-
-  // Data arrays to implement compressed sparse row format with 3 arrays (3-array CSR).
-  // Format was implemented by using MKL manual.
-	double* values;
-	uint32* columns;
-  // index of first element in row
-	uint32* iofeir;
-  // number of non-zero elements in the matrix. Also, size of values array.
-  // If numberOfValues > 0 that means that the matrix is ready for work (a training has been completed already)
-	uint32 numberOfValues;
-  // size of the matrix
-	uint32 numberOfRows;
+    // return the value, if the value doesn't exists - return 0.0
+    double value(uint32 _i, uint32 _j) const;
 };
 
+
+class SparseSymMatrix : public BaseSparseMatrix {
+  public:
+    SparseSymMatrix(uint32 nrows, uint32 max_in_row = 100);
+    SparseSymMatrix(std::shared_ptr<SparsityInfo> spar_info);
+    
+    void add(uint32 _i, uint32 _j);
+    void addValue (uint32 _i, uint32 _j, double value);
+
+
+    double mult_vec_i(double *vec, uint32 i);
+
+    // debug methods
+    void print (std::ostream& out);
+
+    // getters
+    // return reverence to the value, if the value doesn't exist in the matrix - fatal error
+    double& operator()(uint32 _i, uint32 _j);
+
+    // return the value, if the value doesn't exists - return 0.0
+    double value(uint32 _i, uint32 _j) const;
+};
+
+
+inline bool SparsityInfo::isCompressed() {
+    return compressed;
+}
+
+inline uint32 SparsityInfo::nElementsInRow(uint32 _row) {
+    assert(iofeir != nullptr);
+    assert(_row > 0 && _row <= nRows);
+    return iofeir[_row] - iofeir[_row-1];
+}
+
+
+inline void BaseSparseMatrix::zero() {
+  assert(si);
+  assert(values);
+  std::fill_n(&values[0], si->numberOfValues, 0.0);
+}
+
+inline double* BaseSparseMatrix::getValuesArray() {
+  assert(values != nullptr);
+  return values;
+}
+
+inline uint32* BaseSparseMatrix::getColumnsArray() {
+  assert(si);
+  assert(si->compressed);
+  return si->columns;
+}
+
+inline uint32* BaseSparseMatrix::getIofeirArray() {
+  assert(si);
+  assert(si->compressed);
+  return si->iofeir;
+}
+
+inline uint32 BaseSparseMatrix::getNumberOfValues() {
+  assert(si);
+  return si->numberOfValues;
+}
+
+inline uint32 BaseSparseMatrix::getNumberOfRows() {
+  assert(si);
+  return si->nRows;
+}
+
+inline uint32 BaseSparseMatrix::getNumberOfColumns() {
+  assert(si);
+  return si->nColumns;
+}
+
+inline std::shared_ptr<SparsityInfo> BaseSparseMatrix::getSparsityInfo() {
+  assert(si);
+  return si;
+}
+
+inline bool BaseSparseMatrix::isCompressed() {
+  assert(si);
+  return si->compressed;
+}
+
+
+inline void SparseMatrix::add(uint32 _i, uint32 _j) {
+  assert(si);
+  si->add(_i, _j);
+}
+
+inline void SparseMatrix::addValue(uint32 _i, uint32 _j, double value) {
+  this->operator()(_i, _j) += value;
+}
+
+
+inline void SparseSymMatrix::add(uint32 _i, uint32 _j) {
+  assert(si);
+
+  // ensure that we work in upper triangle
+	if (_i > _j) std::swap(_i, _j);
+
+  si->add(_i, _j);
+}
+
+inline void SparseSymMatrix::addValue(uint32 _i, uint32 _j, double value) {
+  this->operator()(_i, _j) += value;
+}
+
+ 
 } // namespace math
 } // namespace nla3d

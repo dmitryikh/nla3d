@@ -9,7 +9,7 @@ namespace nla3d {
 
 namespace math {
 
-class SparseSymmetricMatrix;
+class SparseSymMatrix;
 
 // EquationSolver - abstract class for solving a system of linear equations.
 // This class primarly used in FESolver class.
@@ -17,7 +17,7 @@ class SparseSymmetricMatrix;
 class EquationSolver {
 public:
   virtual ~EquationSolver() { };
-  virtual void solveEquations (math::SparseSymmetricMatrix* matrix, double* rhs, double* unknowns) = 0;
+  virtual void solveEquations (math::SparseSymMatrix* matrix, double* rhs, double* unknowns) = 0;
   void setSymmetric (bool symmetric = true);
   void setPositive (bool positive = true);
 protected:
@@ -32,7 +32,7 @@ protected:
 class GaussDenseEquationSolver : public EquationSolver {
 public:
   virtual ~GaussDenseEquationSolver() { };
-  virtual void solveEquations (math::SparseSymmetricMatrix* matrix, double* rhs, double* unknowns);
+  virtual void solveEquations (math::SparseSymMatrix* matrix, double* rhs, double* unknowns);
   static bool _solve(double* X, double* A, double* B, int n);
 protected:
 };
@@ -41,9 +41,9 @@ protected:
 class PARDISO_equationSolver : public EquationSolver {
 public:
   virtual ~PARDISO_equationSolver();
-  virtual void solveEquations (math::SparseSymmetricMatrix* matrix, double* rhs, double* unknowns);
+  virtual void solveEquations (math::SparseSymMatrix* matrix, double* rhs, double* unknowns);
 protected:
-  void initializePARDISO (math::SparseSymmetricMatrix* matrix);
+  void initializePARDISO (math::SparseSymMatrix* matrix);
   void releasePARDISO ();
 
   // Internal solver memory pointer pt

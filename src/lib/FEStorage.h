@@ -61,7 +61,7 @@ public:
   // get the matrix of the system of equations. The matrix is in sparse format.
   // In current realisation the matrix is symmetric, but not positive defined, because of MPC
   // equations (zeros on diagonals in lagrangian columns x rows) 
-  math::SparseSymmetricMatrix* getGlobalEqMatrix();
+  math::SparseSymMatrix* getGlobalEqMatrix();
   // get right hand side of the system of equations. 
 	double* getGlobalEqRhs ();
   // get vector of Unknowns. Before solution procedure the vector is set to zero.
@@ -186,34 +186,34 @@ public:
   void deleteElements ();
   // delete MPC list: delete all dynamically allocated Mpc instances,
   // and clear vector of pointers (mpcs).
-  void deleteMpcs ();
-  void deleteMpcCollections ();
-  void deleteFeComponents ();
+  void deleteMpcs();
+  void deleteMpcCollections();
+  void deleteFeComponents();
   // delete elementDofs and nodeDofs arrays (and free memory)
-  void deleteDofArrays ();
+  void deleteDofArrays();
   // delete all data allocated in FEStorage::initializeSolutionData()
-  void deleteSolutionData ();
+  void deleteSolutionData();
 
   // print procedures
-  void listFEComponents ();
+  void listFEComponents();
 
   // solution procedures
-  // The function where all prepearing steps before solution are done.
+  // The function where all preparing steps before solution are done.
   // elements[i]->pre() and mpcCollections[j]->pre() register all DoFs.
   // Then all memory needed to store solution data are allocated.
   // After this procedure one can't add more elements, nodes, boundary conditions, MPCs, ..
-	bool initializeSolutionData ();
+	bool initializeSolutionData();
 
 
   // After global equations system is solved this procedure updates solution data:
   // * update dofValues;
   // * find reactions for constrained DoFs;
   // * elements[i]->update()
-	void updateSolutionResults ();
+	void updateSolutionResults();
   
   // The function applies boundary conditions
-  // The function recievs current normalized time (in range [0.0; 1.0]) and normalized time delta
-	void applyBoundaryConditions (double time, double timeDelta);
+  // The function receives current normalized time (in range [0.0; 1.0]) and normalized time delta
+	void applyBoundaryConditions(double time, double timeDelta);
 
 private:
 	uint32 numberOfNodes;
@@ -270,17 +270,19 @@ private:
   // That means that Mpc instances are dynamically created in MpcCollection, but then FEStorage class takes control on it.
   // And FEStorage deletes Mpc by itself when it's needed.
   std::vector<MpcCollection*> mpcCollections;
+  // TODO: here we store block matrix as 4 independed sparse matrices. It would be better to store
+  // all of them in block matrix class (need to develop)
   // Matrix to be solved = [Kss,CsT;Cs,0] - see details of how nla3d treats global system of equations 
   // in FEStorage::initializeSolutionData()
-  nla3d::math::SparseSymmetricMatrix* KssCsT; 
+  math::SparseSymMatrix* KssCsT; 
   // Cc - a part of the global system of equations, MPC equation constants for constrained DoFs
-  nla3d::math::SparseMatrix *Cc; 
+  math::SparseMatrix *Cc; 
   // A part of the global K matrix with dimensions [numberOfConstrainedDofs x numberOfUnknownDofs]. It constaints of 
   // stiffness coefficients between constrained and unconstreined DoFs.
-  nla3d::math::SparseMatrix *Kcs; 
+  math::SparseMatrix *Kcs; 
   // A part of the global K matrix with dimensions [numberOfConstrainedDofs x numberOfConstrainedDofs]. It containts
   // of stiffness coefficients between constrained and constrained DoFs.
-  nla3d::math::SparseSymmetricMatrix *Kcc; 
+  math::SparseSymMatrix *Kcc; 
 
   // A found values after converged loadstep. solutionValues has a size of numberOfDofs + numberOfMpcEq.
   // The whole vector is divided into different parts: solutionValues = [dofValues; mpcLagrangianValues],

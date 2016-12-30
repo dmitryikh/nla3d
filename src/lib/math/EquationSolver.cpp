@@ -25,15 +25,16 @@ void EquationSolver::setPositive (bool positive) {
 }
 
 
-void GaussDenseEquationSolver::solveEquations (math::SparseSymmetricMatrix* matrix, double* rhs, double* unknowns) {
+void GaussDenseEquationSolver::solveEquations (math::SparseSymMatrix* matrix, double* rhs, double* unknowns) {
   TIMED_SCOPE(t, "solveEquations");
   numberOfEquations = matrix->getNumberOfRows();
   CHECK(nrhs == 1) << "GaussDenseEquationSolver support only 1 set of rhs values";
   dMat denseMatrix(numberOfEquations, numberOfEquations);
   for (uint16 i = 0; i < numberOfEquations; i++)
     for (uint16 j = 0; j < numberOfEquations; j++)
-      //NOTE: SparceMatrix getters works with indexes started from 1
-      denseMatrix[i][j] = (*matrix)(i+1, j+1);
+      // NOTE: SparseMatrix getters works with indexes started from 1
+      // TODO: we can fill dense matrix from sparse one in a more optimized way
+      denseMatrix[i][j] = matrix->value(i+1, j+1);
   bool res = _solve(unknowns, denseMatrix.ptr(), rhs, numberOfEquations);
   
   CHECK(res == true) << "ERROR during solution";
@@ -117,7 +118,7 @@ PARDISO_equationSolver::~PARDISO_equationSolver () {
   releasePARDISO();
 }
 
-void PARDISO_equationSolver::solveEquations (math::SparseSymmetricMatrix* matrix, double* rhs, double* unknowns) {
+void PARDISO_equationSolver::solveEquations (math::SparseSymMatrix* matrix, double* rhs, double* unknowns) {
   TIMED_SCOPE(t, "solveEquations");
   if (firstRun) {
     initializePARDISO(matrix);
@@ -151,7 +152,7 @@ void PARDISO_equationSolver::solveEquations (math::SparseSymmetricMatrix* matrix
 	CHECK(error == 0) << "ERROR during solution. Error code = " << error;
 }
 
-void PARDISO_equationSolver::initializePARDISO (math::SparseSymmetricMatrix* matrix) {
+void PARDISO_equationSolver::initializePARDISO (math::SparseSymMatrix* matrix) {
 	for (uint16 i = 0; i < 64; i++) {
     iparm[i]=0;
   }
