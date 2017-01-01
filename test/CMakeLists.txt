@@ -102,13 +102,6 @@ add_dependencies(check ${TEST_NAME})
 
 
 # BENCH tests
-# this test takes ~90 sec on Release..
-add_test(NAME 3d_damper COMMAND nla3d ${PROJECT_SOURCE_DIR}/test/3d_damper/model.cdb
-    -material Neo-Hookean 10 5000 -loadsteps 20 -novtk
-    -refcurve ${PROJECT_SOURCE_DIR}/test/3d_damper/ansys/loading_curve_ansys.txt
-    -reaction TOP_SIDE UY -threshold 3.0 -element SOLID81)
- set_tests_properties(3d_damper PROPERTIES LABELS "BENCH")
- 
 
 # this test takes toooo long with gauss eq. solver
 add_test(NAME a2000_damper COMMAND nla3d ${PROJECT_SOURCE_DIR}/test/a2000_damper/a2000.cdb
@@ -116,3 +109,11 @@ add_test(NAME a2000_damper COMMAND nla3d ${PROJECT_SOURCE_DIR}/test/a2000_damper
     -refcurve ${PROJECT_SOURCE_DIR}/test/a2000_damper/ansys/loading_curve_ansys.txt
     -threshold 0.2 -reaction DISP_BC UY)
 set_tests_properties(a2000_damper PROPERTIES LABELS "BENCH")
+
+# this test takes ~90 sec on Release..
+add_test(NAME 3d_damper COMMAND nla3d ${PROJECT_SOURCE_DIR}/test/3d_damper/model.cdb
+  -material Neo-Hookean 10 5000 -loadsteps 20 -novtk
+  -refcurve ${PROJECT_SOURCE_DIR}/test/3d_damper/ansys/loading_curve_ansys.txt
+  -reaction TOP_SIDE UY -threshold 3.0 -element SOLID81)
+set_tests_properties(3d_damper PROPERTIES LABELS "BENCH")
+ 

@@ -22,9 +22,9 @@ SparsityInfo::SparsityInfo(uint32 _nrows, uint32 _ncols, uint32 _max_in_row) {
   std::fill_n(columns, nRows * maxInRow, invalid);
 
 	iofeir = new uint32[nRows+1];
-  iofeir[0] = 0;
-  for (uint32 i = 1; i < nRows+1; i++) {
-    iofeir[i] = maxInRow * i;
+  iofeir[0] = 1;
+  for (uint32 i = 1; i <= nRows; i++) {
+    iofeir[i] = iofeir[i-1] + maxInRow;
   }
 }
 
@@ -35,9 +35,9 @@ void SparsityInfo::add(uint32 _i, uint32 _j) {
   assert(_i > 0 && _i <= nRows);
   assert(_j > 0 && _j <= nColumns);
   assert(compressed == false);
-  // before compressions columns are not sorted
-  uint32 st = iofeir[_i-1];
-  uint32 en = iofeir[_i];
+  // NOTE: before compressions columns are not sorted
+  uint32 st = iofeir[_i-1] - 1;
+  uint32 en = iofeir[_i] - 1;
   for (uint32 i = st; i < en; i++) {
     // if element already in matrix
     if (columns[i] == _j) return;
@@ -62,7 +62,7 @@ void SparsityInfo::compress() {
   columns = new uint32[numberOfValues];
 
   for (uint32 i = 0; i < nRows; i++) {
-    for (uint32 j = iofeir[i]; j < iofeir[i+1]; j++) {
+    for (uint32 j = iofeir[i] - 1; j < iofeir[i+1] - 1; j++) {
       if (old_columns[j] == invalid) break;
       columns[next++] = old_columns[j];
     }
@@ -70,12 +70,12 @@ void SparsityInfo::compress() {
       std::sort(&columns[nextRow], &columns[next]);
     }
 
-    iofeir[i] = nextRow;
+    iofeir[i] = nextRow + 1;
     nextRow = next;
   }
   // check that we used all space in columns
   assert(next == numberOfValues);
-  iofeir[nRows] = next;
+  iofeir[nRows] = next + 1;
 
   delete[] old_columns;
   compressed = true;
@@ -89,8 +89,8 @@ uint32 SparsityInfo::getIndex(uint32 _i, uint32 _j) {
 	assert(_j > 0 && _j <= nColumns);
 
   uint32 ind;
-	uint32 st = iofeir[_i-1];
-	uint32 en = iofeir[_i];
+	uint32 st = iofeir[_i-1] - 1;
+	uint32 en = iofeir[_i] - 1;
 
   if (st == en) return invalid;
 
@@ -136,14 +136,14 @@ void BaseSparseMatrix::printInternalData(std::ostream& out) {
 
 	out << "columns = {";
 	for (uint32 i = 0; i < si->nRows; i++) {
-		for (uint32 j = si->iofeir[i]; j < si->iofeir[i+1]; j++) {
+		for (uint32 j = si->iofeir[i] - 1; j < si->iofeir[i + 1] - 1; j++) {
 			out << si->columns[j] << "\t";
     }
 	}
 	out << "}" << std::endl;
 
 	out << "iofeir = {";
-	for (uint32 i = 0; i < si->nRows + 1; i++) {
+	for (uint32 i = 0; i <= si->nRows; i++) {
 		out << si->iofeir[i] << "\t";
   }
 	out << "}" << std::endl;
@@ -212,8 +212,8 @@ double SparseMatrix::mult_vec_i(double *vec, uint32 i) {
 	if (si->iofeir[i]-si->iofeir[i-1] == 0)
 		return 0.0;
 
-	uint32 st = si->iofeir[i-1];
-	uint32 en = si->iofeir[i]-1;
+	uint32 st = si->iofeir[i-1] - 1;
+	uint32 en = si->iofeir[i] - 2;
 
 	for (uint32 j = st; j <= en; j++)
     res += values[j]*vec[si->columns[j]-1];
@@ -248,14 +248,14 @@ void SparseMatrix::transpose_mult_vec(double *vec, double *res) {
   assert(values);
 	assert(vec && res);
 
-  std::fill(&res[0], &res[si->nColumns-1], 0.0);
+  std::fill(&res[0], &res[si->nColumns], 0.0);
 
 	for (uint32 i = 0; i < si->nRows; i++) {
 		if (si->iofeir[i+1]-si->iofeir[i] == 0) {
 			continue;
     }
-		uint32 st = si->iofeir[i];
-		uint32 en = si->iofeir[i + 1] - 1;
+		uint32 st = si->iofeir[i] - 1;
+		uint32 en = si->iofeir[i + 1] - 2;
 		for (uint32 j = st; j <= en; j++) {
       res[si->columns[j] - 1] += values[j] * vec[i];
     }
@@ -303,7 +303,11 @@ double SparseMatrix::value(uint32 _i, uint32 _j) const {
 SparseSymMatrix::SparseSymMatrix(uint32 nrows, uint32 max_in_row) :
     BaseSparseMatrix(nrows, nrows, max_in_row)
 {
-
+  assert(si);
+  // NOTE: need to add diagonal elements because MKL PARDISO need it anyway
+  for (uint32 i = 1; i <= si->nRows; i++) {
+    si->add(i, i);
+  }
 }
 
 SparseSymMatrix::SparseSymMatrix(std::shared_ptr<SparsityInfo> spar_info) :
@@ -347,11 +351,12 @@ void SparseSymMatrix::print(std::ostream& out) {
 
 	uint32 ind;
 	for (uint32 i = 1; i <= si->nRows; i++) {
-		out << "[";
+		// out << "[";
 		for (uint32 j = 1; j <= si->nColumns; j++) {
       out << value(i, j) << '\t';
     }
-		out << "]" << std::endl;
+		// out << "]" << std::endl;
+    out << std::endl;
 	}
 }
 

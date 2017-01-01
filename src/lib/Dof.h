@@ -46,21 +46,26 @@ class DofCollection {
   public:
     uint32 getNumberOfUsedDofs();
     uint32 getNumberOfEntities();
+
+    // return a poiner to Dof class for Entity n and for type dof
     Dof* getDof(uint32 n, Dof::dofType dof);
+
+    // return begin and end iterator of Dofs for Entity n
+    std::pair<std::vector<Dof>::iterator,
+              std::vector<Dof>::iterator> getEntityDofs(uint32 n);
 
     void initDofTable(uint32 _numberOfEntities);
     void addDof(uint32 n, std::initializer_list<Dof::dofType> _dofs);
     void clearDofTable();
     bool isDofUsed(uint32 n, Dof::dofType dof);
 
-    uint16 getNumberOfUniqueDofTypes();
-    Dof::dofType getNthUniqueDofType(uint16 i);
+    std::set<Dof::dofType> getUniqueDofTypes();
 
   private:
     uint32 numberOfUsedDofs = 0;
     uint32 numberOfEntities = 0;
 
-    // row of Dof objects 
+    // vector of Dof objects 
     std::vector<Dof> dofs;
     // array of indexes to find where dofs for particular entity is located in dofs
     // Dof for entity n will be located from dofPos[n-1] included to dofPos[n] excluded 
@@ -79,6 +84,14 @@ inline uint32 DofCollection::getNumberOfEntities() {
   return numberOfEntities;
 }
 
+
+inline std::pair<std::vector<Dof>::iterator,
+                 std::vector<Dof>::iterator> DofCollection::getEntityDofs(uint32 n) {
+  assert(n <= numberOfEntities);
+  assert(dofPos.size() > 0);
+
+  return std::make_pair(dofs.begin() + dofPos[n-1], dofs.begin() + dofPos[n]);
+}
 
 
 } // namespace nla3d 

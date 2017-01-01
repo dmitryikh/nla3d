@@ -228,23 +228,13 @@ void FEStorage::addElementDof(uint32 el, std::initializer_list<Dof::dofType> _do
 }
 
 
-uint16 FEStorage::getNumberOfUniqueNodeDofTypes() {
-  return nodeDofs.getNumberOfUniqueDofTypes();
+std::set<Dof::dofType> FEStorage::getUniqueNodeDofTypes() {
+  return nodeDofs.getUniqueDofTypes();
 }
 
 
-uint16 FEStorage::getNumberOfUniqueElementDofTypes() {
-  return elementDofs.getNumberOfUniqueDofTypes();
-}
-
-
-Dof::dofType FEStorage::getNthUniqueNodeDofType(uint16 i) {
-  return nodeDofs.getNthUniqueDofType(i);
-}
-
-
-Dof::dofType FEStorage::getNthUniqueElementDofType(uint16 i) {
-  return elementDofs.getNthUniqueDofType(i);
+std::set<Dof::dofType> FEStorage::getUniqueElementDofTypes() {
+  return elementDofs.getUniqueDofTypes();
 }
 
 
@@ -474,6 +464,7 @@ void FEStorage::deleteMesh () {
   deleteMpcs();
   deleteMpcCollections();
   deleteFeComponents();
+  topology.clear();
 	numberOfNodes = 0;
 }
 
@@ -578,11 +569,13 @@ void FEStorage::deleteSolutionData() {
 	numberOfUnknownDofs = 0;
 }
 
+
 void FEStorage::listFEComponents () {
   for (size_t i = 0; i < feComponents.size(); i++) {
     LOG(INFO) << *feComponents[i];
   }
 }
+
 
 bool FEStorage::initializeSolutionData () {
   TIMED_SCOPE(t, "initializeSolutionData");
@@ -604,6 +597,9 @@ bool FEStorage::initializeSolutionData () {
     mpcCollections[i]->registerMpcsInStorage();
   }
   //t.checkpoint("MpcCollection::pre()");
+  
+  // Now, after all Dofs are registered we can learn topology of the mesh DoFs
+  learnTopology();
 
   // Total number of dofs (only registered by elements)
 	numberOfDofs = elementDofs.getNumberOfUsedDofs() + nodeDofs.getNumberOfUsedDofs();
@@ -718,26 +714,22 @@ bool FEStorage::initializeSolutionData () {
 	unknownDofRhs = rhs.begin();
 	mpcEquationRhs = rhs.begin() + numberOfUnknownDofs;
 
-  if (nodeDofs.getNumberOfUniqueDofTypes()) {
+  auto udofs = getUniqueNodeDofTypes();
+  if (udofs.size()) {
     std::stringstream ss;
     ss << "Types of nodal DoFs:";
-    for (auto i = 0;  
-              i < nodeDofs.getNumberOfUniqueDofTypes();
-              i++) {
-      ss << " " << Dof::dofType2label(nodeDofs.getNthUniqueDofType(i));
-    }
+    for (auto type : udofs)
+      ss << " " << Dof::dofType2label(type);
     LOG(INFO) << ss.str();
   }
   LOG(INFO) << "Number of nodal DoFs: " << nodeDofs.getNumberOfUsedDofs();
 
-  if (elementDofs.getNumberOfUniqueDofTypes()) {
+  udofs = getUniqueElementDofTypes();
+  if (udofs.size()) {
     std::stringstream ss;
     ss << "Types of element DoFs:";
-    for (auto i = 0;  
-              i < elementDofs.getNumberOfUniqueDofTypes();
-              i++) {
-      ss << " " << Dof::dofType2label(elementDofs.getNthUniqueDofType(i));
-    }
+    for (auto type : udofs)
+      ss << " " << Dof::dofType2label(type);
     LOG(INFO) << ss.str();
   }
   LOG(INFO) << "Number of element DoFs: " << elementDofs.getNumberOfUsedDofs();
@@ -750,9 +742,89 @@ bool FEStorage::initializeSolutionData () {
 		LOG(WARNING) << "FEStorage::initializeSolutionData: material isn't defined";
 	}
 
+
   // Need to restore non-zero entries in Sparse Matrices based on mesh topology and registered Dofs
+  // As far as we know from topology which elements are neighbors to each other we can estimate
+  // quantity and positions of non-zero koef in Sparse Matrices Cc, KssCsT, Kcc, Kcs
+
+  for (uint32 nn = 1; nn <= numberOfNodes; nn++) {
+    auto nn_dofs = nodeDofs.getEntityDofs(nn);
+    // register nn node dofs vs nn node dofs
+    // for (auto d1 = nn_dofs.first; d1 != nn_dofs.second; d1++)
+    //   for (auto d2 = nn_dofs.first; d2 != nn_dofs.second; d2++)
+    //     _Kij_reg(d1->eqNumber, d2->eqNumber);
+    for (auto en : topology[nn-1]) {
+      // register element dofs to node nn
+      auto en_dofs = elementDofs.getEntityDofs(en);
+      for (auto d1 = en_dofs.first; d1 != en_dofs.second; d1++)
+        for (auto d2 = nn_dofs.first; d2 != nn_dofs.second; d2++)
+          _Kij_reg(d1->eqNumber, d2->eqNumber);
+
+      // cycle over element en Nodes and register nn vs nn2 nodes dofs
+      for (uint16 enn = 0; enn < getElement(en).getNNodes(); enn++) {
+        uint32 nn2 = getElement(en).getNodeNumber(enn);
+        if (nn2 < nn) continue;
+        // register node nn2 dofs to node nn dofs
+        auto nn2_dofs = nodeDofs.getEntityDofs(nn2);
+        for (auto d1 = nn2_dofs.first; d1 != nn2_dofs.second; d1++)
+          for (auto d2 = nn_dofs.first; d2 != nn_dofs.second; d2++)
+            _Kij_reg(d1->eqNumber, d2->eqNumber);
+      }
+    }
+  }
+
+  // register element dofs vs element dofs
+  for (uint32 en = 1; en <= numberOfElements; en++) {
+    auto en_dofs = elementDofs.getEntityDofs(en);
+    for (auto d1 = en_dofs.first; d1 != en_dofs.second; d1++)
+      for (auto d2 = en_dofs.first; d2 != en_dofs.second; d2++)
+        _Kij_reg(d1->eqNumber, d2->eqNumber);
+  }
+
+
+  // register MPC coefficients
+  //
+  uint32 eq_num = 1;
+  list<Mpc*>::iterator mpc = mpcs.begin();
+  while (mpc != mpcs.end()) {
+    list<MpcTerm>::iterator token = (*mpc)->eq.begin();
+    while (token != (*mpc)->eq.end()) {
+      // TODO: now we support only MPC to nodal DoFs..
+      uint32 dof_eq = getNodeDofEqNumber(token->node, token->node_dof);
+      _Cij_reg(eq_num, dof_eq);
+      token++;
+    }
+    eq_num++;
+    mpc++;
+  }
+
+  // compress sparsity info. After that we can't add new position in sparse matrices
+  Cc->compress();
+	KssCsT->compress();
+	Kcs->compress();
+	Kcc->compress();
+
 	return true;
 }
+
+// for debug purpose only. Be carefully, this is output intensive..
+void FEStorage::printDofInfo(std::ostream& out) {
+  for (uint32 en = 1; en <= numberOfElements; en++) {
+    auto en_dofs = elementDofs.getEntityDofs(en);
+    for (auto d1 = en_dofs.first; d1 != en_dofs.second; d1++)
+      out << "E" << en << ":" << Dof::dofType2label(d1->type) << " eq = " << d1->eqNumber 
+           << " constrained = " << d1->isConstrained << endl;
+  }
+
+  for (uint32 nn = 1; nn <= numberOfNodes; nn++) {
+    auto nn_dofs = nodeDofs.getEntityDofs(nn);
+    for (auto d1 = nn_dofs.first; d1 != nn_dofs.second; d1++)
+      out << "N" << nn << ":" << Dof::dofType2label(d1->type) << " eq = " << d1->eqNumber 
+           << " constrained = " << d1->isConstrained << endl;
+  }
+
+}
+
 
 void FEStorage::updateSolutionResults() {
   TIMED_SCOPE(t, "updateSolutionResults");
@@ -810,6 +882,55 @@ void FEStorage::applyBoundaryConditions (double time, double timeDelta) {
 	}
   //t.checkpoint("apply fixations");
 }
+
+
+void FEStorage::learnTopology() {
+  // std::vector<std::set<uint32> > topology;
+  topology.clear();
+  topology.assign(numberOfNodes, std::set<uint32>());
+  for (uint32 en = 1; en <= numberOfElements; en++) {
+    for (uint16 nn = 0; nn < getElement(en).getNNodes(); nn++) {
+      uint32 noden = getElement(en).getNodeNumber(nn);
+      topology[noden-1].insert(getElement(en).getElNum());
+    }
+  }
+}
+
+
+// registry that value (eqi, eqj) are not zero
+// should be called before compressed()
+void FEStorage::_Kij_reg(uint32 eqi, uint32 eqj) {
+  // eqi -- row equation 
+  // eqj -- column equation
+	if (eqi > eqj) swap(eqi, eqj);
+  // As long as we have distinct blocks
+  // of global matrix for constrained DoFs, MPC's lambdas and DoFs to be
+  // solver we need to choose in which block (Kcc, Kcs, KssCsT)
+  // the value should be added.
+
+	if (eqi <= numberOfConstrainedDofs) {
+		if (eqj <= numberOfConstrainedDofs) {
+			Kcc->add(eqi, eqj);
+    } else {
+			Kcs->add(eqi, eqj - numberOfConstrainedDofs);
+    }
+  } else {
+		KssCsT->add(eqi - numberOfConstrainedDofs, eqj - numberOfConstrainedDofs);
+  }
+}
+
+
+void FEStorage::_Cij_reg(uint32 eq_num, uint32 eqj) {
+	assert(Cc);
+	assert(eq_num > 0 && eq_num <= numberOfMpcEq);
+	if (eqj <= numberOfConstrainedDofs) {
+		Cc->add(eq_num, eqj);
+  }	else {
+		//Cs
+		KssCsT->add(eqj-numberOfConstrainedDofs, numberOfUnknownDofs+eq_num);
+  }
+}
+
 
 bool readCdbFile(const char *filename, FEStorage *storage, ElementType elType)
 {

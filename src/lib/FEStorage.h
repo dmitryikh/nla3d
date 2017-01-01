@@ -90,11 +90,8 @@ public:
   // element number is always > 0
   void addElementDof(uint32 el, std::initializer_list<Dof::dofType> _dofs);
   // functions to determine how many uniques DoF types are used for nodes and elements
-  uint16 getNumberOfUniqueNodeDofTypes();
-  uint16 getNumberOfUniqueElementDofTypes();
-  // getNthUniqueNodeDofType returns dof type
-  Dof::dofType getNthUniqueNodeDofType(uint16 i);
-  Dof::dofType getNthUniqueElementDofType(uint16 i);
+  std::set<Dof::dofType> getUniqueNodeDofTypes();
+  std::set<Dof::dofType> getUniqueElementDofTypes();
   // return true if the corresponding DoF was registered as used in nodeDofs or elementDofs.
   bool isElementDofUsed(uint32 el, Dof::dofType dof);
   bool isNodeDofUsed(uint32 node, Dof::dofType dof);
@@ -204,6 +201,8 @@ public:
   // After this procedure one can't add more elements, nodes, boundary conditions, MPCs, ..
 	bool initializeSolutionData();
 
+  // for debug purpose only. Be carefully, this is output intensive..
+  void printDofInfo(std::ostream& out);
 
   // After global equations system is solved this procedure updates solution data:
   // * update dofValues;
@@ -216,6 +215,10 @@ public:
 	void applyBoundaryConditions(double time, double timeDelta);
 
 private:
+  void learnTopology();
+  void _Kij_reg(uint32 eqi, uint32 eqj);
+  void _Cij_reg(uint32 eq_num, uint32 eqj);
+
 	uint32 numberOfNodes;
 	uint32 numberOfElements;
   // Total number of dofs (only registered by FEStorage::registerNodeDof(..) or FEStorage::registerElementDof(..))
@@ -338,6 +341,9 @@ private:
   //    FEStorage::registerNodeDof(node, dof) or FEStorage::registerElementDof(element, dof).
   DofCollection elementDofs;
   DofCollection nodeDofs;
+
+  // topology[node_number] = set of elements attached to it
+  std::vector<std::set<uint32> > topology;
 };
 
 // read Ansys Mechanical APDL *.cdb file. Nodes, Elements, Displacement BC and MPC (Constraint equations) is supported

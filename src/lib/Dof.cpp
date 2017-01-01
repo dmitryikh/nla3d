@@ -104,14 +104,10 @@ Dof* DofCollection::getDof(uint32 n, Dof::dofType dof) {
   return pdof;
 }
 
-uint16 DofCollection::getNumberOfUniqueDofTypes() {
-  return uniqueDofTypes.size();
+
+std::set<Dof::dofType> DofCollection::getUniqueDofTypes() {
+  return uniqueDofTypes;
 }
 
-
-Dof::dofType DofCollection::getNthUniqueDofType(uint16 i) {
-  assert(i < uniqueDofTypes.size());
-  return *std::next(uniqueDofTypes.begin(), i);
-}
 
 } // namespace nla3d

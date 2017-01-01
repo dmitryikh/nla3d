@@ -96,10 +96,10 @@ int main() {
     CHECK_EQ(spmat.getColumnsArray()[4], 3);
     CHECK_EQ(spmat.getColumnsArray()[5], 4);
 
-    CHECK_EQ(spmat.getIofeirArray()[0], 0);
-    CHECK_EQ(spmat.getIofeirArray()[1], 2);
-    CHECK_EQ(spmat.getIofeirArray()[2], 2);
-    CHECK_EQ(spmat.getIofeirArray()[3], 6);
+    CHECK_EQ(spmat.getIofeirArray()[0], 1);
+    CHECK_EQ(spmat.getIofeirArray()[1], 3);
+    CHECK_EQ(spmat.getIofeirArray()[2], 3);
+    CHECK_EQ(spmat.getIofeirArray()[3], 7);
   }
 
 
@@ -132,22 +132,24 @@ int main() {
     CHECK_EQ(spmat.getValuesArray()[0], 2.0);
     CHECK_EQ(spmat.getValuesArray()[1], 3.0);
     CHECK_EQ(spmat.getValuesArray()[2], 4.0);
-    CHECK_EQ(spmat.getValuesArray()[3], 8.0);
-    CHECK_EQ(spmat.getValuesArray()[4], 1.0);
-    CHECK_EQ(spmat.getValuesArray()[5], 9.0);
+    CHECK_EQ(spmat.getValuesArray()[3], 0.0);
+    CHECK_EQ(spmat.getValuesArray()[4], 8.0);
+    CHECK_EQ(spmat.getValuesArray()[5], 1.0);
+    CHECK_EQ(spmat.getValuesArray()[6], 9.0);
 
     CHECK_EQ(spmat.getColumnsArray()[0], 1);
     CHECK_EQ(spmat.getColumnsArray()[1], 2);
     CHECK_EQ(spmat.getColumnsArray()[2], 4);
-    CHECK_EQ(spmat.getColumnsArray()[3], 3);
+    CHECK_EQ(spmat.getColumnsArray()[3], 2);
     CHECK_EQ(spmat.getColumnsArray()[4], 3);
-    CHECK_EQ(spmat.getColumnsArray()[5], 4);
+    CHECK_EQ(spmat.getColumnsArray()[5], 3);
+    CHECK_EQ(spmat.getColumnsArray()[6], 4);
 
-    CHECK_EQ(spmat.getIofeirArray()[0], 0);
-    CHECK_EQ(spmat.getIofeirArray()[1], 3);
-    CHECK_EQ(spmat.getIofeirArray()[2], 4);
-    CHECK_EQ(spmat.getIofeirArray()[3], 5);
-    CHECK_EQ(spmat.getIofeirArray()[4], 6);
+    CHECK_EQ(spmat.getIofeirArray()[0], 1);
+    CHECK_EQ(spmat.getIofeirArray()[1], 4);
+    CHECK_EQ(spmat.getIofeirArray()[2], 6);
+    CHECK_EQ(spmat.getIofeirArray()[3], 7);
+    CHECK_EQ(spmat.getIofeirArray()[4], 8);
   }
 
   cout << "Create two matrices with the same SparsityInfo" << endl;
@@ -213,11 +215,11 @@ int main() {
       CHECK_EQ(B.getColumnsArray()[5], 2);
       CHECK_EQ(B.getColumnsArray()[6], 3);
 
-      CHECK_EQ(B.getIofeirArray()[0], 0);
-      CHECK_EQ(B.getIofeirArray()[1], 3);
-      CHECK_EQ(B.getIofeirArray()[2], 5);
-      CHECK_EQ(B.getIofeirArray()[3], 6);
-      CHECK_EQ(B.getIofeirArray()[4], 7);
+      CHECK_EQ(B.getIofeirArray()[0], 1);
+      CHECK_EQ(B.getIofeirArray()[1], 4);
+      CHECK_EQ(B.getIofeirArray()[2], 6);
+      CHECK_EQ(B.getIofeirArray()[3], 7);
+      CHECK_EQ(B.getIofeirArray()[4], 8);
       // destroy B here
     }
 
@@ -243,11 +245,11 @@ int main() {
     CHECK_EQ(A.getColumnsArray()[5], 2);
     CHECK_EQ(A.getColumnsArray()[6], 3);
 
-    CHECK_EQ(A.getIofeirArray()[0], 0);
-    CHECK_EQ(A.getIofeirArray()[1], 3);
-    CHECK_EQ(A.getIofeirArray()[2], 5);
-    CHECK_EQ(A.getIofeirArray()[3], 6);
-    CHECK_EQ(A.getIofeirArray()[4], 7);
+    CHECK_EQ(A.getIofeirArray()[0], 1);
+    CHECK_EQ(A.getIofeirArray()[1], 4);
+    CHECK_EQ(A.getIofeirArray()[2], 6);
+    CHECK_EQ(A.getIofeirArray()[3], 7);
+    CHECK_EQ(A.getIofeirArray()[4], 8);
 
   }
 

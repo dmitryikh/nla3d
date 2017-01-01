@@ -23,9 +23,8 @@ void VtkProcessor::pre(){
 
   // find which nodal Dofs used in FEStorage and add to list nodalDofTypes for printing out into VTK
   // file
-  uint16 nd = storage->getNumberOfUniqueNodeDofTypes();
-  for (uint16 i = 0; i < nd; i++) {
-    Dof::dofType type = storage->getNthUniqueNodeDofType(i);
+  auto u_dofs = storage->getUniqueNodeDofTypes();
+  for (auto type : u_dofs) {
     // take care of displacement dofs: if one of them exist in storage we need to write 3x1 vector
     // into VTK (for wrapping)
     if (type == Dof::UX || type == Dof::UY || type == Dof::UZ) {
@@ -36,10 +35,9 @@ void VtkProcessor::pre(){
   }
 
   // the same for Element dofs
-  nd = storage->getNumberOfUniqueElementDofTypes();
-  for (uint16 i = 0; i < nd; i++) {
-    Dof::dofType type = storage->getNthUniqueElementDofType(i);
-    nodalDofTypes.insert(type);
+  u_dofs = storage->getUniqueElementDofTypes();
+  for (auto type : u_dofs) {
+    elementDofTypes.insert(type);
   }
 
   // write zero VTK file (before solution)
