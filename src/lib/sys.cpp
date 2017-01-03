@@ -3,7 +3,6 @@
 // https://github.com/dmitryikh/nla3d 
 
 #include "sys.h"
-#include "FEStorage.h"
 
 // obligatory macros to initialize easyloggingpp system
 INITIALIZE_EASYLOGGINGPP

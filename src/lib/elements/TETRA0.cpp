@@ -13,7 +13,7 @@ void ElementTETRA0::pre () {
 }
 
 // here stiffness matrix is built
-void ElementTETRA0::build () {
+void ElementTETRA0::buildK() {
   // Ke will store element stiffness matrix in global coordinates
   math::MatSym<12> matKe;
   matKe.zero();
@@ -38,7 +38,7 @@ void ElementTETRA0::build () {
 
   // start assemble procedure. Here we should provide element stiffness matrix and an order of 
   // nodal DoFs in the matrix.
-  assemble(matKe, {Dof::UX, Dof::UY, Dof::UZ});
+  assembleK(matKe, {Dof::UX, Dof::UY, Dof::UZ});
 }
 
 // after solution it's handy to calculate stresses, strains and other stuff in elements.

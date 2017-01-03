@@ -22,14 +22,14 @@ public:
 // ElementTETRA::pre () registers Dof::UX, Dof::UY, Dof::UZ as DoFs in every node.
   void pre();
 
-// build() - a central point in element class. Here the element should build element stiffness
+// buildK() - a central point in element class. Here the element should build element stiffness
 // matrix (actually, tangential matrix, as soon as we make non-linear-ready elements). The element
 // also responsible for assembling its local stiffness matrix into global system of equations
 // matrix. Fro this purpose here is a special procedure in base class Element::assemble(..). Also,
 // the element should assemble right hand side (rhs) of equations related to this element
 // (especially used in non-linear analysis).
 //
-  void build();
+  void buildK();
 // update() - the function updates internal state of the element based on found solution of
 // global equation system. For example, here you can calculate stresses in the element which depends
 // on found DoFs solution.

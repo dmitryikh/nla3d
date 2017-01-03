@@ -24,8 +24,8 @@ class ElementPLANE41 : public ElementIsoParamQUAD {
 
     //solving procedures
     void pre();
-    void build();
-    void update ();
+    void buildK();
+    void update();
     math::Mat<3,8> make_B (uint16 nPoint);  //функция создает линейную матрицу [B]
     math::Mat<4,8> make_Bomega (uint16 nPoint); //функция создает линейную матрицу [Bomega]
 
@@ -48,11 +48,11 @@ class ElementPLANE41 : public ElementIsoParamQUAD {
 
 
     template <uint16 el_dofs_num>
-    void assemble (const math::Mat<el_dofs_num,el_dofs_num> &Ke, const math::Vec<el_dofs_num> &Qe);
+    void assembleK(const math::Mat<el_dofs_num,el_dofs_num> &Ke, const math::Vec<el_dofs_num> &Qe);
 };
 
 template <uint16 el_dofs_num>
-void ElementPLANE41::assemble (const math::Mat<el_dofs_num,el_dofs_num> &Ke, const math::Vec<el_dofs_num> &Qe)
+void ElementPLANE41::assembleK(const math::Mat<el_dofs_num,el_dofs_num> &Ke, const math::Vec<el_dofs_num> &Qe)
 {
   uint16 dim = 2;
   uint16 eds = 8;
@@ -67,7 +67,7 @@ void ElementPLANE41::assemble (const math::Mat<el_dofs_num,el_dofs_num> &Ke, con
         for (uint16 dj=0; dj < dim; dj++)
           if ((i==j) && (dj>di)) continue;
           else
-            storage->Kij_add(nodes[i], nodeDofVec[di],nodes[j],nodeDofVec[dj], Ke[i*dim+di][j*dim+dj]);
+            storage->addValueK(nodes[i], nodeDofVec[di],nodes[j],nodeDofVec[dj], Ke[i*dim+di][j*dim+dj]);
 
   //upper diagonal process for nodes-el dofs
   for (uint16 i=0; i < getNNodes(); i++)
@@ -75,7 +75,7 @@ void ElementPLANE41::assemble (const math::Mat<el_dofs_num,el_dofs_num> &Ke, con
       uint32 noEq = storage->getNodeDofEqNumber(nodes[i], nodeDofVec[di]);
       for (uint16 dj=0; dj < eldofs; dj++) {
         uint32 elEq = storage->getElementDofEqNumber(getElNum(), elementDofVec[dj]);
-        storage->Kij_add(noEq, elEq, Ke[i*dim+di][eds+dj]);
+        storage->addValueK(noEq, elEq, Ke[i*dim+di][eds+dj]);
       }
     }
   //upper diagonal process for el-el dofs
@@ -83,16 +83,16 @@ void ElementPLANE41::assemble (const math::Mat<el_dofs_num,el_dofs_num> &Ke, con
     for (uint16 dj=di; dj < eldofs; dj++) {
       uint32 elEqi = storage->getElementDofEqNumber(getElNum(), elementDofVec[di]);
       uint32 elEqj = storage->getElementDofEqNumber(getElNum(), elementDofVec[dj]);
-      storage->Kij_add(elEqi, elEqj, Ke[eds+di][eds+dj]);
+      storage->addValueK(elEqi, elEqj, Ke[eds+di][eds+dj]);
     }
 
   for (uint16 i=0; i < getNNodes(); i++)
     for (uint16 di=0; di < dim; di++)
-      storage->Fi_add(nodes[i], nodeDofVec[di], Qe[i*dim+di]);
+      storage->addValueF(nodes[i], nodeDofVec[di], Qe[i*dim+di]);
 
   for (uint16 di=0; di < eldofs; di++) {
     uint32 elEq = storage->getElementDofEqNumber(getElNum(), elementDofVec[di]);
-    storage->Fi_add(elEq, Qe[eds+di]);
+    storage->addValueF(elEq, Qe[eds+di]);
   }
 }
 

@@ -16,7 +16,6 @@ SparsityInfo::SparsityInfo(uint32 _nrows, uint32 _ncols, uint32 _max_in_row) {
   nRows = _nrows;
   nColumns = _ncols;
 
-
   maxInRow = _max_in_row < nColumns  ? _max_in_row : nColumns;
 	columns = new uint32[nRows * maxInRow];
   std::fill_n(columns, nRows * maxInRow, invalid);
@@ -29,7 +28,7 @@ SparsityInfo::SparsityInfo(uint32 _nrows, uint32 _ncols, uint32 _max_in_row) {
 }
 
 // row and column positions are started from 1
-void SparsityInfo::add(uint32 _i, uint32 _j) {
+void SparsityInfo::addEntry(uint32 _i, uint32 _j) {
   assert(iofeir != nullptr);
   assert(columns != nullptr);
   assert(_i > 0 && _i <= nRows);
@@ -41,12 +40,14 @@ void SparsityInfo::add(uint32 _i, uint32 _j) {
   for (uint32 i = st; i < en; i++) {
     // if element already in matrix
     if (columns[i] == _j) return;
+    // have a space to store new entry in the row
     if (columns[i] == invalid) {
       columns[i] = _j;
       numberOfValues++;
       return;
     }
   }
+  // no more room for new entry
   LOG(FATAL) << "maxInRow overflow!";
 }
 
@@ -122,7 +123,6 @@ uint32 SparsityInfo::getIndex(uint32 _i, uint32 _j) {
 }
 
 
-
 void BaseSparseMatrix::printInternalData(std::ostream& out) {
   assert(si);
   assert(values);
@@ -149,19 +149,26 @@ void BaseSparseMatrix::printInternalData(std::ostream& out) {
 	out << "}" << std::endl;
 }
 
-BaseSparseMatrix::BaseSparseMatrix(uint32 nrows, uint32 ncolumns, uint32 max_in_row) {
+BaseSparseMatrix::BaseSparseMatrix(uint32 _nrows, uint32 _ncolumns, uint32 _max_in_row) {
   // create it's own SparsityInfo instance
-  si = std::shared_ptr<SparsityInfo>(new SparsityInfo(nrows, ncolumns, max_in_row));
+  si = std::shared_ptr<SparsityInfo>(new SparsityInfo(_nrows, _ncolumns, _max_in_row));
 }
 
 BaseSparseMatrix::BaseSparseMatrix(std::shared_ptr<SparsityInfo> spar_info) {
   assert(spar_info);
-  // use already exist SparsityInfo instance. It can in compressed = false state or already compressed = true state
+  // use already exist SparsityInfo instance. It can in compressed = false state or already
+  // compressed = true state
   si = spar_info;
+  // if we add SparsityInfo with alreade fixed number of entries we are ready to allocate values
+  if (si->compressed == true) 
+    compress();
 }
 
 BaseSparseMatrix::~BaseSparseMatrix() {
-	clear();
+  if (values) {
+      delete[] values;
+      values = nullptr;
+    }
 }
 
 void BaseSparseMatrix::compress() {
@@ -179,16 +186,9 @@ void BaseSparseMatrix::compress() {
   zero();
 }
 
-void BaseSparseMatrix::clear() {
-	if (values) {
-    delete[] values;
-    values = nullptr;
-  }
-}
 
-
-SparseMatrix::SparseMatrix(uint32 nrows, uint32 ncolumns, uint32 max_in_row) :
-    BaseSparseMatrix(nrows, ncolumns, max_in_row)
+SparseMatrix::SparseMatrix(uint32 _nrows, uint32 _ncolumns, uint32 _max_in_row) :
+    BaseSparseMatrix(_nrows, _ncolumns, _max_in_row)
 {
 
 }
@@ -300,13 +300,13 @@ double SparseMatrix::value(uint32 _i, uint32 _j) const {
 }
 
 
-SparseSymMatrix::SparseSymMatrix(uint32 nrows, uint32 max_in_row) :
-    BaseSparseMatrix(nrows, nrows, max_in_row)
+SparseSymMatrix::SparseSymMatrix(uint32 _nrows, uint32 _max_in_row) :
+    BaseSparseMatrix(_nrows, _nrows, _max_in_row)
 {
   assert(si);
   // NOTE: need to add diagonal elements because MKL PARDISO need it anyway
   for (uint32 i = 1; i <= si->nRows; i++) {
-    si->add(i, i);
+    si->addEntry(i, i);
   }
 }
 
@@ -314,7 +314,7 @@ SparseSymMatrix::SparseSymMatrix(std::shared_ptr<SparsityInfo> spar_info) :
     BaseSparseMatrix(spar_info)
 {
   // TODO: we need to check that spar_info meets symmetry requirements
-  // Let's at leas check that is is rectangular
+  // Let's at least check that is is rectangular
 
   assert(spar_info->nRows == spar_info->nColumns);
 }

@@ -6,14 +6,14 @@ ElementTRUSS3::ElementTRUSS3 () {
   type = ElementType::TRUSS3;
 }
 
-void ElementTRUSS3::pre () {
+void ElementTRUSS3::pre() {
   for (uint16 i = 0; i < getNNodes(); i++) {
     storage->addNodeDof(getNodeNumber(i), {Dof::UX, Dof::UY, Dof::UZ});
   }
 }
 
 // here stiffness matrix is building with Eignen's library matrix routines
-void ElementTRUSS3::build () {
+void ElementTRUSS3::buildK() {
   // Ke will store element stiffness matrix
   Eigen::MatrixXd Ke(6,6);
   // T for transformation matrix (to map governing equations from an element local coordinate system
@@ -56,12 +56,12 @@ void ElementTRUSS3::build () {
 
   // start assemble procedure. Here we should provide element stiffness matrix and an order of 
   // nodal DoFs in the matrix.
-  assemble(Ke, {Dof::UX, Dof::UY, Dof::UZ});
+  assembleK(Ke, {Dof::UX, Dof::UY, Dof::UZ});
 }
 
 // after solution it's handy to calculate stresses, strains and other stuff in elements. In this
 // case a truss stress will be restored
-void ElementTRUSS3::update () {
+void ElementTRUSS3::update() {
   // T for transformation matrix
   Eigen::MatrixXd T(2,6);
   // B for strain matrix

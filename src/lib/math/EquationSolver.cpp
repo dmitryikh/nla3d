@@ -3,8 +3,6 @@
 // https://github.com/dmitryikh/nla3d 
 
 #include "math/EquationSolver.h"
-#include "math/Mat.h"
-#include "math/SparseMatrix.h"
 
 #ifdef NLA3D_USE_MKL
 #include <mkl.h>
@@ -27,19 +25,43 @@ void EquationSolver::setPositive (bool positive) {
 
 void GaussDenseEquationSolver::solveEquations (math::SparseSymMatrix* matrix, double* rhs, double* unknowns) {
   TIMED_SCOPE(t, "solveEquations");
-  numberOfEquations = matrix->getNumberOfRows();
-  CHECK(nrhs == 1) << "GaussDenseEquationSolver support only 1 set of rhs values";
-  dMat denseMatrix(numberOfEquations, numberOfEquations);
-  for (uint16 i = 0; i < numberOfEquations; i++)
-    for (uint16 j = 0; j < numberOfEquations; j++)
-      // NOTE: SparseMatrix getters works with indexes started from 1
-      // TODO: we can fill dense matrix from sparse one in a more optimized way
-      denseMatrix[i][j] = matrix->value(i+1, j+1);
-  bool res = _solve(unknowns, denseMatrix.ptr(), rhs, numberOfEquations);
-  
-  CHECK(res == true) << "ERROR during solution";
+  factorizeEquations(matrix);
+  substituteEquations(matrix, rhs, unknowns);
 }
 
+
+void GaussDenseEquationSolver::factorizeEquations(math::SparseSymMatrix* matrix) {
+  // nothing to do here..
+  nEq = matrix->nRows();
+  CHECK(nEq < 1000) << "GaussDenseEquationSolver works only with number of equations less than 1000";
+}
+
+
+void GaussDenseEquationSolver::substituteEquations(math::SparseSymMatrix* matrix,
+                                                   double* rhs, double* unknowns) {
+  // NOTE: actually here we perform all steps factorization and substitution
+  // because this is simplest solver dedicated to perform functional tests
+  //
+  CHECK(nrhs == 1) << "GaussDenseEquationSolver support only 1 set of rhs values";
+  
+
+  if (matA.dM() == nEq && matA.dN() == nEq) {
+    matA.zero();
+  } else {
+    matA.resize(nEq, nEq);
+  }
+
+  // fill dense matA from sparse matrix
+  for (uint16 i = 0; i < nEq; i++)
+    for (uint16 j = 0; j < nEq; j++)
+      // NOTE: SparseMatrix getters works with indexes started from 1
+      // TODO: we can fill dense matrix from sparse one in a more optimized way
+      matA[i][j] = matrix->value(i+1, j+1);
+
+  bool res = _solve(unknowns, matA.ptr(), rhs, nEq);
+
+  CHECK(res == true) << "ERROR during solution";
+}
 
 bool GaussDenseEquationSolver::_solve(double* X, double* A,
                                double* B, int n)
@@ -120,12 +142,38 @@ PARDISO_equationSolver::~PARDISO_equationSolver () {
 
 void PARDISO_equationSolver::solveEquations (math::SparseSymMatrix* matrix, double* rhs, double* unknowns) {
   TIMED_SCOPE(t, "solveEquations");
+
+  factorizeEquations(matrix);
+  substituteEquations(matrix, rhs, unknowns);
+}
+
+
+void PARDISO_equationSolver::substituteEquations(math::SparseSymMatrix* matrix,
+                                                 double* rhs, double* unknowns) {
+
+	//Back substitution and iterative refinement
+
+  // initialize error code
+	int error = 0; 
+	int phase = 33;
+  int n = static_cast<int> (nEq);
+	PARDISO(pt, &maxfct, &mnum, &mtype, &phase,	&n, matrix->getValuesArray(),
+      (int*) matrix->getIofeirArray(),
+      (int*) matrix->getColumnsArray(),
+			NULL, &nrhs, iparm, &msglvl, rhs, unknowns, &error);
+
+	CHECK(error == 0) << "ERROR during solution. Error code = " << error;
+}
+
+
+void PARDISO_equationSolver::factorizeEquations(math::SparseSymMatrix* matrix) {
+  TIMED_SCOPE(t, "factorizeEquations");
   if (firstRun) {
     initializePARDISO(matrix);
   }
   firstRun = false;
 
-  CHECK(numberOfEquations == matrix->getNumberOfRows());
+  CHECK(nEq == matrix->nRows());
   
 	int phase;
 
@@ -134,7 +182,7 @@ void PARDISO_equationSolver::solveEquations (math::SparseSymMatrix* matrix, doub
 
 	// phase 22 is the numerical factorization
 	phase = 22;
-  int n = static_cast<int> (numberOfEquations);
+  int n = static_cast<int> (nEq);
 
 	PARDISO(pt, &maxfct, &mnum, &mtype, &phase, &n, matrix->getValuesArray(), 
       (int*) matrix->getIofeirArray(),
@@ -142,14 +190,6 @@ void PARDISO_equationSolver::solveEquations (math::SparseSymMatrix* matrix, doub
 			NULL, &nrhs, iparm, &msglvl, NULL, NULL, &error);
   CHECK(error == 0) << "ERROR during numerical factorization. Error code = " << error;
 
-	//Back substitution and iterative refinement
-	phase = 33;
-	PARDISO(pt, &maxfct, &mnum, &mtype, &phase,	&n, matrix->getValuesArray(),
-      (int*) matrix->getIofeirArray(),
-      (int*) matrix->getColumnsArray(),
-			NULL, &nrhs, iparm, &msglvl, rhs, unknowns, &error);
-
-	CHECK(error == 0) << "ERROR during solution. Error code = " << error;
 }
 
 void PARDISO_equationSolver::initializePARDISO (math::SparseSymMatrix* matrix) {
@@ -185,8 +225,8 @@ void PARDISO_equationSolver::initializePARDISO (math::SparseSymMatrix* matrix) {
     mtype = -2;
   }
 
-  numberOfEquations = matrix->getNumberOfRows();
-  int n = static_cast<int> (numberOfEquations);
+  nEq = matrix->nRows();
+  int n = static_cast<int> (nEq);
 
   // initialize error code
 	int error = 0; 
@@ -203,7 +243,7 @@ void PARDISO_equationSolver::initializePARDISO (math::SparseSymMatrix* matrix) {
 
 void PARDISO_equationSolver::releasePARDISO () {
   int phase = -1;
-  int n = static_cast<int> (numberOfEquations);
+  int n = static_cast<int> (nEq);
 
   // initialize error code
 	int error = 0; 

@@ -38,14 +38,14 @@ public:
 // (strains and stresses in integration points in finite deformations analysis, for example).
 // ElementTRUSS3::pre () registers Dof::UX, Dof::UY, Dof::UZ as DoFs in every node.
   void pre();
-// 3. build() - a central point in element class. Here the element should build element stiffness
+// 3. buildK() - a central point in element class. Here the element should build element stiffness
 // matrix (actually, tangential matrix, as soon as we make non-linear-ready elements). The element
 // also responsible for assembling its local stiffness matrix into global system of equations
 // matrix. Fro this purpose here is a special procedure in base class Element::assemble(..). Also,
 // the element should assemble right hand side (rhs) of equations related to this element
 // (especially used in non-linear analysis).
-// see ElementTRUSS3::build() body for more comments on the particular realisation.
-  void build();
+// see ElementTRUSS3::buildK() body for more comments on the particular realisation.
+  void buildK();
 // 4. update() - the function updates internal state of the element based on found solution of
 // global equation system. For example, here you can calculate stresses in the element which depends
 // on found DoFs solution.

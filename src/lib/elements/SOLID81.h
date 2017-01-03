@@ -23,7 +23,7 @@ class ElementSOLID81 : public ElementIsoParamHEXAHEDRON {
 
     //solving procedures
     void pre();
-    void build();
+    void buildK();
     void update();
 
     void make_B_L (uint16 nPoint, math::Mat<6,24> &B);	//функция создает линейную матрицу [B]
@@ -68,7 +68,7 @@ void ElementSOLID81::assemble3(math::MatSym<dimM> &Kuu, math::Vec<dimM> &Kup, do
 					if ((i==j) && (dj<di)) continue;
 					else
 					{
-						storage->Kij_add(nodes[i],dofVec[di],nodes[j], dofVec[dj], *Kuu_p);
+						storage->addValueK(nodes[i],dofVec[di],nodes[j], dofVec[dj], *Kuu_p);
 						Kuu_p++;
 					}
 				}
@@ -77,20 +77,20 @@ void ElementSOLID81::assemble3(math::MatSym<dimM> &Kuu, math::Vec<dimM> &Kup, do
 	for (uint16 i=0; i < getNNodes(); i++) {
 		for(uint16 di=0; di < dim; di++) {
       uint32 rowEq = storage->getNodeDofEqNumber(nodes[i], dofVec[di]);
-      storage->Kij_add(rowEq, elEq, *Kup_p);
+      storage->addValueK(rowEq, elEq, *Kup_p);
       Kup_p++;
     }
   }
 	//upper diagonal process for el-el dofs
-  storage->Kij_add(elEq, elEq,  Kpp);
+  storage->addValueK(elEq, elEq,  Kpp);
 
 	for (uint16 i=0; i < getNNodes(); i++) {
 		for (uint16 di=0; di < dim; di++) {
-			storage->Fi_add(nodes[i], dofVec[di], *Fu_p);
+			storage->addValueF(nodes[i], dofVec[di], *Fu_p);
 			Fu_p++;
 		}
   }
-  storage->Fi_add(elEq, Fp);
+  storage->addValueF(elEq, Fp);
 }
 
 } // namespace nla3d

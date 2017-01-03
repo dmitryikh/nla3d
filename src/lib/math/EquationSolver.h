@@ -4,6 +4,8 @@
 
 #pragma once
 #include "sys.h"
+#include "math/Mat.h"
+#include "math/SparseMatrix.h"
 
 namespace nla3d {
 
@@ -17,11 +19,13 @@ class SparseSymMatrix;
 class EquationSolver {
 public:
   virtual ~EquationSolver() { };
-  virtual void solveEquations (math::SparseSymMatrix* matrix, double* rhs, double* unknowns) = 0;
+  virtual void solveEquations(math::SparseSymMatrix* matrix, double* rhs, double* unknowns) = 0;
+  virtual void factorizeEquations(math::SparseSymMatrix* matrix) = 0;
+  virtual void substituteEquations(math::SparseSymMatrix* matrix, double* rhs, double* unknowns) = 0;
   void setSymmetric (bool symmetric = true);
   void setPositive (bool positive = true);
 protected:
-  uint32 numberOfEquations = 0;
+  uint32 nEq = 0;
 
   // number of rhs 
 	int nrhs = 1; 
@@ -33,8 +37,12 @@ class GaussDenseEquationSolver : public EquationSolver {
 public:
   virtual ~GaussDenseEquationSolver() { };
   virtual void solveEquations (math::SparseSymMatrix* matrix, double* rhs, double* unknowns);
+  virtual void factorizeEquations(math::SparseSymMatrix* matrix);
+  virtual void substituteEquations(math::SparseSymMatrix* matrix, double* rhs, double* unknowns);
   static bool _solve(double* X, double* A, double* B, int n);
 protected:
+
+  dMat matA = dMat(1, 1);
 };
 
 #ifdef NLA3D_USE_MKL
@@ -42,6 +50,8 @@ class PARDISO_equationSolver : public EquationSolver {
 public:
   virtual ~PARDISO_equationSolver();
   virtual void solveEquations (math::SparseSymMatrix* matrix, double* rhs, double* unknowns);
+  virtual void factorizeEquations(math::SparseSymMatrix* matrix);
+  virtual void substituteEquations(math::SparseSymMatrix* matrix, double* rhs, double* unknowns);
 protected:
   void initializePARDISO (math::SparseSymMatrix* matrix);
   void releasePARDISO ();

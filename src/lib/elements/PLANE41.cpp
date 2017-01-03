@@ -28,7 +28,7 @@ void ElementPLANE41::pre() {
   storage->addElementDof(getElNum(), {Dof::HYDRO_PRESSURE});
 }
 
-void ElementPLANE41::build () {
+void ElementPLANE41::buildK() {
   Mat<8,8> Kuu;  // displacement stiff. matrix
   Mat<8,1> Kup;
   Mat<9,9> Ke;  // element stiff. matrix
@@ -100,7 +100,7 @@ void ElementPLANE41::build () {
     Fe[i] = -Qe[i];
   Fe[8] = -Fp;
   //загнать в глоб. матрицу жесткости и узловых сил
-  assemble(Ke, Fe);
+  assembleK(Ke, Fe);
 }
 //
 inline Mat<3,8> ElementPLANE41::make_B(uint16 np) {

@@ -34,7 +34,8 @@ Element& Element::operator= (const Element& from)
 }
 
 
-void Element::assemble (Eigen::Ref<Eigen::MatrixXd> Ke, std::initializer_list<Dof::dofType> _nodeDofs) {
+void Element::assembleK(Eigen::Ref<Eigen::MatrixXd> Ke,
+                       std::initializer_list<Dof::dofType> _nodeDofs) {
   assert (nodes != NULL);
   assert (Ke.rows() == Ke.cols());
   std::vector<Dof::dofType> nodeDof(_nodeDofs);
@@ -48,13 +49,23 @@ void Element::assemble (Eigen::Ref<Eigen::MatrixXd> Ke, std::initializer_list<Do
           if ((i==j) && (dj<di)) {
             continue;
           } else {
-            storage->Kij_add(nodes[i], nodeDof[di], nodes[j], nodeDof[dj], 
+            storage->addValueK(nodes[i], nodeDof[di], nodes[j], nodeDof[dj], 
                 Ke.selfadjointView<Eigen::Upper>()(i*dim+di, j*dim +dj));
           }
         }
       }
     }
   }
+}
+
+
+void Element::buildC() {
+  LOG(FATAL) << "buildC is not implemented";
+}
+
+
+void Element::buildM() {
+  LOG(FATAL) << "buildM is not implemented";
 }
 
 void Element::getScalar(double& scalar, query::scalarQuery code, uint16 gp, const double scale) {

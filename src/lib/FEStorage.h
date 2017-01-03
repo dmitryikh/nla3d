@@ -29,54 +29,74 @@ public:
 	FEStorage();
 	~FEStorage();
 
-  // A pointer to Material instance. nla3d supports only one material for FE model.
-  // Thats why this here is just a pointer to a material. External code should create material instance and
-  // pass it to FEStorage. Then FEStorage takes a control on material. The material will be deleted in ~FEStorage().
-	Material* material;
+  // A pointer to Material instance. nla3d supports only one material for FE model.  Thats why this
+  // here is just a pointer to a material. External code should create material instance and pass it
+  // to FEStorage. Then FEStorage takes a control on material. The material will be deleted in
+  // ~FEStorage().
+  Material* material;
 
-  // Operations for prepearing the global system of equations
+  // Operations for preparing the global system of equations
   //
-  // The function add value to an element of global system of equations matrix (stifness matrix).
-  // For example: Kij_add(32, Dof::UX, 42, Dof::UZ, 0.32) will add 0.32 to a corresponding
-  // element in a global stifness matrix.
+  // These functions add a value to an element of global system of equations matrix (stiffness matrix).
+  // For example: addValueK(32, Dof::UX, 42, Dof::UZ, 0.32) will add 0.32 to a corresponding
+  // element in a global stiffness matrix.
   // NOTE: node > 0
-  // NOTE: use Kij_add(uint32 nodei, ...) to add nodal Dof vs nodal Dof value
-  // or use Kij_add(uint32 eqi, ..) to add value for equation number i vs equation number j (more general case)
-  void Kij_add(uint32 nodei, Dof::dofType dofi, uint32 nodej, Dof::dofType dofj, double value);
-  void Kij_add(uint32 eqi, uint32 eqj, double value);
+  // NOTE: use addValueK(uint32 nodei, ...) to add nodal Dof vs nodal Dof value
+  // or use addValueK(uint32 eqi, ..) to add value for equation number i vs equation number j (more general case)
+  void addValueK(uint32 nodei, Dof::dofType dofi, uint32 nodej, Dof::dofType dofj, double value);
+  void addValueK(uint32 eqi, uint32 eqj, double value);
+
+
+  // for damping matrix
+  void addValueC(uint32 nodei, Dof::dofType dofi, uint32 nodej, Dof::dofType dofj, double value);
+  void addValueC(uint32 eqi, uint32 eqj, double value);
+
+  // for mass matrix
+  void addValueM(uint32 nodei, Dof::dofType dofi, uint32 nodej, Dof::dofType dofj, double value);
+  void addValueM(uint32 eqi, uint32 eqj, double value);
+
   // Add value to a matrix of MPC coefficients for DoFs.
-  void Cij_add(uint32 eq_num, uint32 nodej, Dof::dofType dofj, double coef);
-  void Cij_add(uint32 eq_num, uint32 eqj, double coef);
-  // Add value to external DoF forces vector
-  // NOTE: node > 0 for nodal DoFs, node < 0 for element DoFs.
-  void Fi_add(uint32 nodei, Dof::dofType dofi, double value);
-  void Fi_add(uint32 eqi, double value);
+  void addValueMPC(uint32 eq_num, uint32 nodej, Dof::dofType dofj, double coef);
+  void addValueMPC(uint32 eq_num, uint32 eqj, double coef);
+  // Add value to RHS of global system of equations
+  // NOTE: node > 0
+  // NOTE: use addValueF(uint32 nodei, ...) to add nodal Dof RHS value
+  // or use addValueF(uint32 eqi, ..) to add value for equation number i (more general case)
+  void addValueF(uint32 nodei, Dof::dofType dofi, double value);
+  void addValueF(uint32 eqi, double value);
 
   // fill with zeros the matrix of global system of equations. As far as global system of equations consist of
-  // different blocks, zeroK() zeros next sparse matrices: KssCsT, Kcc, Kcs, Cc 
+  // different blocks, zeroK() zeros next sparse matrices: KssMPCsT, Kcc, Kcs, MPCc 
 	void zeroK();
-  // fill with zeros the vector of external forces (right hand sides), solutionDeltaValues vector
+	void zeroC();
+	void zeroM();
+  // fill with zeros the vector of RHS (right hand side), solutionDeltaValues vector
   // and mpcConstantValues.
 	void zeroF();
-  // get the matrix of the system of equations. The matrix is in sparse format.
-  // In current realisation the matrix is symmetric, but not positive defined, because of MPC
-  // equations (zeros on diagonals in lagrangian columns x rows) 
-  math::SparseSymMatrix* getGlobalEqMatrix();
-  // get right hand side of the system of equations. 
-	double* getGlobalEqRhs ();
+
+  // get the K matrix (stiffness) of the global system of equations.  In current realization the
+  // matrix is symmetric, but not positive defined, because of MPC equations (zeros on diagonals in
+  // Lagrangian columns x rows) 
+  math::SparseSymMatrix* getK();
+  math::SparseSymMatrix* getC();
+  math::SparseSymMatrix* getM();
+
+  // get right hand side of the global system of equations. 
+	double* getF();
   // get vector of Unknowns. Before solution procedure the vector is set to zero.
   // After the solution procedure the vector contain the solution of current equilibrium iteration
 	double* getGlobalEqUnknowns();
-  // Standart procedure for filling global equations system with coefficients.
-  // The function fills with zeros the matrix and then call elements[i]->build() and
-  // mpcCollection[j]->update() to fill the matrix.
-  void assembleGlobalEqMatrix();
+  // Procedure of filling global equations system with coefficients.
+  void assembleGlobalEqMatrices();
 
 	uint32 getNumberOfNodes ();
 	uint32 getNumberOfElements ();
 	uint32 getNumberOfUnknownDofs ();
 	uint32 getNumberOfConstrainedDofs ();
 	uint32 getNumberOfMpcEq ();
+
+  void setTransient(bool _transient);
+  bool isTransient();
 
   // Operations with DoFs
   //
@@ -209,6 +229,10 @@ public:
   // * find reactions for constrained DoFs;
   // * elements[i]->update()
 	void updateSolutionResults();
+
+  // TODO: this kludge as far as updateTimestepResults and updateSolutionResults should be combined
+  // into one function
+  void updateTimestepResults();
   
   // The function applies boundary conditions
   // The function receives current normalized time (in range [0.0; 1.0]) and normalized time delta
@@ -216,8 +240,8 @@ public:
 
 private:
   void learnTopology();
-  void _Kij_reg(uint32 eqi, uint32 eqj);
-  void _Cij_reg(uint32 eq_num, uint32 eqj);
+  void addEntryK(uint32 eqi, uint32 eqj);
+  void addEntryMPC(uint32 eq_num, uint32 eqj);
 
 	uint32 numberOfNodes;
 	uint32 numberOfElements;
@@ -273,19 +297,29 @@ private:
   // That means that Mpc instances are dynamically created in MpcCollection, but then FEStorage class takes control on it.
   // And FEStorage deletes Mpc by itself when it's needed.
   std::vector<MpcCollection*> mpcCollections;
-  // TODO: here we store block matrix as 4 independed sparse matrices. It would be better to store
+  // TODO: here we store block matrix as 4 independent sparse matrices. It would be better to store
   // all of them in block matrix class (need to develop)
-  // Matrix to be solved = [Kss,CsT;Cs,0] - see details of how nla3d treats global system of equations 
+  // Matrix to be solved = [Kss,MPCsT;MPCs,0] - see details of how nla3d treats global system of equations 
   // in FEStorage::initializeSolutionData()
-  math::SparseSymMatrix* KssCsT; 
-  // Cc - a part of the global system of equations, MPC equation constants for constrained DoFs
-  math::SparseMatrix *Cc; 
+  math::SparseSymMatrix* KssMPCsT = nullptr; 
+  // MPCc - a part of the global system of equations, MPC equation constants for constrained DoFs
+  math::SparseMatrix* MPCc = nullptr; 
   // A part of the global K matrix with dimensions [numberOfConstrainedDofs x numberOfUnknownDofs]. It constaints of 
   // stiffness coefficients between constrained and unconstreined DoFs.
-  math::SparseMatrix *Kcs; 
+  math::SparseMatrix* Kcs = nullptr; 
   // A part of the global K matrix with dimensions [numberOfConstrainedDofs x numberOfConstrainedDofs]. It containts
   // of stiffness coefficients between constrained and constrained DoFs.
-  math::SparseSymMatrix *Kcc; 
+  math::SparseSymMatrix* Kcc = nullptr; 
+
+  // matrices for transient analysis:
+  // Damping matrix
+  math::SparseSymMatrix* CssMPCsT = nullptr; 
+  math::SparseMatrix* Ccs = nullptr; 
+  math::SparseSymMatrix* Ccc = nullptr;
+  // Damping matrix
+  math::SparseSymMatrix* MssMPCsT = nullptr; 
+  math::SparseMatrix* Mcs = nullptr; 
+  math::SparseSymMatrix* Mcc = nullptr; 
 
   // A found values after converged loadstep. solutionValues has a size of numberOfDofs + numberOfMpcEq.
   // The whole vector is divided into different parts: solutionValues = [dofValues; mpcLagrangianValues],
@@ -293,7 +327,7 @@ private:
   // And dofValues is also represented by two parts: dofValues = [constrainedDofValues; unknownDofValues],
   // where constrainedDofValues - is a part for constrained DoFs, and unknownDofValues - is a part for solved dofs.
   // NOTE that the memory is allocated only once for solutionValues pointer. And others pointers 
-  // just point to different starting adresses of solutionValues.
+  // just point to different starting addresses of solutionValues.
   std::vector<double> solutionValues;
   std::vector<double>::iterator dofValues;
   std::vector<double>::iterator constrainedDofValues;
@@ -344,6 +378,10 @@ private:
 
   // topology[node_number] = set of elements attached to it
   std::vector<std::set<uint32> > topology;
+
+  // if transient is true that means that assembleGlobalEqMatrices should assemble M and C matrices
+  // too
+  bool transient;
 };
 
 // read Ansys Mechanical APDL *.cdb file. Nodes, Elements, Displacement BC and MPC (Constraint equations) is supported

@@ -26,7 +26,7 @@ void ElementSOLID81::pre() {
 }
 
 
-void ElementSOLID81::build() {
+void ElementSOLID81::buildK() {
 
   double Kpp = 0.0;
   double Fp = 0.0;

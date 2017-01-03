@@ -20,12 +20,16 @@ class ElementQUADTH : public ElementIsoParamQUAD {
 
     //solving procedures
     void pre();
-    void build();
-    void update ();
+    void buildK();
+    void buildC();
+    void buildM() { };
+    void update();
     math::Mat<2,4> make_B (uint16 nPoint);  // make derivatives matrix
 
     // conductivity coef ( W/(K m), for example)
     double k = 0.0;
+    double rho = 0.0; // density
+    double c = 0.0; // capacity
 
     // volume flux
     double volFlux = 0.0;
@@ -40,8 +44,10 @@ class SurfaceLINETH : public ElementIsoParamLINE {
 
     //solving procedures
     void pre();
-    void build();
-    void update ();
+    void buildK();
+    void buildC() { };
+    void buildM() { };
+    void update();
 
     double flux = 0.0;
     double htc = 0.0;

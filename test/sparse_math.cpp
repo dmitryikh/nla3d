@@ -63,12 +63,12 @@ int main() {
   cout << "[ 2 8 5 9]" << endl;
   {
     SparseMatrix spmat(3, 4);
-    spmat.add(1, 2);
-    spmat.add(1, 4);
-    spmat.add(3, 1);
-    spmat.add(3, 2);
-    spmat.add(3, 3);
-    spmat.add(3, 4);
+    spmat.addEntry(1, 2);
+    spmat.addEntry(1, 4);
+    spmat.addEntry(3, 1);
+    spmat.addEntry(3, 2);
+    spmat.addEntry(3, 3);
+    spmat.addEntry(3, 4);
     spmat.compress();
     spmat.addValue(1, 2, 1.0);
     spmat.addValue(1, 4, 4.0);
@@ -110,12 +110,12 @@ int main() {
   cout << "[ s s s 9]" << endl;
   {
     SparseSymMatrix spmat(4);
-    spmat.add(1, 1);
-    spmat.add(1, 2);
-    spmat.add(1, 4);
-    spmat.add(3, 2);
-    spmat.add(3, 3);
-    spmat.add(4, 4);
+    spmat.addEntry(1, 1);
+    spmat.addEntry(1, 2);
+    spmat.addEntry(1, 4);
+    spmat.addEntry(3, 2);
+    spmat.addEntry(3, 3);
+    spmat.addEntry(4, 4);
     spmat.compress();
     spmat(1, 1) = 2.0;
     spmat(2, 1) = 3.0;
@@ -166,19 +166,19 @@ int main() {
   cout << "[ 0 0 0 0]" << endl;
   {
     SparseMatrix A(4,4);
-    A.add(1, 3);
-    A.add(2, 1);
+    A.addEntry(1, 3);
+    A.addEntry(2, 1);
     {
       // share SparsityInfo
       SparseMatrix B(A.getSparsityInfo());
       
-      A.add(2, 3);
-      A.add(4, 3);
+      A.addEntry(2, 3);
+      A.addEntry(4, 3);
 
-      B.add(1, 1);
-      B.add(1, 4);
-      B.add(2, 3);
-      B.add(3, 2);
+      B.addEntry(1, 1);
+      B.addEntry(1, 4);
+      B.addEntry(2, 3);
+      B.addEntry(3, 2);
 
       A.compress();
       B.compress();
@@ -259,12 +259,12 @@ int main() {
   cout << "    [ 2 8 5 9]" << endl;
   {
     SparseMatrix A(3, 4);
-    A.add(1, 2);
-    A.add(1, 4);
-    A.add(3, 1);
-    A.add(3, 2);
-    A.add(3, 3);
-    A.add(3, 4);
+    A.addEntry(1, 2);
+    A.addEntry(1, 4);
+    A.addEntry(3, 1);
+    A.addEntry(3, 2);
+    A.addEntry(3, 3);
+    A.addEntry(3, 4);
     A.compress();
     A(1, 2) = 1.0;
     A(1, 4) = 4.0;
@@ -329,24 +329,24 @@ int main() {
   {
     SparseSymMatrix A(8);
 
-	  A.add(1, 1);
-	  A.add(1, 3);
-	  A.add(1, 6);
-	  A.add(1, 7);
-	  A.add(2, 5);
-	  A.add(2, 3);
-	  A.add(2, 2);
-	  A.add(3, 3);
-	  A.add(3, 8);
-	  A.add(4, 7);
-	  A.add(4, 4);
-	  A.add(5, 5);
-	  A.add(5, 6);
-	  A.add(5, 7);
-	  A.add(6, 8);
-	  A.add(6, 6);
-	  A.add(7, 7);
-	  A.add(8, 8);
+	  A.addEntry(1, 1);
+	  A.addEntry(1, 3);
+	  A.addEntry(1, 6);
+	  A.addEntry(1, 7);
+	  A.addEntry(2, 5);
+	  A.addEntry(2, 3);
+	  A.addEntry(2, 2);
+	  A.addEntry(3, 3);
+	  A.addEntry(3, 8);
+	  A.addEntry(4, 7);
+	  A.addEntry(4, 4);
+	  A.addEntry(5, 5);
+	  A.addEntry(5, 6);
+	  A.addEntry(5, 7);
+	  A.addEntry(6, 8);
+	  A.addEntry(6, 6);
+	  A.addEntry(7, 7);
+	  A.addEntry(8, 8);
     
     A.compress();
 

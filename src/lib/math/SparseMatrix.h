@@ -9,29 +9,28 @@
 
 namespace nla3d {
 namespace math {
-// NOTE: SparceMatrix implementation has indexes started from 1 !
 
-// TODO:
-// SparseMatrix in nla3d is primarly used to provide sparse matrix data
-// to MKL's PARDISO solver. That's the reason to use uint32 type for indexing.
-// It's more general to use size_t for indexes. To manage with it there are several ways:
-// 1. Use templated calsses
-// 2. Use typedef int SparseIndex_t
-// 3. Use #define SparseIndex_t int
+// NOTE: Sparse Matrices entries here have indexes started from 1 !
 
+// TODO: Sparse Matrices in nla3d directly used in MKLs' PARDISO equation solver. That's why we use
+// uint32 for value indexes. More general way is to use templates with arbitrary type for entities
+// and to indexes.
 
+// class to hold columns and iofeir (Index Of First Element In the Row) of 3-arrays CSR storage
+// format. SparsityInfo can be shared between sparse matrices.
 class SparsityInfo {
   public:
     SparsityInfo(uint32 _nrows, uint32 _ncols, uint32 _max_in_row);
-
-    // add information than (_row, _column) element has non-zero value
-    // row and column positions are started from 1
-    void add(uint32 _i, uint32 _j);
-    // perform compression procedure. After that positions of non-zero elements can't be changed
+    // add information than (_row, _column) entries has non-zero value
+    // _i, _j indexes are started from 1
+    void addEntry(uint32 _i, uint32 _j);
+    // perform compression procedure. After that positions of non-zero entries can't be changed
     void compress();
     bool isCompressed();
 
+    // return number of entries in the _row (_row > 0)
     uint32 nElementsInRow(uint32 _row);
+    // get index in values array (see SparseMatrix implementation) for entry position _i, _j
     uint32 getIndex(uint32 _i, uint32 _j);
 
     friend class BaseSparseMatrix;
@@ -41,66 +40,63 @@ class SparsityInfo {
 
     // Data arrays to implement compressed sparse row format with 3 arrays (3-array CSR).
     // Format was implemented by using MKL manual.
-    // Here we don't need to know excactly values. We need to store only info about non-zeros
-    // elemenets in matrix.
-    // columns arrays stores column number of element: columns[element_number] = element_column
+    // Here we don't need to know exactly values. We need to store only info about non-zeros
+    // entries in matrix.
+    // Columns array stores column number of entry
     uint32* columns = nullptr;
-    // index of first element in row: iofeir[row-1] first element in row,
-    // ifeir[row]-1 - last element in row
+    // index of first entry in row: iofeir[_row-1] first entry in _row,
+    // iofeir[_row]-1 - last entry in _row
     uint32* iofeir = nullptr;
-    // number of non-zero elements in the matrix. Also, size of values array.
-    // If numberOfValues > 0 that means that the matrix is ready for work (a training has been completed already)
+    // number of non-zero entries in the matrix. Also, the size of values array.
     uint32 numberOfValues = 0;
     uint32 maxInRow = 0;
     bool compressed = false;
 
     // size of the matrix
-    uint32 nRows;
-    uint32 nColumns;
+    uint32 nRows = 0;
+    uint32 nColumns = 0;
 
     static const uint32 invalid;
 };
 
 
 
-// general Sparse Matrix in a row-oriented data format
+// Base class for Sparse Matrix in a row-oriented data format. This class doesn't have particular
+// meaning. See SparseMatrix and SparseSymMatrix for practical usage.
 // The implementation of compressed sparse row format with 3 arrays (3-array CSR).
 class BaseSparseMatrix {
   public:
-    BaseSparseMatrix(uint32 nrows, uint32 ncolumns, uint32 max_in_row = 100);
+    BaseSparseMatrix(uint32 _nrows, uint32 _ncolumns, uint32 _max_in_row = 100);
     BaseSparseMatrix(std::shared_ptr<SparsityInfo> spar_info);
     ~BaseSparseMatrix();
     
+    // perform compression procedure, after this new entries can't be added to matrix
     void compress();
 
-    void add(uint32 _i, uint32 _j);
-    void addValue (uint32 _i, uint32 _j, double value);
-
-    void clear();
-
-    // debug methods
+    // for debug purpose
     void printInternalData (std::ostream& out);
 
+    // zero all entries
     void zero();
 
     // getters
     double* getValuesArray();
     uint32* getColumnsArray();
     uint32* getIofeirArray();
-    uint32 getNumberOfValues();
-    uint32 getNumberOfRows();
-    uint32 getNumberOfColumns();
+    uint32 nValues();
+    uint32 nRows();
+    uint32 nColumns();
     std::shared_ptr<SparsityInfo> getSparsityInfo();
 
     bool isCompressed();
 
   protected:
-    // Data arrays to implement compressed sparse row format with 3 arrays (3-array CSR).
+    // particular values array. Part of compressed sparse format with 3 arrays (3-array CSR).
     double *values = nullptr;
-    // is our matrix is symmetric. If so only upper triangle is stored
 
     std::shared_ptr<SparsityInfo> si;
 };
+
 
 
 class SparseMatrix : public BaseSparseMatrix {
@@ -108,8 +104,11 @@ class SparseMatrix : public BaseSparseMatrix {
     SparseMatrix(uint32 nrows, uint32 ncolumns, uint32 max_in_row = 100);
     SparseMatrix(std::shared_ptr<SparsityInfo> spar_info);
     
-    void add(uint32 _i, uint32 _j);
-    void addValue (uint32 _i, uint32 _j, double value);
+    // add non-zero entry to sparse matrix. This should be called before compress(). 
+    void addEntry(uint32 _i, uint32 _j);
+
+    // add value to the _i, _j entry. This should be called after compress().
+    void addValue(uint32 _i, uint32 _j, double value);
 
 
     // TODO: It would be better to use a BLAS routine for sparse matrices for speedup
@@ -117,14 +116,13 @@ class SparseMatrix : public BaseSparseMatrix {
     double transpose_mult_vec_i (double *vec, uint32 i);
     void transpose_mult_vec (double *vec, double *res);
 
-    // debug methods
+    // debug output
     void print (std::ostream& out);
 
-    // getters
-    // return reference to the value, if the value doesn't exist in the matrix - fatal error
+    // return reference to the entry, if the entry doesn't exist in the matrix - fatal error
     double& operator()(uint32 _i, uint32 _j);
 
-    // return the value, if the value doesn't exists - return 0.0
+    // return the value of the entry, if the entry doesn't exists - return 0.0
     double value(uint32 _i, uint32 _j) const;
 };
 
@@ -134,8 +132,11 @@ class SparseSymMatrix : public BaseSparseMatrix {
     SparseSymMatrix(uint32 nrows, uint32 max_in_row = 100);
     SparseSymMatrix(std::shared_ptr<SparsityInfo> spar_info);
     
-    void add(uint32 _i, uint32 _j);
-    void addValue (uint32 _i, uint32 _j, double value);
+    // add non-zero entry to sparse matrix. This should be called before compress(). 
+    void addEntry(uint32 _i, uint32 _j);
+
+    // add value to the _i, _j entry. This should be called after compress().
+    void addValue(uint32 _i, uint32 _j, double value);
 
 
     double mult_vec_i(double *vec, uint32 i);
@@ -143,11 +144,10 @@ class SparseSymMatrix : public BaseSparseMatrix {
     // debug methods
     void print (std::ostream& out);
 
-    // getters
-    // return reverence to the value, if the value doesn't exist in the matrix - fatal error
+    // return reference to the entry, if the entry doesn't exist in the matrix - fatal error
     double& operator()(uint32 _i, uint32 _j);
 
-    // return the value, if the value doesn't exists - return 0.0
+    // return the value of the entry, if the entry doesn't exists - return 0.0
     double value(uint32 _i, uint32 _j) const;
 };
 
@@ -186,17 +186,17 @@ inline uint32* BaseSparseMatrix::getIofeirArray() {
   return si->iofeir;
 }
 
-inline uint32 BaseSparseMatrix::getNumberOfValues() {
+inline uint32 BaseSparseMatrix::nValues() {
   assert(si);
   return si->numberOfValues;
 }
 
-inline uint32 BaseSparseMatrix::getNumberOfRows() {
+inline uint32 BaseSparseMatrix::nRows() {
   assert(si);
   return si->nRows;
 }
 
-inline uint32 BaseSparseMatrix::getNumberOfColumns() {
+inline uint32 BaseSparseMatrix::nColumns() {
   assert(si);
   return si->nColumns;
 }
@@ -212,9 +212,9 @@ inline bool BaseSparseMatrix::isCompressed() {
 }
 
 
-inline void SparseMatrix::add(uint32 _i, uint32 _j) {
+inline void SparseMatrix::addEntry(uint32 _i, uint32 _j) {
   assert(si);
-  si->add(_i, _j);
+  si->addEntry(_i, _j);
 }
 
 inline void SparseMatrix::addValue(uint32 _i, uint32 _j, double value) {
@@ -222,13 +222,12 @@ inline void SparseMatrix::addValue(uint32 _i, uint32 _j, double value) {
 }
 
 
-inline void SparseSymMatrix::add(uint32 _i, uint32 _j) {
+inline void SparseSymMatrix::addEntry(uint32 _i, uint32 _j) {
   assert(si);
 
   // ensure that we work in upper triangle
 	if (_i > _j) std::swap(_i, _j);
-
-  si->add(_i, _j);
+  si->addEntry(_i, _j);
 }
 
 inline void SparseSymMatrix::addValue(uint32 _i, uint32 _j, double value) {

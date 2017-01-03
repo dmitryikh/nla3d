@@ -15,7 +15,7 @@ class LINEdummy : public ElementIsoParamLINE {
       makeJacob();
       storage->addElementDof(elNum, {Dof::UX});
     };
-    virtual void build() { };
+    virtual void buildK() { };
     virtual void update() { };
 };
 
@@ -24,7 +24,7 @@ class QUADdummy : public ElementIsoParamQUAD {
       makeJacob();
       storage->addElementDof(elNum, {Dof::UX});
     };
-    virtual void build() { };
+    virtual void buildK() { };
     virtual void update() { };
 };
 
@@ -33,7 +33,7 @@ class HEXAHEDRONdummy : public ElementIsoParamHEXAHEDRON {
       makeJacob();
       storage->addElementDof(elNum, {Dof::UX});
     };
-    virtual void build() { };
+    virtual void buildK() { };
     virtual void update() { };
 };
 

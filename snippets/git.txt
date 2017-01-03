@@ -1,0 +1,6 @@
+# squash last 4 commits:
+git rebase -i HEAD~4
+
+# push new_branch
+
+git push -u origin new_branch

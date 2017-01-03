@@ -19,7 +19,7 @@ void ElementQUADTH::pre() {
   }
 }
 
-void ElementQUADTH::build () {
+void ElementQUADTH::buildK() {
   MatSym<4> Ke;  // element stiff. matrix
   Ke.zero();
 
@@ -44,9 +44,27 @@ void ElementQUADTH::build () {
     }
   }// loop over integration points
 
-  assemble(Ke, Fe, {Dof::TEMP});
+  assembleK(Ke, Fe, {Dof::TEMP});
 }
 
+
+void ElementQUADTH::buildC() {
+  MatSym<4> Ce;  // element stiff. matrix
+  Ce.zero();
+
+
+  // build Ke
+  double dWt; //Gaussian quadrature weight
+  for (uint16 np=0; np < nOfIntPoints(); np++) {
+    dWt = intWeight(np);
+    Vec<4> ff = formFunc(np);
+    for (uint16 i = 0; i < 4; i++)
+      for (uint16 j = i; j < 4; j++) 
+        Ce.comp(i, j) += ff[i] * ff[j] * rho * c * dWt;
+  }// loop over integration points
+
+  assembleC(Ce, {Dof::TEMP});
+}
 
 inline Mat<2,4> ElementQUADTH::make_B(uint16 np) {
   return Mat<2,4>(NiXj[np][0][0], NiXj[np][1][0], NiXj[np][2][0], NiXj[np][3][0],
@@ -73,7 +91,7 @@ void SurfaceLINETH::pre() {
 }
 
 
-void SurfaceLINETH::build () {
+void SurfaceLINETH::buildK() {
   MatSym<2> Ke;  // element stiff. matrix
   Ke.zero();
 
@@ -107,7 +125,7 @@ void SurfaceLINETH::build () {
     }
   }
 
-  assemble(Ke, Fe, {Dof::TEMP});
+  assembleK(Ke, Fe, {Dof::TEMP});
 }
 
 void SurfaceLINETH::update() {

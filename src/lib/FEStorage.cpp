@@ -18,11 +18,6 @@ FEStorage::FEStorage()  {
 	numberOfMpcEq = 0;
 
 	material = nullptr;
-	KssCsT = nullptr;
-	Cc = nullptr;
-	Kcs = nullptr;
-	Kcc = nullptr;
-
 };
 
 FEStorage::~FEStorage () {
@@ -36,20 +31,20 @@ FEStorage::~FEStorage () {
 }
 
 
-void FEStorage::Kij_add(uint32 nodei, Dof::dofType dofi, uint32 nodej, Dof::dofType dofj, double value) {
+void FEStorage::addValueK(uint32 nodei, Dof::dofType dofi, uint32 nodej, Dof::dofType dofj, double value) {
 	uint32 rowEq = getNodeDofEqNumber(nodei, dofi);
 	uint32 colEq = getNodeDofEqNumber(nodej, dofj);
-  Kij_add(rowEq, colEq, value);
+  addValueK(rowEq, colEq, value);
 }
 
 
-void FEStorage::Kij_add(uint32 eqi, uint32 eqj, double value) {
+void FEStorage::addValueK(uint32 eqi, uint32 eqj, double value) {
   // eqi -- row equation 
   // eqj -- column equation
 	if (eqi > eqj) swap(eqi, eqj);
   // As long as we have distinct blocks
   // of global matrix for constrained DoFs, MPC's lambdas and DoFs to be
-  // solver we need to choose in which block (Kcc, Kcs, KssCsT)
+  // solver we need to choose in which block (Kcc, Kcs, KssMPCsT)
   // the value should be added.
 
 	if (eqi <= numberOfConstrainedDofs) {
@@ -59,59 +54,143 @@ void FEStorage::Kij_add(uint32 eqi, uint32 eqj, double value) {
 			Kcs->addValue(eqi, eqj - numberOfConstrainedDofs, value);
     }
   } else {
-		KssCsT->addValue(eqi - numberOfConstrainedDofs, eqj - numberOfConstrainedDofs, value);
+		KssMPCsT->addValue(eqi - numberOfConstrainedDofs, eqj - numberOfConstrainedDofs, value);
   }
 }
 
 
-// Cij_add is a function to add a coefficient from MPC equation to the global
+void FEStorage::addValueC(uint32 nodei, Dof::dofType dofi, uint32 nodej, Dof::dofType dofj, double value) {
+	uint32 rowEq = getNodeDofEqNumber(nodei, dofi);
+	uint32 colEq = getNodeDofEqNumber(nodej, dofj);
+  addValueC(rowEq, colEq, value);
+}
+
+
+void FEStorage::addValueC(uint32 eqi, uint32 eqj, double value) {
+  // eqi -- row equation 
+  // eqj -- column equation
+	if (eqi > eqj) swap(eqi, eqj);
+  // As long as we have distinct blocks
+  // of global matrix for constrained DoFs, MPC's lambdas and DoFs to be
+  // solver we need to choose in which block (Ccc, Ccs, CssMPCsT)
+  // the value should be added.
+
+	if (eqi <= numberOfConstrainedDofs) {
+		if (eqj <= numberOfConstrainedDofs) {
+			Ccc->addValue(eqi, eqj, value);
+    } else {
+			Ccs->addValue(eqi, eqj - numberOfConstrainedDofs, value);
+    }
+  } else {
+		CssMPCsT->addValue(eqi - numberOfConstrainedDofs, eqj - numberOfConstrainedDofs, value);
+  }
+}
+
+
+void FEStorage::addValueM(uint32 nodei, Dof::dofType dofi, uint32 nodej, Dof::dofType dofj, double value) {
+	uint32 rowEq = getNodeDofEqNumber(nodei, dofi);
+	uint32 colEq = getNodeDofEqNumber(nodej, dofj);
+  addValueM(rowEq, colEq, value);
+}
+
+
+void FEStorage::addValueM(uint32 eqi, uint32 eqj, double value) {
+  // eqi -- row equation 
+  // eqj -- column equation
+	if (eqi > eqj) swap(eqi, eqj);
+  // As long as we have distinct blocks
+  // of global matrix for constrained DoFs, MPC's lambdas and DoFs to be
+  // solver we need to choose in which block (Mcc, Mcs, MssMPCsT)
+  // the value should be added.
+
+	if (eqi <= numberOfConstrainedDofs) {
+		if (eqj <= numberOfConstrainedDofs) {
+			Mcc->addValue(eqi, eqj, value);
+    } else {
+			Mcs->addValue(eqi, eqj - numberOfConstrainedDofs, value);
+    }
+  } else {
+		MssMPCsT->addValue(eqi - numberOfConstrainedDofs, eqj - numberOfConstrainedDofs, value);
+  }
+}
+
+
+// addValueMPC is a function to add a coefficient from MPC equation to the global
 // matrix.
 // eq_num - number of MPC equation,
 // nodej, dofj - DoFs for which the coefficient to be set.
-void FEStorage::Cij_add(uint32 eq_num, uint32 nodej, Dof::dofType dofj, double coef) {
+void FEStorage::addValueMPC(uint32 eq_num, uint32 nodej, Dof::dofType dofj, double coef) {
 	uint32 colEq = getNodeDofEqNumber(nodej, dofj);
-  Cij_add(eq_num, colEq, coef);
+  addValueMPC(eq_num, colEq, coef);
 }
 
 
-void FEStorage::Cij_add(uint32 eq_num, uint32 eqj, double coef) {
-	assert(Cc);
+void FEStorage::addValueMPC(uint32 eq_num, uint32 eqj, double coef) {
+	assert(MPCc);
 	assert(eq_num > 0 && eq_num <= numberOfMpcEq);
 	if (eqj <= numberOfConstrainedDofs) {
-		Cc->addValue(eq_num, eqj, coef);
+		MPCc->addValue(eq_num, eqj, coef);
   }	else {
 		//Cs
-		KssCsT->addValue(eqj-numberOfConstrainedDofs, numberOfUnknownDofs+eq_num, coef);
+		KssMPCsT->addValue(eqj-numberOfConstrainedDofs, numberOfUnknownDofs+eq_num, coef);
   }
 }
 
 
-// Fi_add is a function to add the value to a rhs of the global system of linear
+// addValueF is a function to add the value to a rhs of the global system of linear
 // equations. 
 // NOTE: nodes index starts from 1. DoF index starts with 0.
-void FEStorage::Fi_add(uint32 nodei, Dof::dofType dofi, double value) {
+void FEStorage::addValueF(uint32 nodei, Dof::dofType dofi, double value) {
 	uint32 rowEq = getNodeDofEqNumber(nodei, dofi);
-  Fi_add(rowEq, value);
+  addValueF(rowEq, value);
 }
 
 
-void FEStorage::Fi_add(uint32 eqi, double value) {
+void FEStorage::addValueF(uint32 eqi, double value) {
 	assert(externalForces.size() > 0);
 	assert(eqi <= numberOfDofs);
 	externalForces[eqi - 1] += value;
 }
 
 
-// zeroK function is used to set values in the global stiffnes matrix to zero.
+// zeroK function is used to set values in the global stiffness matrix to zero
 void FEStorage::zeroK() {
-	assert(KssCsT);
-	KssCsT->zero();
+	assert(KssMPCsT);
+	assert(Kcc);
+	assert(Kcs);
+	assert(MPCc);
+
+	KssMPCsT->zero();
 	Kcc->zero();
 	Kcs->zero();
-  Cc->zero();
+  MPCc->zero();
 }
 
-// zeroF:
+
+// zeroC function is used to set values in the global damping matrix to zero
+void FEStorage::zeroC() {
+	assert(CssMPCsT);
+	assert(Ccs);
+	assert(Ccc);
+
+	CssMPCsT->zero();
+	Ccs->zero();
+	Ccc->zero();
+}
+
+
+// zeroM function is used to set values in the global mass matrix to zero
+void FEStorage::zeroM() {
+	assert(MssMPCsT);
+	assert(Mcs);
+	assert(Mcc);
+
+	MssMPCsT->zero();
+	Mcs->zero();
+	Mcc->zero();
+}
+
+
 // set zeros to a rhs vector of a global eq. system.
 void FEStorage::zeroF() {
 	assert(externalForces.size() > 0);
@@ -122,26 +201,36 @@ void FEStorage::zeroF() {
   std::fill(mpcConstantValues.begin(),mpcConstantValues.end(), 0.0); 
 }
 
-// getGlobalEqMatrix:
-math::SparseSymMatrix* FEStorage::getGlobalEqMatrix() {
-	assert(KssCsT && Kcc && Kcs);
-	return KssCsT;
+
+math::SparseSymMatrix* FEStorage::getK() {
+	assert(KssMPCsT && Kcc && Kcs);
+	return KssMPCsT;
+}
+
+
+math::SparseSymMatrix* FEStorage::getC() {
+	assert(CssMPCsT && Ccs && Ccc);
+	return CssMPCsT;
+}
+
+
+math::SparseSymMatrix* FEStorage::getM() {
+	assert(MssMPCsT && Mcs && Mcc);
+	return MssMPCsT;
 }
 
 // prepare and pass back a rhs of the global eq. system.
 // As we exclude constrained DoFs from a eq. system we need to modify rhs of the
 // system.
-double* FEStorage::getGlobalEqRhs () {
+double* FEStorage::getF () {
 	assert(rhs.size() > 0);
 	double *KcsTdqc = new double[numberOfUnknownDofs];
 	Kcs->transpose_mult_vec(&constrainedDofDeltaValues[0], KcsTdqc);
 	for (uint32 i=0; i < numberOfUnknownDofs; i++) {
-    // was:
-    //Kcs->transpose_mult_vec_i(&constrainedDofDeltaValues[0],i+1);
 		unknownDofRhs[i] = unknownDofExternalForces[i] - KcsTdqc[i];
   }
 	for (uint32 i=0; i < numberOfMpcEq; i++) {
-		mpcEquationRhs[i] = mpcConstantValues[i] - Cc->mult_vec_i(&constrainedDofDeltaValues[0], i + 1);
+		mpcEquationRhs[i] = mpcConstantValues[i] - MPCc->mult_vec_i(&constrainedDofDeltaValues[0], i + 1);
   }
 	delete[] KcsTdqc;
 	return &rhs[0];
@@ -152,23 +241,23 @@ double* FEStorage::getGlobalEqUnknowns () {
 	return &unknownDofDeltaValues[0];
 }
 
-void FEStorage::assembleGlobalEqMatrix() {
-	assert(KssCsT && Kcc && Kcs && Cc);
+void FEStorage::assembleGlobalEqMatrices() {
+	assert(KssMPCsT && Kcc && Kcs && MPCc);
   // all matrices should be in compressed state already
-  assert(KssCsT->isCompressed());
+  assert(KssMPCsT->isCompressed());
   assert(Kcc->isCompressed());
   assert(Kcs->isCompressed());
-  assert(Cc->isCompressed());
+  assert(MPCc->isCompressed());
 
   TIMED_SCOPE(t, "assembleGlobalEqMatrix");
-  LOG(INFO) << "Start formulation of elements stiffness matrices ( " << getNumberOfElements() << " elements)";
+  LOG(INFO) << "Start formulation of global eq. matrices ( " << getNumberOfElements() << " elements)";
 
   // zero values
   zeroK();
   zeroF();
 
   for (uint32 el = 0; el < getNumberOfElements(); el++) {
-    elements[el]->build();
+    elements[el]->buildK();
   }
   //t.checkpoint("Element::build()");
 
@@ -188,11 +277,34 @@ void FEStorage::assembleGlobalEqMatrix() {
     list<MpcTerm>::iterator token = (*mpc)->eq.begin();
     while (token != (*mpc)->eq.end()) {
       // TODO: now we support only MPC to nodal DoFs..
-      Cij_add(eq_num, token->node, token->node_dof, token->coef);
+      addValueMPC(eq_num, token->node, token->node_dof, token->coef);
       token++;
     }
     eq_num++;
     mpc++;
+  }
+
+  // if it was demanded to have transient matrices (C and M)
+  if (transient) {
+    assert(MssMPCsT && Mcs && Mcc);
+    assert(CssMPCsT && Ccs && Ccc);
+    assert(CssMPCsT->isCompressed());
+    assert(Ccs->isCompressed());
+    assert(Ccc->isCompressed());
+    assert(MssMPCsT->isCompressed());
+    assert(Mcs->isCompressed());
+    assert(Mcc->isCompressed());
+
+    zeroC();
+    zeroM();
+
+    for (uint32 el = 0; el < getNumberOfElements(); el++) {
+      elements[el]->buildC();
+    }
+
+    for (uint32 el = 0; el < getNumberOfElements(); el++) {
+      elements[el]->buildM();
+    }
   }
 
 }
@@ -215,6 +327,16 @@ uint32 FEStorage::getNumberOfConstrainedDofs() {
 
 uint32 FEStorage::getNumberOfMpcEq() {
   return static_cast<uint32> (mpcs.size());
+}
+
+
+void FEStorage::setTransient(bool _transient) {
+  transient = _transient;
+}
+
+
+bool FEStorage::isTransient() {
+  return transient;
 }
 
 void FEStorage::addNodeDof(uint32 node, std::initializer_list<Dof::dofType> _dofs) {
@@ -521,13 +643,13 @@ void FEStorage::deleteSolutionData() {
 
 	numberOfUnknownDofs = 0;
 
-  if (Cc) {
-    delete Cc;
-    Cc = nullptr;
+  if (MPCc) {
+    delete MPCc;
+    MPCc = nullptr;
   }
-  if (KssCsT) {
-    delete KssCsT;
-    KssCsT = nullptr;
+  if (KssMPCsT) {
+    delete KssMPCsT;
+    KssMPCsT = nullptr;
   }
   if (Kcs) {
     delete Kcs;
@@ -536,6 +658,30 @@ void FEStorage::deleteSolutionData() {
   if (Kcc) {
     delete Kcc;
     Kcc = nullptr;
+  }
+  if (CssMPCsT) {
+    delete CssMPCsT;
+    CssMPCsT = nullptr;
+  }
+  if (Ccs) {
+    delete Ccs;
+    Ccs = nullptr;
+  }
+  if (Ccc) {
+    delete Ccc;
+    Ccc = nullptr;
+  }
+  if (MssMPCsT) {
+    delete MssMPCsT;
+    MssMPCsT = nullptr;
+  }
+  if (Mcs) {
+    delete Mcs;
+    Mcs = nullptr;
+  }
+  if (Mcc) {
+    delete Mcc;
+    Mcc = nullptr;
   }
   
   deleteDofArrays();
@@ -616,33 +762,44 @@ bool FEStorage::initializeSolutionData () {
   // In nla3d solution procedure there are 3 distinguish types of unknowns. First one "c" - constrained degress of freedom,
   // and consequently known at solution time. Second one "s" - degrees of freedom need to be found (solved).
   // And last one "lambda" - lagrange multipliers for applied MPC constraints.
-  // Cc [numberOfMpcEq x numberOfConstrainedDofs]  - part of a global stiffness matrix with MPC coefficients for constrained dofs
+  // MPCc [numberOfMpcEq x numberOfConstrainedDofs]  - part of a global stiffness matrix with MPC coefficients for constrained dofs
   // A global System of Linera Algebraic Equations:
   //
-  //  |  Kcc  |  Kcs  | Cc^T |   |   qc  |   |constrainedDofExternalForces|
+  //  |  Kcc  |  Kcs  |MPCc^T|   |   qc  |   |constrainedDofExternalForces|
   //  |-------|--------------|   |-------|   |      |
   //  | Kcs^T |              | * |   qs  | = |unknownDofExternalForces|
-  //  |-------|    KssCsT    |   |-------|   |      |
-  //  |  Cc   |              |   | lambda|   |mpcConstantValues |
+  //  |-------|    KssMPCsT  |   |-------|   |      |
+  //  |  MPCc |              |   | lambda|   |mpcConstantValues |
   //  
   //  1. But really only
   //
-  //  KssCsT * [qs; lambda]^T = [unknownDofRhs; mpcEquationRhs]^T
+  //  KssMPCsT * [qs; lambda]^T = [unknownDofRhs; mpcEquationRhs]^T
   //
   //  to be solved by eq. solver. 
   //
   //  where:
   //  unknownDofRhs = unknownDofExternalForces - Kcs^T*qc
-  //  mpcEquationRhs = mpcConstantValues - Cc*qc
+  //  mpcEquationRhs = mpcConstantValues - MPCc*qc
   //
   //  2. Then to restore reaction forces:
-  //  constrainedDofExternalForces = Kcc*qc + Kcs*qs + Cc^T*lambda
+  //  constrainedDofExternalForces = Kcc*qc + Kcs*qs + MPCc^T*lambda
   //
 
-  Cc = new math::SparseMatrix(numberOfMpcEq, numberOfConstrainedDofs);
-	KssCsT = new math::SparseSymMatrix(numberOfUnknownDofs + numberOfMpcEq);
+  MPCc = new math::SparseMatrix(numberOfMpcEq, numberOfConstrainedDofs);
+	KssMPCsT = new math::SparseSymMatrix(numberOfUnknownDofs + numberOfMpcEq);
 	Kcs = new math::SparseMatrix(numberOfConstrainedDofs, numberOfUnknownDofs);
 	Kcc = new math::SparseSymMatrix(numberOfConstrainedDofs);
+
+  if (transient) {
+    // share sparsity info with K matrices
+    CssMPCsT = new math::SparseSymMatrix(KssMPCsT->getSparsityInfo());
+    Ccs = new math::SparseMatrix(Kcs->getSparsityInfo());
+    Ccc = new math::SparseSymMatrix(Kcc->getSparsityInfo());
+
+    MssMPCsT = new math::SparseSymMatrix(KssMPCsT->getSparsityInfo());
+    Mcs = new math::SparseMatrix(Kcs->getSparsityInfo());
+    Mcc = new math::SparseSymMatrix(Kcc->getSparsityInfo());
+  }
 
 	// Fill elementsDofs and nodeDofs with isConstrained information
   // and then give them an equation numbers
@@ -745,20 +902,20 @@ bool FEStorage::initializeSolutionData () {
 
   // Need to restore non-zero entries in Sparse Matrices based on mesh topology and registered Dofs
   // As far as we know from topology which elements are neighbors to each other we can estimate
-  // quantity and positions of non-zero koef in Sparse Matrices Cc, KssCsT, Kcc, Kcs
+  // quantity and positions of non-zero koef in Sparse Matrices MPCc, KssMPCsT, Kcc, Kcs
 
   for (uint32 nn = 1; nn <= numberOfNodes; nn++) {
     auto nn_dofs = nodeDofs.getEntityDofs(nn);
     // register nn node dofs vs nn node dofs
     // for (auto d1 = nn_dofs.first; d1 != nn_dofs.second; d1++)
     //   for (auto d2 = nn_dofs.first; d2 != nn_dofs.second; d2++)
-    //     _Kij_reg(d1->eqNumber, d2->eqNumber);
+    //     addEntryK(d1->eqNumber, d2->eqNumber);
     for (auto en : topology[nn-1]) {
       // register element dofs to node nn
       auto en_dofs = elementDofs.getEntityDofs(en);
       for (auto d1 = en_dofs.first; d1 != en_dofs.second; d1++)
         for (auto d2 = nn_dofs.first; d2 != nn_dofs.second; d2++)
-          _Kij_reg(d1->eqNumber, d2->eqNumber);
+          addEntryK(d1->eqNumber, d2->eqNumber);
 
       // cycle over element en Nodes and register nn vs nn2 nodes dofs
       for (uint16 enn = 0; enn < getElement(en).getNNodes(); enn++) {
@@ -768,7 +925,7 @@ bool FEStorage::initializeSolutionData () {
         auto nn2_dofs = nodeDofs.getEntityDofs(nn2);
         for (auto d1 = nn2_dofs.first; d1 != nn2_dofs.second; d1++)
           for (auto d2 = nn_dofs.first; d2 != nn_dofs.second; d2++)
-            _Kij_reg(d1->eqNumber, d2->eqNumber);
+            addEntryK(d1->eqNumber, d2->eqNumber);
       }
     }
   }
@@ -778,7 +935,7 @@ bool FEStorage::initializeSolutionData () {
     auto en_dofs = elementDofs.getEntityDofs(en);
     for (auto d1 = en_dofs.first; d1 != en_dofs.second; d1++)
       for (auto d2 = en_dofs.first; d2 != en_dofs.second; d2++)
-        _Kij_reg(d1->eqNumber, d2->eqNumber);
+        addEntryK(d1->eqNumber, d2->eqNumber);
   }
 
 
@@ -791,7 +948,7 @@ bool FEStorage::initializeSolutionData () {
     while (token != (*mpc)->eq.end()) {
       // TODO: now we support only MPC to nodal DoFs..
       uint32 dof_eq = getNodeDofEqNumber(token->node, token->node_dof);
-      _Cij_reg(eq_num, dof_eq);
+      addEntryMPC(eq_num, dof_eq);
       token++;
     }
     eq_num++;
@@ -799,10 +956,20 @@ bool FEStorage::initializeSolutionData () {
   }
 
   // compress sparsity info. After that we can't add new position in sparse matrices
-  Cc->compress();
-	KssCsT->compress();
+  MPCc->compress();
+	KssMPCsT->compress();
 	Kcs->compress();
 	Kcc->compress();
+
+  if (transient) {
+    CssMPCsT->compress();
+    Ccs->compress();
+    Ccc->compress();
+
+    MssMPCsT->compress();
+    Mcs->compress();
+    Mcc->compress();
+  }
 
 	return true;
 }
@@ -844,8 +1011,41 @@ void FEStorage::updateSolutionResults() {
         Kcc->mult_vec_i(&constrainedDofDeltaValues[0], i + 1) - constrainedDofExternalForces[i];
 
     // in case of constrained DoFs are involved in MPC equations it's needed to add reactions from the MPCs
-		if (numberOfMpcEq && Cc->getNumberOfValues()) {
-			constrainedDofReactions[i] += Cc->transpose_mult_vec_i(&mpcLagrangianDeltaValues[0], i + 1);
+		if (numberOfMpcEq && MPCc->nValues()) {
+			constrainedDofReactions[i] += MPCc->transpose_mult_vec_i(&mpcLagrangianDeltaValues[0], i + 1);
+    }
+	}
+  //t.checkpoint("Sum solutions. Finding reactions");
+
+  // calculate element's update procedures (calculate stresses, strains, ..)
+  for (uint32 el = 0; el < getNumberOfElements(); el++) {
+    elements[el]->update();
+  }
+  //t.checkpoint("Element::update");
+}
+
+// this kludge as far as updateTimestepResults and updateSolutionResults should be combined into one
+// function
+void FEStorage::updateTimestepResults() {
+  TIMED_SCOPE(t, "updateTimestepResults");
+
+	for (size_t i = 0; i < numberOfDofs; i++) {
+		dofValues[i] = dofDeltaValues[i];
+  }
+
+  // lagrangian from MPC are updated from current solved step
+	for (uint32 i = 0; i < numberOfMpcEq; i++) {
+    mpcLagrangianValues[i] = mpcLagrangianDeltaValues[i];
+  }
+	
+  // also update reactions for constrained DoFs
+	for (uint32 i = 0; i < numberOfConstrainedDofs; i++) {
+		constrainedDofReactions[i] = Kcs->mult_vec_i(&unknownDofDeltaValues[0], i + 1) +
+        Kcc->mult_vec_i(&constrainedDofDeltaValues[0], i + 1) - constrainedDofExternalForces[i];
+
+    // in case of constrained DoFs are involved in MPC equations it's needed to add reactions from the MPCs
+		if (numberOfMpcEq && MPCc->nValues()) {
+			constrainedDofReactions[i] += MPCc->transpose_mult_vec_i(&mpcLagrangianDeltaValues[0], i + 1);
     }
 	}
   //t.checkpoint("Sum solutions. Finding reactions");
@@ -865,7 +1065,7 @@ void FEStorage::applyBoundaryConditions (double time, double timeDelta) {
 	// fill nodal forces
 	list<BC_dof_force>::iterator bc_force = forces.begin();
 	while (bc_force != forces.end())	{
-		Fi_add(bc_force->node, bc_force->node_dof, bc_force->value*time);
+		addValueF(bc_force->node, bc_force->node_dof, bc_force->value*time);
 		bc_force++;
 	}
   //t.checkpoint("apply forces");
@@ -897,37 +1097,37 @@ void FEStorage::learnTopology() {
 }
 
 
-// registry that value (eqi, eqj) are not zero
+// registry that entry (eqi, eqj) are not zero
 // should be called before compressed()
-void FEStorage::_Kij_reg(uint32 eqi, uint32 eqj) {
+void FEStorage::addEntryK(uint32 eqi, uint32 eqj) {
   // eqi -- row equation 
   // eqj -- column equation
 	if (eqi > eqj) swap(eqi, eqj);
   // As long as we have distinct blocks
   // of global matrix for constrained DoFs, MPC's lambdas and DoFs to be
-  // solver we need to choose in which block (Kcc, Kcs, KssCsT)
+  // solver we need to choose in which block (Kcc, Kcs, KssMPCsT)
   // the value should be added.
 
 	if (eqi <= numberOfConstrainedDofs) {
 		if (eqj <= numberOfConstrainedDofs) {
-			Kcc->add(eqi, eqj);
+			Kcc->addEntry(eqi, eqj);
     } else {
-			Kcs->add(eqi, eqj - numberOfConstrainedDofs);
+			Kcs->addEntry(eqi, eqj - numberOfConstrainedDofs);
     }
   } else {
-		KssCsT->add(eqi - numberOfConstrainedDofs, eqj - numberOfConstrainedDofs);
+		KssMPCsT->addEntry(eqi - numberOfConstrainedDofs, eqj - numberOfConstrainedDofs);
   }
 }
 
 
-void FEStorage::_Cij_reg(uint32 eq_num, uint32 eqj) {
-	assert(Cc);
+void FEStorage::addEntryMPC(uint32 eq_num, uint32 eqj) {
+	assert(MPCc);
 	assert(eq_num > 0 && eq_num <= numberOfMpcEq);
 	if (eqj <= numberOfConstrainedDofs) {
-		Cc->add(eq_num, eqj);
+		MPCc->addEntry(eq_num, eqj);
   }	else {
 		//Cs
-		KssCsT->add(eqj-numberOfConstrainedDofs, numberOfUnknownDofs+eq_num);
+		KssMPCsT->addEntry(eqj-numberOfConstrainedDofs, numberOfUnknownDofs+eq_num);
   }
 }
 

@@ -94,23 +94,36 @@ class Element {
 
     // heart of the element class
     virtual void pre()=0;
-    virtual void build()=0;
+    virtual void buildK()=0;
+    virtual void buildC();
+    virtual void buildM();
     virtual void update()=0;
-    virtual void getScalar(double& scalar, query::scalarQuery code, uint16 gp = query::GP_MEAN, const double scale = 1.0);
-    virtual void getVector(double* vector, query::vectorQuery code, uint16 gp = query::GP_MEAN, const double scale = 1.0);
-    virtual void getTensor(math::MatSym<3>& tensor, query::tensorQuery code, uint16 gp = query::GP_MEAN, const double scale = 1.0);
+    virtual void getScalar(double& scalar, query::scalarQuery code,
+                           uint16 gp = query::GP_MEAN, const double scale = 1.0);
+    virtual void getVector(double* vector, query::vectorQuery code,
+                           uint16 gp = query::GP_MEAN, const double scale = 1.0);
+    virtual void getTensor(math::MatSym<3>& tensor, query::tensorQuery code,
+                           uint16 gp = query::GP_MEAN, const double scale = 1.0);
 
     Element& operator= (const Element& from);
 
     //in-out operation:
     void print (std::ostream& out);
 
-    // may be useful for derived particular class
+    // some general purpose assemble procedures. Particular element realization could have it own
+    // assembly procedure.
     template <uint16 dimM>
-    void assemble (math::MatSym<dimM> &Ke, std::initializer_list<Dof::dofType> _nodeDofs);
+    void assembleK(math::MatSym<dimM> &Ke, std::initializer_list<Dof::dofType> _nodeDofs);
     template <uint16 dimM>
-    void assemble (math::MatSym<dimM> &Ke, math::Vec<dimM> &Fe, std::initializer_list<Dof::dofType> _nodeDofs);
-    void assemble (Eigen::Ref<Eigen::MatrixXd> Ke, std::initializer_list<Dof::dofType> _nodeDofs);
+    void assembleC(math::MatSym<dimM> &Ce, std::initializer_list<Dof::dofType> _nodeDofs);
+    template <uint16 dimM>
+    void assembleM(math::MatSym<dimM> &Me, std::initializer_list<Dof::dofType> _nodeDofs);
+
+    template <uint16 dimM>
+    void assembleK(math::MatSym<dimM> &Ke, math::Vec<dimM> &Fe,
+                   std::initializer_list<Dof::dofType> _nodeDofs);
+
+    void assembleK(Eigen::Ref<Eigen::MatrixXd> Ke, std::initializer_list<Dof::dofType> _nodeDofs);
 
     friend class FEStorage;
   protected:
@@ -183,7 +196,7 @@ class ElementHEXAHEDRON : public Element {
 
 
 template <uint16 dimM>
-void Element::assemble (math::MatSym<dimM> &Ke, std::initializer_list<Dof::dofType> _nodeDofs) {
+void Element::assembleK(math::MatSym<dimM> &Ke, std::initializer_list<Dof::dofType> _nodeDofs) {
   assert (nodes != NULL);
   double* Ke_p = Ke.ptr();
   std::vector<Dof::dofType> nodeDof(_nodeDofs);
@@ -197,7 +210,7 @@ void Element::assemble (math::MatSym<dimM> &Ke, std::initializer_list<Dof::dofTy
           if ((i==j) && (dj<di)) {
             continue;
           } else {
-            storage->Kij_add(nodes[i], nodeDof[di], nodes[j], nodeDof[dj], *Ke_p);
+            storage->addValueK(nodes[i], nodeDof[di], nodes[j], nodeDof[dj], *Ke_p);
             Ke_p++;
           }
         }
@@ -206,10 +219,59 @@ void Element::assemble (math::MatSym<dimM> &Ke, std::initializer_list<Dof::dofTy
   }
 }
 
+
 template <uint16 dimM>
-void assemble (math::MatSym<dimM> &Ke, math::Vec<dimM> &Fe, std::initializer_list<Dof::dofType> _nodeDofs);
+void Element::assembleC(math::MatSym<dimM> &Ce, std::initializer_list<Dof::dofType> _nodeDofs) {
+  assert (nodes != NULL);
+  double* Ce_p = Ce.ptr();
+  std::vector<Dof::dofType> nodeDof(_nodeDofs);
+  uint16 dim = static_cast<uint16> (_nodeDofs.size());
+  assert (getNNodes() * dim == dimM);
+
+  for (uint16 i=0; i < getNNodes(); i++) {
+    for (uint16 di=0; di < dim; di++) {
+      for (uint16 j=i; j < getNNodes(); j++) {
+        for (uint16 dj=0; dj < dim; dj++) {
+          if ((i==j) && (dj<di)) {
+            continue;
+          } else {
+            storage->addValueC(nodes[i], nodeDof[di], nodes[j], nodeDof[dj], *Ce_p);
+            Ce_p++;
+          }
+        }
+      }
+    }
+  }
+}
+
+
 template <uint16 dimM>
-void Element::assemble (math::MatSym<dimM> &Ke, math::Vec<dimM> &Fe, std::initializer_list<Dof::dofType> _nodeDofs) {
+void Element::assembleM(math::MatSym<dimM> &Me, std::initializer_list<Dof::dofType> _nodeDofs) {
+  assert (nodes != NULL);
+  double* Me_p = Me.ptr();
+  std::vector<Dof::dofType> nodeDof(_nodeDofs);
+  uint16 dim = static_cast<uint16> (_nodeDofs.size());
+  assert (getNNodes() * dim == dimM);
+
+  for (uint16 i=0; i < getNNodes(); i++) {
+    for (uint16 di=0; di < dim; di++) {
+      for (uint16 j=i; j < getNNodes(); j++) {
+        for (uint16 dj=0; dj < dim; dj++) {
+          if ((i==j) && (dj<di)) {
+            continue;
+          } else {
+            storage->addValueC(nodes[i], nodeDof[di], nodes[j], nodeDof[dj], *Me_p);
+            Me_p++;
+          }
+        }
+      }
+    }
+  }
+}
+
+
+template <uint16 dimM>
+void Element::assembleK(math::MatSym<dimM> &Ke, math::Vec<dimM> &Fe, std::initializer_list<Dof::dofType> _nodeDofs) {
   assert (nodes != NULL);
   double* Ke_p = Ke.ptr();
   std::vector<Dof::dofType> nodeDof(_nodeDofs);
@@ -223,7 +285,7 @@ void Element::assemble (math::MatSym<dimM> &Ke, math::Vec<dimM> &Fe, std::initia
           if ((i==j) && (dj<di)) {
             continue;
           } else {
-            storage->Kij_add(nodes[i], nodeDof[di], nodes[j], nodeDof[dj], *Ke_p);
+            storage->addValueK(nodes[i], nodeDof[di], nodes[j], nodeDof[dj], *Ke_p);
             Ke_p++;
           }
         }
@@ -234,7 +296,7 @@ void Element::assemble (math::MatSym<dimM> &Ke, math::Vec<dimM> &Fe, std::initia
   double* Fe_p = Fe.ptr();
   for (uint16 i=0; i < getNNodes(); i++) {
     for (uint16 di=0; di < dim; di++) {
-            storage->Fi_add(nodes[i], nodeDof[di], *Fe_p);
+            storage->addValueF(nodes[i], nodeDof[di], *Fe_p);
             Fe_p++;
     }
   }
@@ -258,7 +320,7 @@ inline ElementShape Element::getShape() {
 
 // & is used here because this function is called such this:
 // el->getNodeNumber(0) = 1234;
-inline uint32& Element::getNodeNumber (uint16 num) {
+inline uint32& Element::getNodeNumber(uint16 num) {
   assert(num < getNNodes());
   assert(nodes);
   return nodes[num];

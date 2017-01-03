@@ -6,6 +6,8 @@
 #include "sys.h"
 #include "math/EquationSolver.h"
 
+#include <Eigen/Dense>
+
 namespace nla3d {
 
 // forward declarations
@@ -83,15 +85,15 @@ protected:
 // particular realisation of FESolver for linear tasks
 class LinearFESolver : public FESolver {
 public:
-  LinearFESolver ();
-  virtual void solve ();
+  LinearFESolver();
+  virtual void solve();
 };
 
 // Iterative solver for Newton-Raphson procedure
 // The convergence is controlled by mean deltaSolution (see solve procedure)
 class NonlinearFESolver : public FESolver {
 public:
-  NonlinearFESolver ();
+  NonlinearFESolver();
 
   TimeControl timeControl;
   uint16 numberOfIterations = 20;
@@ -99,9 +101,31 @@ public:
 
   double convergenceCriteria = 1.0e-3;
 
-  virtual void solve ();
+  virtual void solve();
 protected:
   double calculateCriteria();
+};
+
+
+// use Newmark scheme
+class LinearTransientFESolver : public FESolver {
+public:
+  LinearTransientFESolver();
+
+  TimeControl timeControl;
+  uint16 numberOfIterations = 1;
+  uint16 numberOfTimesteps = 100;
+
+  double alpha = 0.25; // trapezoidal rule by default
+  double delta = 0.5;
+
+  double time0 = 0.0;
+  double time1 = 1.0;
+  double initValue = 0.0;
+
+  virtual void solve ();
+
+  double a0, a1, a2, a3, a4, a5, a6, a7;
 };
 
 } // namespace nla3d
