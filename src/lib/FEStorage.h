@@ -46,7 +46,6 @@ public:
   void addValueK(uint32 nodei, Dof::dofType dofi, uint32 nodej, Dof::dofType dofj, double value);
   void addValueK(uint32 eqi, uint32 eqj, double value);
 
-
   // for damping matrix
   void addValueC(uint32 nodei, Dof::dofType dofi, uint32 nodej, Dof::dofType dofj, double value);
   void addValueC(uint32 eqi, uint32 eqj, double value);
@@ -245,7 +244,7 @@ private:
 
 	uint32 numberOfNodes;
 	uint32 numberOfElements;
-  // Total number of dofs (only registered by FEStorage::registerNodeDof(..) or FEStorage::registerElementDof(..))
+  // Total number of dofs (only registered by FEStorage::addNodeDof(..) or FEStorage::addElementDof(..))
 	uint32 numberOfDofs;
 
   // Number of constrained (fixed by BCs) dofs.
@@ -257,9 +256,8 @@ private:
 
   // Array of elements. Elements are created by the FEStorage::createElements(..) function.
   // It's important that elements in nla3d have consecutive numbering. That means that they have
-  // numbers in [1; getNumberOfElements()]. Particular element type is choosen based on 
-  // FEStorage::elType variable. NOTE that in FE model cna be used only one type of element.
-  // Elements deleted by deleteElements() function.
+  // numbers in [1; getNumberOfElements()].
+  // Elements are deleted by deleteElements() function.
 	std::vector<Element*> elements;
 
   // Array of nodes. Nodes are created by FEStorage::createNodes(..). Nodes are created with
@@ -267,11 +265,11 @@ private:
   // in [1; getNumberOfNodes()]. 
 	std::vector<Node*> nodes;
 
-  // List of force boundary conditions. This is old fashion realisation and will be changed soon.
+  // List of force boundary conditions. This is old fashion realization and will be changed soon.
   // List is populated by FEStorage::addBoundaryCondition(..).
 	std::list<BC_dof_force> forces;
 
-  // List of prescribed values for DoFs. This is old fashion realisation and will be changed soon.
+  // List of prescribed values for DoFs. This is old fashion realization and will be changed soon.
   // List is populated by FEStorage::addBoundaryCondition(..). DoFs with fixed values are treated in nla3d in a
   // special manner: this DoFs are eliminated from global solve system and then reaction forces of a such DoFs
   // are found. For details see FEStorage::initializeSolutionData(..) and FEStorage::updateSolutionResults().
@@ -372,16 +370,16 @@ private:
   // * elementDofs and nodeDofs are DofCollection 
   //    DofCollection keeps Dof objects and give it by (node, dof) pair
   // * Elements (or another entities) should register DoFs by using
-  //    FEStorage::registerNodeDof(node, dof) or FEStorage::registerElementDof(element, dof).
+  //    FEStorage::addNodeDof(node, dof) or FEStorage::addElementDof(element, dof).
   DofCollection elementDofs;
   DofCollection nodeDofs;
 
-  // topology[node_number] = set of elements attached to it
+  // topology[node_number] == set of elements attached to it
   std::vector<std::set<uint32> > topology;
 
   // if transient is true that means that assembleGlobalEqMatrices should assemble M and C matrices
   // too
-  bool transient;
+  bool transient = false;
 };
 
 // read Ansys Mechanical APDL *.cdb file. Nodes, Elements, Displacement BC and MPC (Constraint equations) is supported

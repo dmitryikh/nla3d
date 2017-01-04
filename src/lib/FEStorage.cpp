@@ -751,7 +751,7 @@ bool FEStorage::initializeSolutionData () {
 	numberOfDofs = elementDofs.getNumberOfUsedDofs() + nodeDofs.getNumberOfUsedDofs();
   CHECK(numberOfDofs);
 
-  // TODO: we should avoid duplicates and overrides  in constraints
+  // TODO: we should avoid duplicates and overrides in constraints
   numberOfConstrainedDofs = static_cast<uint32> (constraints.size());
 	numberOfMpcEq = static_cast<uint32> (mpcs.size());
 
@@ -1060,7 +1060,7 @@ void FEStorage::updateTimestepResults() {
 
 void FEStorage::applyBoundaryConditions (double time, double timeDelta) {
   TIMED_SCOPE(t, "applyBoundaryConditions");
-  LOG(INFO) << "Aplaying boundary conditions.. (" << forces.size() << " nodal loads and "
+  LOG(INFO) << "Applying boundary conditions.. (" << forces.size() << " nodal loads and "
        << constraints.size() << "nodal fixations)";	
 	// fill nodal forces
 	list<BC_dof_force>::iterator bc_force = forces.begin();

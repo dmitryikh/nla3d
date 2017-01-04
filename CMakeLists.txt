@@ -84,7 +84,7 @@ endif()
 SET (CMAKE_COLOR_MAKEFILE ON)
 enable_testing()
 # now we can use `make check` to build and run tests
-add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} -L FUNC)
+add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} -L FUNC --output-on-failure)
 
 include_directories (src)
 include_directories (src/lib)
