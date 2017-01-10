@@ -4,34 +4,37 @@
 
 #include "FESolver.h"
 
-#include "FEStorage.h"
-#include "PostProcessor.h"
-
 namespace nla3d {
 
 using namespace ::nla3d::math;
 
-
-uint16 TimeControl::getCurrentStep () {
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// TimeControl
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+uint16 TimeControl::getCurrentStep() {
   return static_cast<uint16> (convergedTimeInstances.size()+1);
 }
 
-uint16 TimeControl::getNumberOfConvergedSteps () {
+
+uint16 TimeControl::getNumberOfConvergedSteps() {
   return static_cast<uint16> (convergedTimeInstances.size());
 }
 
-uint16 TimeControl::getCurrentEquilibriumStep () {
+
+uint16 TimeControl::getCurrentEquilibriumStep() {
   return currentEquilibriumStep;
 }
 
-uint16 TimeControl::getTotalNumberOfEquilibriumSteps () {
+
+uint16 TimeControl::getTotalNumberOfEquilibriumSteps() {
   return totalNumberOfEquilibriumSteps; 
 }
 
-bool TimeControl::nextStep (double delta) {
+
+bool TimeControl::nextStep(double delta) {
   if (currentEquilibriumStep > 0) {
-    equilibriumSteps.push_back (currentEquilibriumStep);
-    convergedTimeInstances.push_back (currentTime);
+    equilibriumSteps.push_back(currentEquilibriumStep);
+    convergedTimeInstances.push_back(currentTime);
   }
   if (currentTime >= endTime) {
     return false;    
@@ -52,30 +55,36 @@ bool TimeControl::nextStep (double delta) {
   return true;
 }
 
-void TimeControl::nextEquilibriumStep () {
+
+void TimeControl::nextEquilibriumStep() {
   currentEquilibriumStep++;
   totalNumberOfEquilibriumSteps++; 
   LOG(INFO) << "***** Equilibrium iteration = " << currentEquilibriumStep
       << ", Cumulutive iterations = " << totalNumberOfEquilibriumSteps;
 }
 
-double TimeControl::getCurrentTime () {
+
+double TimeControl::getCurrentTime() {
   return currentTime;
 }
 
-double TimeControl::getCurrentNormalizedTime () {
+
+double TimeControl::getCurrentNormalizedTime() {
   return (currentTime - startTime) / (endTime - startTime);
 }
 
-double TimeControl::getEndTime () {
+
+double TimeControl::getEndTime() {
   return endTime;
 }
 
-double TimeControl::getStartTime () {
+
+double TimeControl::getStartTime() {
   return startTime;
 }
 
-double TimeControl::getCurrentTimeDelta () {
+
+double TimeControl::getCurrentTimeDelta() {
   if (currentEquilibriumStep == 1) {
     return currentTimeDelta;
   } else {
@@ -83,7 +92,8 @@ double TimeControl::getCurrentTimeDelta () {
   }
 }
 
-double TimeControl::getCurrentNormalizedTimeDelta () {
+
+double TimeControl::getCurrentNormalizedTimeDelta() {
   if (currentEquilibriumStep == 1) {
     return currentTimeDelta / (endTime - startTime);
   } else {
@@ -91,74 +101,174 @@ double TimeControl::getCurrentNormalizedTimeDelta () {
   }
 }
 
-void TimeControl::setEndTime (double _endTime) {
+
+void TimeControl::setEndTime(double _endTime) {
   LOG_IF(currentTime > 0.0, ERROR) << "Trying to set end time = " << _endTime
       << " when solution is running (current time = " << currentTime << ")";
   endTime = _endTime;
 }
 
-void TimeControl::setStartTime (double _startTime) {
+
+void TimeControl::setStartTime(double _startTime) {
   LOG_IF(currentTime > 0.0, ERROR) << "Trying to set start time = " << _startTime
       << " when solution is running (current time = " << currentTime << ")";
   startTime = _startTime;
 }
 
 
-FESolver::FESolver () {
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// FESolver
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+FESolver::FESolver() {
   eqSolver = defaultEquationSolver;
 }
 
-FESolver::~FESolver () {
+
+FESolver::~FESolver() {
   deletePostProcessors();
 }
 
-void FESolver::attachFEStorage (FEStorage *st) {
-	if (storage) {
+
+void FESolver::attachFEStorage(FEStorage *st) {
+  if (storage) {
     LOG(WARNING) << "FEStorage already is attached. The old one will be dropped.";
   }
-	storage = CHECK_NOTNULL(st);
+  storage = CHECK_NOTNULL(st);
 }
 
-size_t FESolver::getNumberOfPostProcessors () {
+
+size_t FESolver::getNumberOfPostProcessors() {
   return postProcessors.size();
 }
 
 // numbering from 0
 PostProcessor& FESolver::getPostProcessor(size_t _np) {
-	CHECK (_np < getNumberOfPostProcessors());
-	return *postProcessors[_np];
+  CHECK (_np < getNumberOfPostProcessors());
+  return *postProcessors[_np];
 }
 
-uint16 FESolver::addPostProcessor (PostProcessor *pp) {
-	CHECK_NOTNULL (pp);
-	uint16 num = static_cast<uint16> (this->postProcessors.size()+1);
-	pp->nPost_proc = num;
-	postProcessors.push_back(pp);
-	return num;
+
+uint16 FESolver::addPostProcessor(PostProcessor *pp) {
+  CHECK_NOTNULL (pp);
+  uint16 num = static_cast<uint16>(this->postProcessors.size()+1);
+  pp->nPost_proc = num;
+  postProcessors.push_back(pp);
+  return num;
 }
 
-void FESolver::deletePostProcessors () {
-	for (size_t i = 0; i < postProcessors.size(); i++) {
-		delete postProcessors[i];
+
+void FESolver::deletePostProcessors() {
+  for (size_t i = 0; i < postProcessors.size(); i++) {
+    delete postProcessors[i];
   }
   postProcessors.clear();
 }
 
-void FESolver::attachEquationSolver (math::EquationSolver *eq) {
-	if (eqSolver) {
+
+void FESolver::attachEquationSolver(math::EquationSolver *eq) {
+  if (eqSolver) {
     LOG(WARNING) << "EquationSolver already is attached. The old one will be dropped.";
   }
-	eqSolver = CHECK_NOTNULL(eq);
+  eqSolver = CHECK_NOTNULL(eq);
+}
+
+void FESolver::initSolutionData() {
+  storage->initSolutionData();
+
+  // make easy access to global system of equations entities
+  // pointer to stiff. matrix
+  matK = storage->getK();
+
+  // pointers to DoF values vector and it parts (c - constrained DoFs, s - to be solved (unknown)
+  // DoFs, l - mpc's lambdas
+  vecU.reinit(*(storage->getU()), 0, storage->nConstrainedDofs() + storage->nUnknownDofs() + storage->nMpc());
+  vecUc.reinit(*(storage->getU()), 0, storage->nConstrainedDofs());
+  vecUs.reinit(*(storage->getU()), storage->nConstrainedDofs(), storage->nUnknownDofs());
+  vecUl.reinit(*(storage->getU()), storage->nConstrainedDofs() + storage->nUnknownDofs(), storage->nMpc());
+  vecUsl.reinit(*(storage->getU()), storage->nConstrainedDofs(), storage->nUnknownDofs() + storage->nMpc());
+
+  vecF.reinit(*(storage->getF()), 0, storage->nConstrainedDofs() + storage->nUnknownDofs() + storage->nMpc());
+  vecFc.reinit(*(storage->getF()), 0, storage->nConstrainedDofs());
+  vecFs.reinit(*(storage->getF()), storage->nConstrainedDofs(), storage->nUnknownDofs());
+  vecFl.reinit(*(storage->getF()), storage->nConstrainedDofs() + storage->nUnknownDofs(), storage->nMpc());
+  vecFsl.reinit(*(storage->getF()), storage->nConstrainedDofs(), storage->nUnknownDofs() + storage->nMpc());
+
+  vecR.reinit(*(storage->getR()), 0, storage->nConstrainedDofs() + storage->nUnknownDofs() + storage->nMpc());
+  vecRc.reinit(*(storage->getR()), 0, storage->nConstrainedDofs());
+  vecRs.reinit(*(storage->getR()), storage->nConstrainedDofs(), storage->nUnknownDofs());
+  vecRl.reinit(*(storage->getR()), storage->nConstrainedDofs() + storage->nUnknownDofs(), storage->nMpc());
+  vecRsl.reinit(*(storage->getR()), storage->nConstrainedDofs(), storage->nUnknownDofs() + storage->nMpc());
+
+  if (storage->isTransient()) {
+    matC = storage->getC();
+    matM = storage->getM();
+
+    vecDU.reinit(*(storage->getDU()), 0, storage->nConstrainedDofs() + storage->nUnknownDofs() + storage->nMpc());
+    vecDUc.reinit(*(storage->getDU()), 0, storage->nConstrainedDofs());
+    vecDUs.reinit(*(storage->getDU()), storage->nConstrainedDofs(), storage->nUnknownDofs());
+    vecDUl.reinit(*(storage->getDU()), storage->nConstrainedDofs() + storage->nUnknownDofs(), storage->nMpc());
+    vecDUsl.reinit(*(storage->getDU()), storage->nConstrainedDofs(), storage->nUnknownDofs() + storage->nMpc());
+
+    vecDDU.reinit(*(storage->getDDU()), 0, storage->nConstrainedDofs() + storage->nUnknownDofs() + storage->nMpc());
+    vecDDUc.reinit(*(storage->getDDU()), 0, storage->nConstrainedDofs());
+    vecDDUs.reinit(*(storage->getDDU()), storage->nConstrainedDofs(), storage->nUnknownDofs());
+    vecDDUl.reinit(*(storage->getDDU()), storage->nConstrainedDofs() + storage->nUnknownDofs(), storage->nMpc());
+    vecDDUsl.reinit(*(storage->getDDU()), storage->nConstrainedDofs(), storage->nUnknownDofs() + storage->nMpc());
+  }
 }
 
 
-LinearFESolver::LinearFESolver () : FESolver () {
+void FESolver::setConstrainedDofs() {
+  for (auto fix : fixs) {
+    // TODO: now support only nodal dofs..
+    storage->setConstrainedNodeDof(fix.node, fix.node_dof);
+  }
+}
+
+
+void FESolver::applyBoundaryConditions(double time) {
+  TIMED_SCOPE(t, "applyBoundaryConditions");
+  LOG(INFO) << "Applying boundary conditions.. (" << loads.size() << " nodal loads and "
+       << fixs.size() << "nodal fixations)";  
+
+  // fill nodal loads
+  for (auto load : loads) {
+    storage->addValueR(load.node, load.node_dof, load.value * time);
+  }
+
+  // fill nodal displacements (kinematic fixs)
+  for (auto fix : fixs) {
+    //TODO: now support only nodal dofs..
+    uint32 eq_num = storage->getNodeDofEqNumber(fix.node, fix.node_dof);
+    // To be sure that constrained DoF lays in numberOfConstrainedDofs part
+    assert (eq_num - 1 < storage->nConstrainedDofs());
+    vecUc[eq_num - 1] = fix.value * time;
+  }
+}
+
+
+void FESolver::addFix(int32 n, Dof::dofType dof, const double value) {
+  // NOTE: we believes that all fixBC are distinct!
+  //       Do not pass to it the same BC twice!
+  fixs.push_back(fixBC(n, dof, value));
+}
+
+
+void FESolver::addLoad(int32 n, Dof::dofType dof, const double value) {
+  loads.push_back(loadBC(n, dof, value));
+}
+
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// LinearFESolver
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+LinearFESolver::LinearFESolver() : FESolver() {
 
 }
 
 void LinearFESolver::solve () {
   TIMED_SCOPE(timer, "solution");
-	LOG(INFO) << "Start the solution process";
+  LOG(INFO) << "Start the solution process";
   CHECK_NOTNULL(storage);
   CHECK_NOTNULL(eqSolver);
 
@@ -166,19 +276,46 @@ void LinearFESolver::solve () {
   eqSolver->setSymmetric(true);
   eqSolver->setPositive(false);
 
-  bool success = storage->initializeSolutionData();
-  LOG_IF(success != true, FATAL) << "initializeSolutionData is failed";
+  // This is right procedures to init solution infrmation in FEStorage:
+  // 1. Register all DoFs that will be used in solution
+  storage->initDofs();
+  // 2. tell FEStorage which DoFs will be fixed (constrained)
+  setConstrainedDofs();
+  // 3. Perform global system eq. numbering (first goes constrained DoFs, then unknown, Mpc
+  // equations are last ones)
+  storage->assignEquationNumbers();
+  // 4. Allocate memory, initialize matrices, assign pointer on this data.
+  initSolutionData();
 
-	for (size_t i = 0; i < getNumberOfPostProcessors(); i++) {
-		postProcessors[i]->pre();
+  for (size_t i = 0; i < getNumberOfPostProcessors(); i++) {
+    postProcessors[i]->pre();
   }
 
-  storage->assembleGlobalEqMatrices();
-  storage->applyBoundaryConditions(1.0, 1.0);
-  // solve equation system
-  eqSolver->solveEquations (storage->getK(), storage->getF(), storage->getGlobalEqUnknowns());
+  vecR.zero();
 
-  storage->updateSolutionResults();
+  storage->assembleGlobalEqMatrices();
+  applyBoundaryConditions(1.0);
+
+  // we need to calculate RHS for unknowns Dofs and Mps eq.
+  dVec rhs(storage->nUnknownDofs() + storage->nMpc());
+
+  rhs.zero();
+  rhs += vecFsl;
+  rhs += vecRsl;
+  // need to take into account elimination of constrained DoFs:
+  matBTVprod(*(matK->block(1,2)), vecUc, -1.0, rhs);
+
+  // solve equation system
+  eqSolver->solveEquations(matK->block(2), rhs.ptr(), vecUsl.ptr());
+
+  // restore reaction loads for constrained DoFs.
+  vecRc.zero();
+  matBVprod(*(matK->block(1)), vecUc, 1.0, vecRc);
+  matBVprod(*(matK->block(1,2)), vecUsl, 1.0, vecRc);
+  vecRc -= vecFc;
+
+  // update results for elements
+  storage->updateResults();
 
   for (size_t i = 0; i < getNumberOfPostProcessors(); i++) {
     postProcessors[i]->process (1);
@@ -192,13 +329,16 @@ void LinearFESolver::solve () {
 }
 
 
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// NonlinearFESolver
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 NonlinearFESolver::NonlinearFESolver() : FESolver () {
 
 }
 
 void NonlinearFESolver::solve() {
   TIMED_SCOPE(timer, "solution");
-	LOG(INFO) << "Start the solution process";
+  LOG(INFO) << "Start the solution process";
   CHECK_NOTNULL(storage);
   CHECK_NOTNULL(eqSolver);
 
@@ -206,55 +346,90 @@ void NonlinearFESolver::solve() {
   eqSolver->setSymmetric(true);
   eqSolver->setPositive(false);
 
-  bool success = storage->initializeSolutionData();
-  LOG_IF(success != true, FATAL) << "initializeSolutionData is failed";
+  storage->initDofs();
+  setConstrainedDofs();
+  storage->assignEquationNumbers();
+  initSolutionData();
 
-	for (size_t i = 0; i < getNumberOfPostProcessors(); i++) {
-		postProcessors[i]->pre();
+  dVec rhs(storage->nUnknownDofs() + storage->nMpc());
+  // need to store obtained constrained DoFs values obtained on previous equilibrium step in order
+  // to compute deltaUc for incremental approach
+  dVec Ucprev(storage->nConstrainedDofs());
+  Ucprev.zero();
+  // deltaU vector of unknowns for incremental approach
+  dVec deltaU(storage->nConstrainedDofs() + storage->nUnknownDofs() + storage->nMpc());
+  dVec deltaUc(deltaU, 0, storage->nConstrainedDofs());
+  dVec deltaUsl(deltaU, storage->nConstrainedDofs(), storage->nUnknownDofs() + storage->nMpc());
+  dVec deltaUs(deltaU, storage->nConstrainedDofs(), storage->nUnknownDofs());
+  dVec deltaUl(deltaU, storage->nConstrainedDofs() + storage->nUnknownDofs(), storage->nMpc());
+
+  for (size_t i = 0; i < getNumberOfPostProcessors(); i++) {
+    postProcessors[i]->pre();
   }
 
-	double currentCriteria = 0.0;
+  double currentCriteria = 0.0;
   double timeDelta = (timeControl.getEndTime() - timeControl.getStartTime()) / numberOfLoadsteps;
 
   while (timeControl.nextStep(timeDelta)) {
     bool converged = false;
     for (;;) {
       timeControl.nextEquilibriumStep();
-
+      vecR.zero();
       storage->assembleGlobalEqMatrices();
-			storage->applyBoundaryConditions(timeControl.getCurrentNormalizedTime(),
-          timeControl.getCurrentNormalizedTimeDelta());
+      applyBoundaryConditions(timeControl.getCurrentNormalizedTime());
 
-			// solve equation system
-      eqSolver->solveEquations (storage->getK(), storage->getF(), storage->getGlobalEqUnknowns());
+      deltaUc = vecUc - Ucprev;
+      rhs.zero();
+      rhs += vecFsl;
+      rhs += vecRsl;
+      // nConstr x (nUnknown + nMPC)
+      matBTVprod(*(matK->block(1,2)), deltaUc, -1.0, rhs);
 
-      // for now error in equation solver leads to FATAL error. In this case we don't need success
-      // check on this level..
-      //LOG_IF(success != true, FATAL) << "equation solver failed";
+      // solve equation system
+      eqSolver->solveEquations(matK->block(2), rhs.ptr(), deltaUsl.ptr());
 
-			storage->updateSolutionResults();
+      // restore DoF values from increments
+      vecUs += deltaUs;
+      vecUl = deltaUl;
+
+      // restore constrained DoFs reactions
+      vecRc.zero();
+      matBVprod(*(matK->block(1)), deltaUc, 1.0, vecRc);
+      matBVprod(*(matK->block(1,2)), deltaUsl, 1.0, vecRc);
+      vecRc -= vecFc;
+
+      Ucprev = vecUc;
+
+      storage->updateResults();
 
       // calculate convergence criteria
-      currentCriteria = calculateCriteria();
+      currentCriteria = calculateCriteria(deltaUs);
 
-			if (currentCriteria < convergenceCriteria) {
+      // TODO: 1. It seem's that currentCriteria is already normalized in calculateCriteria(). we
+      //          need to compare currentCriteria with 1.0 
+      // TODO: 2. Current convergence criteria is not good. We nee to intorduce equilibrium balance
+      //          criteria too along with kinematic one. 
+      if (currentCriteria < convergenceCriteria) {
         converged = true;
-				break;
-			}
+        break;
+      }
       LOG_IF(currentCriteria > 1.0e6 || std::isnan(currentCriteria), FATAL) << "The solution is diverged!";
-		}//iterations
 
-    LOG_IF(!converged, FATAL) << "The solution is not converged with"
+      if (timeControl.getCurrentEquilibriumStep() >= numberOfIterations) 
+        break;
+    }//iterations
+
+    LOG_IF(!converged, FATAL) << "The solution is not converged with "
         << timeControl.getCurrentEquilibriumStep() << " equilibrium iterations";
-		LOG(INFO) << "Loadstep " << timeControl.getCurrentStep() << " completed with " << timeControl.getCurrentEquilibriumStep();
+    LOG(INFO) << "Loadstep " << timeControl.getCurrentStep() << " completed with " << timeControl.getCurrentEquilibriumStep();
 
-// TODO: figure out why TIMED_BLOCK doesn't work here..
-//    TIMED_BLOCK(t, "PostProcessor::process") {
+    // TODO: figure out why TIMED_BLOCK doesn't work here..
+    // TIMED_BLOCK(t, "PostProcessor::process") {
         for (size_t i = 0; i < getNumberOfPostProcessors(); i++) {
           postProcessors[i]->process (timeControl.getCurrentStep());
         }
 //    }
-	} //loadsteps
+  } //loadsteps
   LOG(INFO) << "***** SOLVED *****";
 
 //  TIMED_BLOCK(t, "PostProcessor::post") {
@@ -264,12 +439,13 @@ void NonlinearFESolver::solve() {
 //  }
 }
 
-double NonlinearFESolver::calculateCriteria() {
+
+double NonlinearFESolver::calculateCriteria(dVec& delta) {
   double curCriteria = 0.0;
-  for (uint32 i=0; i < storage->getNumberOfUnknownDofs(); i++) {
-    curCriteria += fabs(storage->getGlobalEqUnknowns()[i]);
+  for (uint32 i = 0; i < delta.size(); i++) {
+    curCriteria += fabs(delta[i]);
   }
-  curCriteria /= storage->getNumberOfUnknownDofs();
+  curCriteria /= delta.size();
 
   curCriteria = curCriteria / convergenceCriteria;
   LOG(INFO) << "Solution delta criteria = " << curCriteria;
@@ -277,13 +453,17 @@ double NonlinearFESolver::calculateCriteria() {
 }
 
 
-LinearTransientFESolver::LinearTransientFESolver() : FESolver () {
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// LinearTransientFESolver
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+LinearTransientFESolver::LinearTransientFESolver() : FESolver() {
 
 }
 
+
 void LinearTransientFESolver::solve() {
   TIMED_SCOPE(timer, "solution");
-	LOG(INFO) << "Start the solution process";
+  LOG(INFO) << "Start the solution process";
   CHECK_NOTNULL(storage);
   CHECK_NOTNULL(eqSolver);
 
@@ -306,85 +486,78 @@ void LinearTransientFESolver::solve() {
   a6 = dt * (1.0 - delta);
   a7 = delta * dt;
 
-  bool success = storage->initializeSolutionData();
-  LOG_IF(success != true, FATAL) << "initializeSolutionData is failed";
+  storage->initDofs();
+  setConstrainedDofs();
+  storage->assignEquationNumbers();
+  initSolutionData();
+  
 
-	for (size_t i = 0; i < getNumberOfPostProcessors(); i++) {
-		postProcessors[i]->pre();
+  vecR.zero();
+
+  uint32 nEq = storage->nUnknownDofs() + storage->nMpc();
+  uint32 nAll = storage->nConstrainedDofs() + storage->nUnknownDofs() + storage->nMpc();
+
+  dVec vecUnext(nAll);
+  dVec vecUnextc(vecUnext, 0, storage->nConstrainedDofs());
+  dVec vecUnextsl(vecUnext, storage->nConstrainedDofs(), nEq);
+  dVec vecDUnext(nAll);
+  dVec vecDDUnext(nAll);
+
+  math::SparseSymMatrix matKmod(matK->block(2)->getSparsityInfo());
+
+  dVec rhs(nEq);
+
+  // TODO: this hangs the program: vecU = initValue;
+  for (uint32 i = 0; i < vecU.size(); i++) {
+    vecU[i] = initValue;
+  }
+
+  vecDU.zero();
+  vecDDU.zero();
+  
+  for (size_t i = 0; i < getNumberOfPostProcessors(); i++) {
+    postProcessors[i]->pre();
   }
 
   storage->assembleGlobalEqMatrices();
-  storage->applyBoundaryConditions(1.0, 1.0);
+  applyBoundaryConditions(1.0);
 
-  auto matK = storage->getK();
-  Eigen::Map<Eigen::VectorXd> eK(matK->getValuesArray(), matK->nValues());
-
-  auto matM = storage->getM();
-  Eigen::Map<Eigen::VectorXd> eM(matM->getValuesArray(), matM->nValues());
-
-  auto matC = storage->getC();
-  Eigen::Map<Eigen::VectorXd> eC(matC->getValuesArray(), matC->nValues());
-
-  uint32 nEq = matK->nRows();
-
-  Eigen::Map<Eigen::VectorXd> vecF(storage->getF(), nEq);
-
-  math::SparseSymMatrix matKmod(matK->getSparsityInfo());
-  Eigen::Map<Eigen::VectorXd> eKmod(matKmod.getValuesArray(), matKmod.nValues());
-
-  // thanks to Eigen map to my values memory
-  eKmod = a0 * eM + a1 * eC + eK;
+  // dummy implementation of `matKmod = a0 * matM + a1 * matC + matK`
+  for (uint32 i = 0; i < matKmod.nValues(); i++) {
+    matKmod.getValuesArray()[i] = a0 * matM->block(2)->getValuesArray()[i] +
+                                  a1 * matC->block(2)->getValuesArray()[i] +
+                                       matK->block(2)->getValuesArray()[i];
+  }
 
   // factorize eKmode just once as far sa we have a deal with linear system
   eqSolver->factorizeEquations(&matKmod);
 
-  Eigen::VectorXd vecFmod = Eigen::VectorXd::Zero(nEq);
-
-  // NOTE: initial conditions are zeros!
-  Eigen::VectorXd U = Eigen::VectorXd::Zero(nEq);
-  for (auto i = 0; i < nEq; i++) 
-    U[i] = initValue;
-  Eigen::VectorXd Unext = Eigen::VectorXd::Zero(nEq);
-  Eigen::VectorXd Udot = Eigen::VectorXd::Zero(nEq);
-  Eigen::VectorXd Udotnext = Eigen::VectorXd::Zero(nEq);
-  Eigen::VectorXd Udotdot = Eigen::VectorXd::Zero(nEq);
-  Eigen::VectorXd Udotdotnext = Eigen::VectorXd::Zero(nEq);
-
-  Eigen::VectorXd tmp1 = Eigen::VectorXd::Zero(nEq);
-  Eigen::VectorXd tmp2 = Eigen::VectorXd::Zero(nEq);
-
+  // timestepping
   while (curTime <= time1) {
     for (;;) {
-      // restore rhs into vecFmod
-      tmp1 = a0 * U + a2 * Udot + a3 * Udotdot;
-      tmp2 = a1 * U + a4 * Udot + a5 * Udotdot;
-      for (uint32 i = 0; i < nEq; i++)
-        vecFmod[i] = vecF[i] + matM->mult_vec_i(tmp1.data(), i+1) + matC->mult_vec_i(tmp2.data(), i + 1);
+      rhs = vecFsl + vecRsl;
+      matBVprod(*(matM->block(2)), a0*vecUsl + a2*vecDUsl + a3*vecDDUsl, 1.0, rhs);
+      matBVprod(*(matC->block(2)), a1*vecUsl + a4*vecDUsl + a5*vecDDUsl, 1.0, rhs);
 
-			// solve equation system
-      eqSolver->substituteEquations(&matKmod, &vecFmod[0], &Unext[0]);
+      // copy constrained dofs values
+      vecUnextc = vecUc;
+      // solve equation system
+      eqSolver->substituteEquations(&matKmod, &rhs[0], &vecUnextsl[0]);
 
       break;
-		}//iterations
-
-    // one more Kludge 
-    double* stU = storage->getGlobalEqUnknowns();
-    for (uint32 i = 0; i < nEq; i++) {
-      *stU = Unext[i];
-      stU++;
-    }
-
-    storage->updateTimestepResults();
+    }//iterations
 
     // restore derivatives
-    Udotdotnext = a0 * (Unext - U) - a2 * Udot - a3 * Udotdot;
-    Udotnext = Udot + a6 * Udotdotnext + a7 * Udotdot;
+    vecDDUnext = a0 * (vecUnext - vecU) - a2 * vecDU - a3 * vecDDU;
+    vecDUnext = vecDU + a6 * vecDDUnext + a7 * vecDDU;
 
-    U = Unext;
-    Udot = Udotnext;
-    Udotdot = Udotdotnext;
+    vecU = vecUnext;
+    vecDU = vecDUnext;
+    vecDDU = vecDDUnext;
 
-		LOG(INFO) << "Time " << curTime << " completed";
+    storage->updateResults();
+
+    LOG(INFO) << "Time " << curTime << " completed";
 
     for (size_t i = 0; i < getNumberOfPostProcessors(); i++) {
       postProcessors[i]->process(curTimestep);
@@ -392,11 +565,11 @@ void LinearTransientFESolver::solve() {
 
     curTimestep++;
     curTime += dt;
-	} //timesteps
+  } //timesteps
   LOG(INFO) << "***** SOLVED *****";
 
   for (size_t i = 0; i < getNumberOfPostProcessors(); i++) {
-    postProcessors[i]->post (timeControl.getCurrentStep());
+    postProcessors[i]->post(curTimestep);
   }
 }
 

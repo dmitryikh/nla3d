@@ -11,115 +11,76 @@ namespace nla3d {
 
 class FEStorage;
 
+
 class MpcTerm {
 public:
-	MpcTerm() : node(0), node_dof(Dof::UNDEFINED), coef(1.0) {
+  MpcTerm() : node(0), node_dof(Dof::UNDEFINED), coef(1.0) {
 
   }
 
-	MpcTerm(int32 n, Dof::dofType dof, double coef = 1.0) : node(n), node_dof(dof), coef(coef) {
-  
+  MpcTerm(int32 n, Dof::dofType dof, double coef = 1.0) : node(n), node_dof(dof), coef(coef) {
+
   }
 
-	int32 node;
-  Dof::dofType node_dof;
-	double coef;
+  int32 node = 0;
+  Dof::dofType node_dof = Dof::UNDEFINED;
+  double coef = 0.0;
 };
 
 
 class Mpc {
   public:
-  bool isUpdatable;
-  bool isSinglePointConstraint;
-  //virtual void update(double time, double dtime) = 0;
-  void print (std::ostream& out);
-	std::list<MpcTerm> eq;
-	double b;
-  //virtual void pre() { };
+    void print (std::ostream& out);
+    std::list<MpcTerm> eq;
+    double b; // rhs of MPC eq.
+    uint32 eqNum; // number of equation in global assembly
 };
 
 
 class MpcCollection {
   public:
-  virtual void update() = 0;
-  virtual void pre() = 0;
-  void printEquations (std::ostream& out);
-  void registerMpcsInStorage();
-  std::vector<Mpc*> collection;
-  FEStorage* storage;
+    virtual void update() = 0;
+    virtual void pre() = 0;
+    void printEquations(std::ostream& out);
+    void registerMpcsInStorage();
+    std::vector<Mpc*> collection;
+    FEStorage* storage;
 };
 
 
 class RigidBodyMpc : public MpcCollection {
   public:
-  RigidBodyMpc();
-  ~RigidBodyMpc();
-  uint32 masterNode;
-  
-  void pre ();
-  void update ();
-  std::vector<uint32> slaveNodes;
-  std::vector<Dof::dofType> dofs;
+    RigidBodyMpc();
+    ~RigidBodyMpc();
+    uint32 masterNode;
+
+    void pre ();
+    void update ();
+    std::vector<uint32> slaveNodes;
+    std::vector<Dof::dofType> dofs;
 };
 
-// old fashioned class BC and its derivatives
-class BC {
+
+class fixBC {
 public:
-	BC () : isUpdatetable(false) {  }
-	//virtual void apply(FEStorage *storage)=0;
-  // does this BC need to be updated every step (new eq. every step)
-	bool isUpdatetable; //нужно ли обновлять на каждом шаге решения
+  fixBC () { }
+  fixBC (int32 n, Dof::dofType dof, double val = 0.0) : node(n), node_dof(dof), value(val)
+  { }
+  int32 node = 0;
+  Dof::dofType node_dof = Dof::UNDEFINED;
+  double value = 0.0;
 };
 
-class BC_dof_constraint : public BC {
+
+class loadBC {
 public:
-	BC_dof_constraint () : node(0), node_dof(Dof::UNDEFINED), value(0.0)
-	{	}
-	BC_dof_constraint (int32 n, Dof::dofType dof, double val = 0.0) : node(n), node_dof(dof), value(val)
-	{	}
-	int32 node;
-  Dof::dofType node_dof;
-	double value;
-	//void apply(FEStorage *storage);
+  loadBC () : node(0), node_dof(Dof::UNDEFINED), value(0.0)
+  { }
+  loadBC (int32 n, Dof::dofType dof, double val = 0.0) : node(n), node_dof(dof), value(val)
+  { }
+  int32 node = 0;
+  Dof::dofType node_dof = Dof::UNDEFINED;
+  double value = 0.0;
 };
-
-class BC_dof_force : public BC {
-public:
-	BC_dof_force () : node(0), node_dof(Dof::UNDEFINED), value(0.0)
-	{	}
-	BC_dof_force (int32 n, Dof::dofType dof, double val = 0.0) : node(n), node_dof(dof), value(val)
-	{	}
-	int32 node;
-  Dof::dofType node_dof;
-	double value;
-	//void apply(FEStorage *storage);
-};
-
-
-//class MpcFiniteRotation : public Mpc {
-//  //unit axis of rotation
-//  math::Vec<3> n;
-//  //zero point of rotation 
-//  math::Vec<3> o; 
-//  // speed of rotation
-//  double theta;
-//
-//  uint32 masterNode;
-//  
-//  vector<uint32> slaveNodes;
-//  vector<Dof::dofType> dofs;
-//};
-
-
-// MPC equation like
-// coef1 * dof1 + coef2 * dof2 + ... + coefn * dofn - b = 0
-//class BC_MPC : public BC {
-//public:
-//	std::list<MPC_token> eq;
-//	double b;
-//	// void apply(FEStorage *storage);
-//  // virtual void update(const double time) { };
-//};
-
 
 } // namespace nal3d

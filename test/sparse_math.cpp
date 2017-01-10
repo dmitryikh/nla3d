@@ -273,38 +273,45 @@ int main() {
     A(3, 3) = 5.0;
     A(3, 4) = 9.0;
 
-    Vec<4> b1 = {1.0, 2.0, 3.0, 4.0};
-    Vec<3> b2 = {3.0, 2.0, 1.0};
-    Vec<4> res;
+    dVec b4(4);
+    b4[0] = 1.0;
+    b4[1] = 2.0;
+    b4[2] = 3.0;
+    b4[3] = 4.0;
 
-    cout << "b1 = " << b1 << endl;
-    cout << "b2 = " << b2 << endl;
+    dVec b3(3);
+    b3[0] = 3.0;
+    b3[1] = 2.0;
+    b3[2] = 1.0;
 
-    cout << "A.mult_vec_i(b1, 1) = " << A.mult_vec_i(b1.ptr(), 1) << endl;
-    cout << "A.mult_vec_i(b1, 2) = " << A.mult_vec_i(b1.ptr(), 2) << endl;
-    cout << "A.mult_vec_i(b1, 3) = " << A.mult_vec_i(b1.ptr(), 3) << endl;
+    dVec res4(4);
+    dVec res3(3);
 
-    CHECK_EQ(A.mult_vec_i(b1.ptr(), 1), 18.0);
-    CHECK_EQ(A.mult_vec_i(b1.ptr(), 2),  0.0);
-    CHECK_EQ(A.mult_vec_i(b1.ptr(), 3), 69.0);
+    cout << "b4 = [1, 2, 3, 4]" << endl;
 
-    cout << "A.transpose_mult_vec_i(b2, 1) = " << A.transpose_mult_vec_i(b2.ptr(), 1) << endl;
-    cout << "A.transpose_mult_vec_i(b2, 2) = " << A.transpose_mult_vec_i(b2.ptr(), 2) << endl;
-    cout << "A.transpose_mult_vec_i(b2, 3) = " << A.transpose_mult_vec_i(b2.ptr(), 3) << endl;
-    cout << "A.transpose_mult_vec_i(b2, 4) = " << A.transpose_mult_vec_i(b2.ptr(), 4) << endl;
+    matBVprod(A, b4, 1.0, res3);
+    cout << "matBVprod(A, b4, 1.0, res3) results:" << endl;
+    cout << "res3[0] = " << res3[0] << endl;
+    cout << "res3[1] = " << res3[1] << endl;
+    cout << "res3[2] = " << res3[2] << endl;
 
-    CHECK_EQ(A.transpose_mult_vec_i(b2.ptr(), 1),  2.0);
-    CHECK_EQ(A.transpose_mult_vec_i(b2.ptr(), 2), 11.0);
-    CHECK_EQ(A.transpose_mult_vec_i(b2.ptr(), 3),  5.0);
-    CHECK_EQ(A.transpose_mult_vec_i(b2.ptr(), 4), 21.0);
+    CHECK_EQ(res3[0], 18.0);
+    CHECK_EQ(res3[1],  0.0);
+    CHECK_EQ(res3[2], 69.0);
 
-    A.transpose_mult_vec(b2.ptr(), res.ptr());
-    cout << "A.transpose_mult_vec(b2, res); res = " << res << endl;
+    cout << "b3 = [3, 2, 1]" << endl;
 
-    CHECK_EQ(res[0],  2.0);
-    CHECK_EQ(res[1], 11.0);
-    CHECK_EQ(res[2],  5.0);
-    CHECK_EQ(res[3], 21.0);
+    matBTVprod(A, b3, 1.0, res4);
+    cout << "matBVprod(A, b3, 1.0, res4) results:" << endl;
+    cout << "res4[0] = " << res4[0] << endl;
+    cout << "res4[1] = " << res4[1] << endl;
+    cout << "res4[2] = " << res4[2] << endl;
+    cout << "res4[3] = " << res4[3] << endl;
+
+    CHECK_EQ(res4[0],  2.0);
+    CHECK_EQ(res4[1], 11.0);
+    CHECK_EQ(res4[2],  5.0);
+    CHECK_EQ(res4[3], 21.0);
   }
 
 
@@ -369,27 +376,34 @@ int main() {
 	  A(7, 7) = 11.0;
 	  A(8, 8) =  5.0;
 
-	  Vec<8> b = {1.0, 2.0, 4.0, 6.0, 5.0, 3.0, 7.0, 3.0};
+	  dVec b(8);
+    b[0] = 1.0;
+    b[1] = 2.0;
+    b[2] = 4.0;
+    b[3] = 6.0;
+    b[4] = 5.0;
+    b[5] = 3.0;
+    b[6] = 7.0;
+    b[7] = 3.0;
 
-    cout << "b = " << b << endl;
+    dVec res(8);
 
-    cout << "A.mult_vec_i(b, 1) = " << A.mult_vec_i(b.ptr(), 1) << endl;
-    cout << "A.mult_vec_i(b, 2) = " << A.mult_vec_i(b.ptr(), 2) << endl;
-    cout << "A.mult_vec_i(b, 3) = " << A.mult_vec_i(b.ptr(), 3) << endl;
-    cout << "A.mult_vec_i(b, 4) = " << A.mult_vec_i(b.ptr(), 4) << endl;
-    cout << "A.mult_vec_i(b, 5) = " << A.mult_vec_i(b.ptr(), 5) << endl;
-    cout << "A.mult_vec_i(b, 6) = " << A.mult_vec_i(b.ptr(), 6) << endl;
-    cout << "A.mult_vec_i(b, 7) = " << A.mult_vec_i(b.ptr(), 7) << endl;
-    cout << "A.mult_vec_i(b, 8) = " << A.mult_vec_i(b.ptr(), 8) << endl;
+    for (uint32 i = 0; i < b.size(); i++)
+      cout << "b[" << i << "] = " << b[i] << endl;
 
-    CHECK_EQ(A.mult_vec_i(b.ptr(), 1), 66.0);
-    CHECK_EQ(A.mult_vec_i(b.ptr(), 2), 34.0);
-    CHECK_EQ(A.mult_vec_i(b.ptr(), 3), 36.0);
-    CHECK_EQ(A.mult_vec_i(b.ptr(), 4),105.0);
-    CHECK_EQ(A.mult_vec_i(b.ptr(), 5), 67.0);
-    CHECK_EQ(A.mult_vec_i(b.ptr(), 6), 19.0);
-    CHECK_EQ(A.mult_vec_i(b.ptr(), 7),163.0);
-    CHECK_EQ(A.mult_vec_i(b.ptr(), 8), 50.0);
+    matBVprod(A, b, 1.0, res);
+    cout << "matBVprod(A, b, 1.0, res) results:" << endl;
+    for (uint32 i = 0; i < res.size(); i++)
+      cout << "res[" << i << "] = " << res[i] << endl;
+
+    CHECK_EQ(res[0], 66.0);
+    CHECK_EQ(res[1], 34.0);
+    CHECK_EQ(res[2], 36.0);
+    CHECK_EQ(res[3],105.0);
+    CHECK_EQ(res[4], 67.0);
+    CHECK_EQ(res[5], 19.0);
+    CHECK_EQ(res[6],163.0);
+    CHECK_EQ(res[7], 50.0);
   }
 
 }

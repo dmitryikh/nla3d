@@ -193,5 +193,50 @@ template<uint16 dim> void Vec<dim>::simple_read(std::istream& st)
 }
 
 
+
+// dVec class represents a dynamically allocated double arrays with math operations support
+// dVec has to modes: 1. dVec owns allocated memory; 2. dVec just point to double array memory
+// allocated by another dVec. memory_owner variable is used to distinct these modes
+class dVec {
+  public:
+    dVec();
+    dVec(uint32 _n, double _val = 0.0);
+    dVec(dVec& _ref, uint32 _start, uint32 _size);
+    void reinit(uint32 _n, double _val = 0.0);
+    void reinit(dVec& _ref, uint32 _start, uint32 _size);
+    ~dVec();
+
+    uint32 size() const;
+    void zero();
+    double* ptr();
+    void clear();
+    void fill(double val);
+
+    bool isInit();
+
+    double& operator[](uint32 _n);
+    double operator[](uint32 _n) const;
+
+    dVec operator-();
+
+    dVec operator+(const dVec& op);
+    dVec operator-(const dVec& op);
+    dVec operator*(const double op);
+    friend dVec operator* (const double op1, const dVec& op2);
+    dVec operator/(const double op);
+
+    dVec& operator+=(const dVec& op);
+    dVec& operator-=(const dVec& op);
+
+    dVec& operator=(const dVec& op);
+
+  private:
+
+    bool memory_owner = false;
+    double* data = nullptr;
+    uint32 _size = 0;
+};
+
+
 } // namespace math
 } // namespace nla3d

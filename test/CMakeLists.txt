@@ -91,7 +91,7 @@ set_tests_properties(${TEST_NAME} PROPERTIES LABELS "FUNC")
 add_dependencies(check ${TEST_NAME})
 
 
-set (TEST_SOURCES "QUADTH_test.cpp")
+set (TEST_SOURCES "QUADTH_test.cpp;${PROJECT_SOURCE_DIR}/src/FEReaders.cpp")
 set (TEST_NAME "QUADTH_test")
 add_executable(${TEST_NAME} ${TEST_SOURCES})
 target_link_libraries(${TEST_NAME} nla3d_lib)
@@ -101,7 +101,7 @@ set_tests_properties(${TEST_NAME} PROPERTIES LABELS "FUNC")
 add_dependencies(check ${TEST_NAME})
 
 
-set (TEST_SOURCES "QUADTH_transient.cpp")
+set (TEST_SOURCES "QUADTH_transient.cpp;${PROJECT_SOURCE_DIR}/src/FEReaders.cpp")
 set (TEST_NAME "QUADTH_transient")
 add_executable(${TEST_NAME} ${TEST_SOURCES})
 target_link_libraries(${TEST_NAME} nla3d_lib)

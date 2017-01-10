@@ -5,22 +5,29 @@
 #pragma once
 
 #include "sys.h"
-#include <map>
+#include "math/Vec.h"
 
 namespace nla3d {
 namespace math {
 
-// NOTE: Sparse Matrices entries here have indexes started from 1 !
+// NOTE: Sparse Matrices entries have indexes started from 1 !
+
+class SparseMatrix;
+class SparseSymMatrix;
 
 // TODO: Sparse Matrices in nla3d directly used in MKLs' PARDISO equation solver. That's why we use
 // uint32 for value indexes. More general way is to use templates with arbitrary type for entities
-// and to indexes.
+// and for indexes.
 
-// class to hold columns and iofeir (Index Of First Element In the Row) of 3-arrays CSR storage
+// Class to hold columns and iofeir (Index Of First Element In the Row) of 3-arrays CSR storage
 // format. SparsityInfo can be shared between sparse matrices.
 class SparsityInfo {
   public:
+    SparsityInfo();
     SparsityInfo(uint32 _nrows, uint32 _ncols, uint32 _max_in_row);
+    ~SparsityInfo();
+
+    void reinit(uint32 _nrows, uint32 _ncols, uint32 _max_in_row);
     // add information than (_row, _column) entries has non-zero value
     // _i, _j indexes are started from 1
     void addEntry(uint32 _i, uint32 _j);
@@ -36,7 +43,12 @@ class SparsityInfo {
     friend class BaseSparseMatrix;
     friend class SparseMatrix;
     friend class SparseSymMatrix;
+    friend void matBVprod(SparseSymMatrix &B, const dVec &V, const double coef, dVec &R);
+    friend void matBVprod(SparseMatrix &B, const dVec &V, const double coef, dVec &R);
+    friend void matBTVprod(SparseMatrix &B, const dVec &V, const double coef, dVec &R);
+
   private:
+    void clear();
 
     // Data arrays to implement compressed sparse row format with 3 arrays (3-array CSR).
     // Format was implemented by using MKL manual.
@@ -60,12 +72,12 @@ class SparsityInfo {
 };
 
 
-
 // Base class for Sparse Matrix in a row-oriented data format. This class doesn't have particular
 // meaning. See SparseMatrix and SparseSymMatrix for practical usage.
 // The implementation of compressed sparse row format with 3 arrays (3-array CSR).
 class BaseSparseMatrix {
   public:
+    BaseSparseMatrix();
     BaseSparseMatrix(uint32 _nrows, uint32 _ncolumns, uint32 _max_in_row = 100);
     BaseSparseMatrix(std::shared_ptr<SparsityInfo> spar_info);
     ~BaseSparseMatrix();
@@ -87,6 +99,7 @@ class BaseSparseMatrix {
     uint32 nRows();
     uint32 nColumns();
     std::shared_ptr<SparsityInfo> getSparsityInfo();
+    void setSparsityInfo(std::shared_ptr<SparsityInfo> spar_info);
 
     bool isCompressed();
 
@@ -101,20 +114,17 @@ class BaseSparseMatrix {
 
 class SparseMatrix : public BaseSparseMatrix {
   public:
+    SparseMatrix();
     SparseMatrix(uint32 nrows, uint32 ncolumns, uint32 max_in_row = 100);
     SparseMatrix(std::shared_ptr<SparsityInfo> spar_info);
     
+    void reinit(uint32 _nrows, uint32 _ncols, uint32 _max_in_row = 100);
+
     // add non-zero entry to sparse matrix. This should be called before compress(). 
     void addEntry(uint32 _i, uint32 _j);
 
     // add value to the _i, _j entry. This should be called after compress().
     void addValue(uint32 _i, uint32 _j, double value);
-
-
-    // TODO: It would be better to use a BLAS routine for sparse matrices for speedup
-    double mult_vec_i (double *vec, uint32 i);
-    double transpose_mult_vec_i (double *vec, uint32 i);
-    void transpose_mult_vec (double *vec, double *res);
 
     // debug output
     void print (std::ostream& out);
@@ -124,22 +134,25 @@ class SparseMatrix : public BaseSparseMatrix {
 
     // return the value of the entry, if the entry doesn't exists - return 0.0
     double value(uint32 _i, uint32 _j) const;
+
+    friend void matBVprod(SparseMatrix &B, const dVec &V, const double coef, dVec &R);
+    friend void matBTVprod(SparseMatrix &B, const dVec &V, const double coef, dVec &R);
 };
 
 
 class SparseSymMatrix : public BaseSparseMatrix {
   public:
+    SparseSymMatrix();
     SparseSymMatrix(uint32 nrows, uint32 max_in_row = 100);
     SparseSymMatrix(std::shared_ptr<SparsityInfo> spar_info);
+
+    void reinit(uint32 _nrows, uint32 _max_in_row = 100);
     
     // add non-zero entry to sparse matrix. This should be called before compress(). 
     void addEntry(uint32 _i, uint32 _j);
 
     // add value to the _i, _j entry. This should be called after compress().
     void addValue(uint32 _i, uint32 _j, double value);
-
-
-    double mult_vec_i(double *vec, uint32 i);
 
     // debug methods
     void print (std::ostream& out);
@@ -149,6 +162,8 @@ class SparseSymMatrix : public BaseSparseMatrix {
 
     // return the value of the entry, if the entry doesn't exists - return 0.0
     double value(uint32 _i, uint32 _j) const;
+
+    friend void matBVprod(SparseSymMatrix &B, const dVec &V, const double coef, dVec &R);
 };
 
 

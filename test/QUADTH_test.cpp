@@ -7,6 +7,7 @@
 #include "VtkProcessor.h"
 #include "FESolver.h"
 #include "elements/QUADTH.h"
+#include "FEReaders.h"
 
 using namespace nla3d;
 
@@ -39,12 +40,15 @@ int main (int argc, char* argv[]) {
 
   // Create an instance of FEStorage.
 	FEStorage storage;
-  if (!readCdbFile (cdb_filename.c_str(), &storage, ElementType::QUADTH)) {
+  // We have a deal with linear FE. Then it's ok to use linear solver (just one equilibrium iteration without
+  // convergence controls)
+	LinearFESolver solver;
+  if (!readCdbFile (cdb_filename.c_str(), &storage, &solver, ElementType::QUADTH)) {
     LOG(ERROR) << "Can't read FE info from cdb";
     exit(1);
   }
 
-  for (uint32 i = 1; i <= storage.getNumberOfElements(); i++) {
+  for (uint32 i = 1; i <= storage.nElements(); i++) {
     ElementQUADTH& el = dynamic_cast<ElementQUADTH&>(storage.getElement(i));
     el.k = 0.018;
   }
@@ -60,11 +64,8 @@ int main (int argc, char* argv[]) {
     storage.addElement(el);
   }
 
-  storage.addDofLoad(7, Dof::TEMP, 0.08);
+  solver.addLoad(7, Dof::TEMP, 0.08);
 
-  // We have a deal with linear FE. Then it's ok to use linear solver (just one equilibrium iteration without
-  // convergence controls)
-	LinearFESolver solver;
 #ifdef NLA3D_USE_MKL
     math::PARDISO_equationSolver eqSolver = math::PARDISO_equationSolver();
     solver.attachEquationSolver(&eqSolver);
@@ -78,7 +79,7 @@ int main (int argc, char* argv[]) {
   
   // Log all results about the model
   LOG(INFO) << "DoF solution:";
-  for (uint32 i = 1; i <= storage.getNumberOfNodes(); i++) {
+  for (uint32 i = 1; i <= storage.nNodes(); i++) {
     LOG(INFO) << i << ":" << Dof::dofTypeLabels[Dof::TEMP] << " = " << storage.getNodeDofSolution(i, Dof::TEMP);
   }
 
@@ -86,7 +87,7 @@ int main (int argc, char* argv[]) {
   // check results with Ansys data
   if (res_filename != "") {
     auto ansTemp = readTempData (res_filename);
-    for (uint32 i = 1; i <= storage.getNumberOfNodes(); i++) {
+    for (uint32 i = 1; i <= storage.nNodes(); i++) {
       double my_temp = storage.getNodeDofSolution(i, Dof::TEMP);
       double ans_temp = ansTemp[i-1];
       CHECK_EQTH(my_temp, ans_temp, 1.0e-3);

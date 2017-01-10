@@ -104,7 +104,7 @@ int main() {
   storage.addElement(el);       // 5
 
   // toggle Element::pre() for all
-  storage.initializeSolutionData();
+  storage.initDofs();
 
   cout << "Checking ElementIsoParamLINE (-1),(+1) element.." << endl;
   el = dynamic_cast<LINEdummy*>(&storage.getElement(1));
@@ -224,7 +224,7 @@ int main() {
   storage.addElement(el);       // 5
 
   // toggle Element::pre() for all
-  storage.initializeSolutionData();
+  storage.initDofs();
 
   cout << "Checking ElementIsoParamQUAD (-1,-1),(1,-1),(1,1),(-1,1) element.." << endl;
   el = dynamic_cast<QUADdummy*>(&storage.getElement(1));
@@ -394,7 +394,7 @@ int main() {
   storage.addElement(el);       // 5
 
   // toggle Element::pre() for all
-  storage.initializeSolutionData();
+  storage.initDofs();
 
   cout << "Checking ElementIsoParamHEXAHEDRON uni element.." << endl;
   el = dynamic_cast<HEXAHEDRONdummy*>(&storage.getElement(1));

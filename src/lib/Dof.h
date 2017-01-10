@@ -87,6 +87,7 @@ inline uint32 DofCollection::getNumberOfEntities() {
 
 inline std::pair<std::vector<Dof>::iterator,
                  std::vector<Dof>::iterator> DofCollection::getEntityDofs(uint32 n) {
+  assert(n > 0);
   assert(n <= numberOfEntities);
   assert(dofPos.size() > 0);
 

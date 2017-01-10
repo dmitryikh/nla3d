@@ -43,6 +43,11 @@ int main (int argc, char* argv[]) {
 
   // Create an instance of FEStorage.
 	FEStorage storage;
+
+  // We have a deal with linear FE. Then it's ok to use linear solver (just one equilibrium iteration without
+  // convergence controls)
+	LinearFESolver solver;
+
   // Create and add nodes into FEStorage
   for (uint32 i = 1; i <= numberOfNodes; i++) {
     Node* no = new Node;
@@ -64,22 +69,19 @@ int main (int argc, char* argv[]) {
 
   // we deal with 2D system, then fix all UZ DoFs
   for (uint32 i = 1; i <= numberOfNodes; i++) {
-    storage.addDofFixation(i, Dof::UZ);
+    solver.addFix(i, Dof::UZ);
   }
 
   // add fixations for the system
-  storage.addDofFixation(1, Dof::UX);
-  storage.addDofFixation(1, Dof::UY);
-  storage.addDofFixation(4, Dof::UX);
-  storage.addDofFixation(4, Dof::UY);
+  solver.addFix(1, Dof::UX);
+  solver.addFix(1, Dof::UY);
+  solver.addFix(4, Dof::UX);
+  solver.addFix(4, Dof::UY);
 
   // add forces
-  storage.addDofLoad(2, Dof::UY, -100.0);
-  storage.addDofLoad(5, Dof::UX, 50.0);
+  solver.addLoad(2, Dof::UY, -100.0);
+  solver.addLoad(5, Dof::UX, 50.0);
 
-  // We have a deal with linear FE. Then it's ok to use linear solver (just one equilibrium iteration without
-  // convergence controls)
-	LinearFESolver solver;
 #ifdef NLA3D_USE_MKL
     math::PARDISO_equationSolver eqSolver = math::PARDISO_equationSolver();
     solver.attachEquationSolver(&eqSolver);

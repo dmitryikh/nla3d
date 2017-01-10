@@ -71,8 +71,8 @@ void VtkProcessor::write_header (std::ofstream &file) {
 
 void VtkProcessor::write_geometry(std::ofstream &file, bool def) {
 	Vec<3> xi;
-	file << "POINTS " << storage->getNumberOfNodes() << " float" << std::endl;
-	for (uint32 i=1; i <= storage->getNumberOfNodes(); i++)
+	file << "POINTS " << storage->nNodes() << " float" << std::endl;
+	for (uint32 i=1; i <= storage->nNodes(); i++)
 	{
 		storage->getNodePosition(i, xi.ptr(), def);
 		file << xi << std::endl;
@@ -88,11 +88,11 @@ void VtkProcessor::write_geometry(std::ofstream &file, bool def) {
 
   // calculate overall size of element data
   uint32 data_size = 0;
-	for (uint32 i=1; i <= storage->getNumberOfElements(); i++)
+	for (uint32 i=1; i <= storage->nElements(); i++)
               data_size += storage->getElement(i).getNNodes() + 1;
 
-	file << "CELLS " << storage->getNumberOfElements() << " " <<  data_size << std::endl;
-	for (uint32 i=1; i <= storage->getNumberOfElements(); i++)
+	file << "CELLS " << storage->nElements() << " " <<  data_size << std::endl;
+	for (uint32 i=1; i <= storage->nElements(); i++)
 	{
     uint16 nodesNum = storage->getElement(i).getNNodes();
 		file << nodesNum;
@@ -100,8 +100,8 @@ void VtkProcessor::write_geometry(std::ofstream &file, bool def) {
 			file << " " << storage->getElement(i).getNodeNumber(j)-1;
 		file << std::endl;
 	}
-	file << "CELL_TYPES " << storage->getNumberOfElements() << std::endl;
-	for (uint32 i=1; i <= storage->getNumberOfElements(); i++) {
+	file << "CELL_TYPES " << storage->nElements() << std::endl;
+	for (uint32 i=1; i <= storage->nElements(); i++) {
     ElementShape eltype = storage->getElement(i).getShape();
     if (eltype == ElementShape::QUAD) {
       file << "9" << std::endl; //VTK_QUAD, see VTK file formats
@@ -116,7 +116,7 @@ void VtkProcessor::write_geometry(std::ofstream &file, bool def) {
 }
 
 void VtkProcessor::write_point_data(std::ofstream &file) {
-  size_t nn = storage->getNumberOfNodes();
+  size_t nn = storage->nNodes();
   file << "POINT_DATA " << nn << std::endl;
   std::vector<Vec<3> > dataVector;
   std::vector<double> dataScalar;
@@ -162,7 +162,7 @@ void VtkProcessor::write_point_data(std::ofstream &file) {
 //Use global coordinate system. all futher transformations 
 //should be done on paraview side. 
 void VtkProcessor::write_cell_data(std::ofstream &file) {
-  size_t en = storage->getNumberOfElements();
+  size_t en = storage->nElements();
   std::vector<MatSym<3> > dataTensor;
   std::vector<Vec<3> > dataVector;
   std::vector<double> dataScalar;
@@ -189,7 +189,7 @@ void VtkProcessor::write_cell_data(std::ofstream &file) {
   if (cellScalarQuery.size() > 0) {
     dataScalar.assign(en, 0.0);
     for (size_t j = 0; j < cellScalarQuery.size(); j++) {
-      for (uint32 i = 1; i <= storage->getNumberOfElements(); i++) {
+      for (uint32 i = 1; i <= storage->nElements(); i++) {
         dataScalar[i-1] = 0.0;
         storage->getElement(i).getScalar(dataScalar[i-1], cellScalarQuery[j]);
       }
@@ -201,7 +201,7 @@ void VtkProcessor::write_cell_data(std::ofstream &file) {
   if (cellVectorQuery.size() > 0) {
     dataVector.assign(en, Vec<3> ());
     for (size_t j = 0; j < cellVectorQuery.size(); j++) {
-      for (uint32 i = 1; i <= storage->getNumberOfElements(); i++) {
+      for (uint32 i = 1; i <= storage->nElements(); i++) {
         dataVector[i-1].zero();
         storage->getElement(i).getVector(dataVector[i-1].ptr(), cellVectorQuery[j]);
       }
@@ -213,7 +213,7 @@ void VtkProcessor::write_cell_data(std::ofstream &file) {
   if (cellTensorQuery.size() > 0) {
     dataTensor.assign(en, MatSym<3> ());
     for (size_t j = 0; j < cellTensorQuery.size(); j++) {
-      for (uint32 i = 1; i <= storage->getNumberOfElements(); i++) {
+      for (uint32 i = 1; i <= storage->nElements(); i++) {
         dataTensor[i-1].zero();
         storage->getElement(i).getTensor(dataTensor[i-1], cellTensorQuery[j]);
       }

@@ -94,7 +94,7 @@ add_subdirectory (test EXCLUDE_FROM_ALL)
 
 
 # here is a main target - nla3d.exe
-set (NLA3D_APP_SOURCES "src/main.cpp")
+set (NLA3D_APP_SOURCES "src/main.cpp;src/FEReaders.cpp")
 
 # an executable to use TRUSS3 element
 set (NLA3D_TRUSS_APP_SOURCES "src/main_truss.cpp")

@@ -8,6 +8,7 @@
 #include "VtkProcessor.h"
 #include "ReactionProcessor.h"
 #include "materials/MaterialFactory.h"
+#include "FEReaders.h"
 
 using namespace nla3d;
 
@@ -162,7 +163,8 @@ int main (int argc, char* argv[]) {
 
 	Timer pre_solve(true);
 	FEStorage storage;
-  if (!readCdbFile (options::modelFilename.c_str(), &storage, options::elementType)) {
+	NonlinearFESolver solver;
+  if (!readCdbFile (options::modelFilename.c_str(), &storage, &solver, options::elementType)) {
     LOG(ERROR) << "Can't read FE info from " << options::modelFilename << "file. exiting..";
     exit(1);
   }
@@ -179,7 +181,6 @@ int main (int argc, char* argv[]) {
   LOG(INFO) << "Loaded components:";
   storage.listFEComponents();
 
-	NonlinearFESolver solver;
 	solver.attachFEStorage (&storage);
 	solver.numberOfIterations = options::numberOfIterations;
 	solver.numberOfLoadsteps = options::numberOfLoadsteps;
