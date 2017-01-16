@@ -230,6 +230,17 @@ class dVec {
 
     dVec& operator=(const dVec& op);
 
+    // for debug purpose:
+    bool compare(const dVec& op2, double th = 1.0e-10);
+    // write and read to/from simple text format:
+    // n
+    // value1
+    // value2
+    // ...
+    // valuen
+    void writeTextFormat(std::ostream& out);
+    void readTextFormat(std::istream& in);
+
   private:
 
     bool memory_owner = false;

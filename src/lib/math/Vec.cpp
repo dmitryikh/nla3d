@@ -207,5 +207,43 @@ dVec& dVec::operator=(const dVec& op) {
   return *this;
 }
 
+
+bool dVec::compare(const dVec& op2, double th) {
+  dVec& op1 = *this;
+  assert(op1.data && op2.data);
+
+  // first round. compare lengths
+  if (op1.size() != op2.size()) {
+    return false;
+  }
+
+  // second round. compare values
+  for (uint32 i = 0; i < op1.size(); i++) {
+    if (fabs(op1.data[i] - op2.data[i]) > th) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+
+void dVec::writeTextFormat(std::ostream& out) {
+  out << size() << std::endl;
+  for (uint32 i = 0; i < size(); i++) {
+    out << data[i] << endl;
+  }
+}
+
+
+void dVec::readTextFormat(std::istream& in) {
+  uint32 _len;
+  in >> _len;
+  reinit(_len);
+  for (uint32 i = 0; i < _len; i++) {
+    in >> data[i];
+  }
+}
+
 } // namespace math
 } // namespace nla3d

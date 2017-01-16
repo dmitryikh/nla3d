@@ -181,6 +181,80 @@ void BaseSparseMatrix::printInternalData(std::ostream& out) {
 }
 
 
+void BaseSparseMatrix::writeCoordinateTextFormat(std::ostream& out) {
+  assert(si);
+  assert(values);
+  assert(si->compressed);
+  // write header: nRows, nColumns, numberOfValues
+  out << si->nRows << ' ' << si->nColumns << ' ' << si->numberOfValues << std::endl;
+  uint32 total = 0;
+  for (uint32 i = 1; i <= si->nRows; i++) {
+    for (uint32 j = si->iofeir[i - 1] - 1; j < si->iofeir[i] - 1; j++) {
+        out << i << ' ' << si->columns[j] << ' ' << values[j] << std::endl;
+        total++;
+    }
+  }
+  assert(total == si->numberOfValues);
+}
+
+
+void BaseSparseMatrix::readCoordinateTextFormat(std::istream& in) {
+  std::vector<SparseEntry> entries;
+  uint32 _nrows, _ncols, _nvalues;
+  // read header: nRows, nColumns, numberOfValues
+  in >> _nrows >> _ncols >> _nvalues;
+  entries.reserve(_nvalues);
+  for (uint32 i = 1; i <= _nvalues; i++) {
+    SparseEntry entry;
+    in >> entry.i >> entry.j >> entry.v;
+    entries.push_back(entry);
+  }
+  reinit(_nrows, _ncols, entries);
+}
+
+
+bool BaseSparseMatrix::compare(const BaseSparseMatrix& op2, double th) {
+  // this function conduct strict comparison: matrices should have the same sparsity and the same
+  // non-zero values
+  BaseSparseMatrix& op1 = *this;
+  assert(op1.si && op2.si);
+  assert(op1.values && op2.values);
+  assert(op1.si->compressed && op2.si->compressed);
+
+  // first round. compare shapes
+  if (op1.nRows() != op2.nRows() || op1.nColumns() != op2.nColumns()) {
+    return false;
+  }
+
+  // second round. compare number of values
+  if (op1.nValues() != op2.nValues()) {
+    return false;
+  }
+
+  // third round. compare sparsity patterns
+  for (uint32 i = 0; i <= op1.nRows(); i++) {
+    if (op1.si->iofeir[i] != op2.si->iofeir[i]) {
+      return false;
+    }
+  }
+  for (uint32 i = 0; i < op1.nValues(); i++) {
+    if (op1.si->columns[i] != op2.si->columns[i]) {
+      return false;
+    }
+  }
+
+  // fourth round. compare values with thresholds
+  for (uint32 i = 0; i < op1.nValues(); i++) {
+    if (fabs(op1.values[i] - op2.values[i]) > th) {
+      return false;
+    }
+  }
+
+  // all rounds are passed. The matrices are the same
+  return true;
+}
+
+
 BaseSparseMatrix::BaseSparseMatrix() {
 
 }
@@ -199,6 +273,47 @@ BaseSparseMatrix::~BaseSparseMatrix() {
       delete[] values;
       values = nullptr;
     }
+}
+
+
+void BaseSparseMatrix::reinit(uint32 _nrows, uint32 _ncols, const std::vector<SparseEntry>& entries) {
+  // after this procedure we will obtain matrix in already compressed state
+  // TODO: this is not optimal way to fill new Sparse Matrix, actually we can allocate exactly
+  // number of non-zeros at once, as far as we know all entries before initialization
+  // NOTE: For SparseSymMatrix the caller should be sure that all entries are in upper triangle.
+  //
+  // in case of all zeros matrix
+  if (entries.size() == 0) {
+    si = std::shared_ptr<SparsityInfo>(new SparsityInfo(_nrows, _ncols, 1));
+    compress();
+    return;
+  }
+  // calculate number of entries in every row
+  std::vector<uint32> entriesInRow(_nrows, 0);
+  for (auto v : entries) {
+    entriesInRow[v.i - 1] += 1;
+  }
+  uint32 _max_in_row = *std::max_element(entriesInRow.begin(), entriesInRow.end());
+  // init new SparsityInfo
+  si = std::shared_ptr<SparsityInfo>(new SparsityInfo(_nrows, _ncols, _max_in_row));
+
+  // add non-zero entries into SparsityInfo
+  for (auto v : entries) {
+    si->addEntry(v.i, v.j);
+  }
+
+  // compress matrix
+  compress();
+
+  // write non-zero values into matrix
+  for (auto v : entries) {
+    //addValue(v.i, v.j, v.v);
+    uint32 index = si->getIndex(v.i, v.j);
+    if (index == SparsityInfo::invalid) {
+      LOG(FATAL) << "The position(" << v.i << ", " << v.j << ") is absent in the matrix";
+    }
+    values[index] = v.v;
+  }
 }
 
 void BaseSparseMatrix::compress() {

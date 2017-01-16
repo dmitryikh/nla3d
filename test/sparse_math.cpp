@@ -35,6 +35,16 @@ int main() {
 
     spmat.printInternalData(cout);
     spmat.print(cout);
+
+    // write to file, read and compare:
+    std::ofstream out("test.mat");
+    spmat.writeCoordinateTextFormat(out);
+    out.close();
+
+    std::ifstream in("test.mat");
+    SparseMatrix spmat2;
+    spmat2.readCoordinateTextFormat(in);
+    in.close();
   }
 
   cout << "SparseSymmetricMatrix(3,3) with no elements" << endl;
@@ -45,9 +55,21 @@ int main() {
 
     spmat.printInternalData(cout);
     spmat.print(cout);
+
+    // write to file, read and compare:
+    std::ofstream out("test.mat");
+    spmat.writeCoordinateTextFormat(out);
+    out.close();
+
+    std::ifstream in("test.mat");
+    SparseSymMatrix spmat2;
+    spmat2.readCoordinateTextFormat(in);
+    in.close();
+
+    CHECK(spmat2.compare(spmat));
   }
 
-  cout << "SparseSymmetricMatrix(3, 0) with no elements" << endl;
+  cout << "SparseSymmetricMatrix(0, 0) with no elements" << endl;
   {
     SparseSymMatrix spmat(0);
     // add nothing
@@ -100,6 +122,18 @@ int main() {
     CHECK_EQ(spmat.getIofeirArray()[1], 3);
     CHECK_EQ(spmat.getIofeirArray()[2], 3);
     CHECK_EQ(spmat.getIofeirArray()[3], 7);
+
+    // write to file, read and compare:
+    std::ofstream out("test.mat");
+    spmat.writeCoordinateTextFormat(out);
+    out.close();
+
+    std::ifstream in("test.mat");
+    SparseSymMatrix spmat2;
+    spmat2.readCoordinateTextFormat(in);
+    in.close();
+
+    CHECK(spmat2.compare(spmat));
   }
 
 
@@ -150,6 +184,19 @@ int main() {
     CHECK_EQ(spmat.getIofeirArray()[2], 6);
     CHECK_EQ(spmat.getIofeirArray()[3], 7);
     CHECK_EQ(spmat.getIofeirArray()[4], 8);
+
+
+    // write to file, read and compare:
+    std::ofstream out("test.mat");
+    spmat.writeCoordinateTextFormat(out);
+    out.close();
+
+    std::ifstream in("test.mat");
+    SparseSymMatrix spmat2;
+    spmat2.readCoordinateTextFormat(in);
+    in.close();
+
+    CHECK(spmat2.compare(spmat));
   }
 
   cout << "Create two matrices with the same SparsityInfo" << endl;
@@ -404,6 +451,30 @@ int main() {
     CHECK_EQ(res[5], 19.0);
     CHECK_EQ(res[6],163.0);
     CHECK_EQ(res[7], 50.0);
+
+    // write to file, read and compare:
+    std::ofstream out("test.mat");
+    A.writeCoordinateTextFormat(out);
+    out.close();
+
+    std::ifstream in("test.mat");
+    SparseSymMatrix A2;
+    A2.readCoordinateTextFormat(in);
+    in.close();
+
+    CHECK(A2.compare(A));
+
+
+    out.open("test.vec");
+    res.writeTextFormat(out);
+    out.close();
+
+    in.open("test.vec");
+    dVec res2;
+    res2.readTextFormat(in);
+    in.close();
+
+    CHECK(res2.compare(res));
   }
 
 }

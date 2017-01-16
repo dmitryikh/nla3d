@@ -71,6 +71,14 @@ class SparsityInfo {
     static const uint32 invalid;
 };
 
+// structure to describe entry in sparse matrix. Used in one of several matrix initialization
+// approaches.
+struct SparseEntry {
+    uint32 i;
+    uint32 j;
+    double v;
+};
+
 
 // Base class for Sparse Matrix in a row-oriented data format. This class doesn't have particular
 // meaning. See SparseMatrix and SparseSymMatrix for practical usage.
@@ -82,11 +90,22 @@ class BaseSparseMatrix {
     BaseSparseMatrix(std::shared_ptr<SparsityInfo> spar_info);
     ~BaseSparseMatrix();
     
+    void reinit(uint32 _nrows, uint32 _ncols, const std::vector<SparseEntry>& entries);
     // perform compression procedure, after this new entries can't be added to matrix
     void compress();
 
     // for debug purpose
     void printInternalData (std::ostream& out);
+    // write matrix non-zero elements in Coordinate Text Format, details could be found here:
+    // http://math.nist.gov/MatrixMarket/formats.html . NOTE: only upper triangle entries will be
+    // stored for symmetric matrix.
+    void writeCoordinateTextFormat(std::ostream& out);
+    // read sparse matrix from Coordinate Text Format. The old data will be dropped. New `si` will
+    // be created. NOTE: For symmetric matrices only upper triangle entries should be in `in`
+    void readCoordinateTextFormat(std::istream& in);
+    // compare `this` with `op2` matrices. Matrices Sparsity should be exactly the same for
+    // true result.
+    bool compare(const BaseSparseMatrix& op2, double th = 1.0e-10);
 
     // zero all entries
     void zero();
@@ -95,9 +114,9 @@ class BaseSparseMatrix {
     double* getValuesArray();
     uint32* getColumnsArray();
     uint32* getIofeirArray();
-    uint32 nValues();
-    uint32 nRows();
-    uint32 nColumns();
+    uint32 nValues() const;
+    uint32 nRows() const;
+    uint32 nColumns() const;
     std::shared_ptr<SparsityInfo> getSparsityInfo();
     void setSparsityInfo(std::shared_ptr<SparsityInfo> spar_info);
 
@@ -201,17 +220,17 @@ inline uint32* BaseSparseMatrix::getIofeirArray() {
   return si->iofeir;
 }
 
-inline uint32 BaseSparseMatrix::nValues() {
+inline uint32 BaseSparseMatrix::nValues() const {
   assert(si);
   return si->numberOfValues;
 }
 
-inline uint32 BaseSparseMatrix::nRows() {
+inline uint32 BaseSparseMatrix::nRows() const {
   assert(si);
   return si->nRows;
 }
 
-inline uint32 BaseSparseMatrix::nColumns() {
+inline uint32 BaseSparseMatrix::nColumns() const {
   assert(si);
   return si->nColumns;
 }
