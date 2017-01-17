@@ -4,177 +4,518 @@
 
 #include "FEReaders.h"
 
-// read Ansys Mechanical APDL *.cdb file. Nodes, Elements, Displacement BC and MPC (Constraint equations) is supported
-// readCdbFile repcales storage's mesh.
-bool readCdbFile(const char *filename, FEStorage *storage, FESolver* solver, ElementType elType) {
-	uint32 n_number, en;
-	ifstream file(filename);
-	if (!file) {
-		LOG(WARNING) << "Can't open input file " << filename;
-		return false;
-	}
-	storage->deleteMesh();
-	char buf[1024]="";
-	while (file.getline(buf, 1024))
-	{
-		vector<string> vec = read_tokens(buf);
-		if (vec[0].compare("NBLOCK") == 0)
-		{
-    //NBLOCK,6,SOLID,     9355,     9355
-    //(3i9,6e20.13)
-    //        1        0        0 7.0785325971794E+01 6.5691449317818E+01-3.6714639015390E+01
-			uint32 max_n_number = atoi(vec[6].c_str());
-			n_number= atoi(vec[8].c_str());
-      if (max_n_number != n_number) {
-        LOG(ERROR) << "NBLOCK: maximum node number is " << max_n_number
-            << "but number of nodes is " << n_number << ". Note that nla3d needs compressed numbering "
-            << "for nodes and elements";
-        exit(1);
+using std::ifstream;
+using std::vector;
+using std::string;
+using std::map;
+using std::cout;
+using std::set;
+using std::endl;
+
+const string space_chars = " \t";
+
+
+void MeshData::clear() {
+    cellNumbers.clear();
+    cellNodes.clear();
+    cellDoubleData.clear();
+    cellIntData.clear();
+    cellStringData.clear();
+    nodesNumbers.clear();
+    nodesPos.clear();
+    loadBcs.clear();
+    fixBcs.clear();
+    mpcs.clear(); 
+    feComps.clear();
+}
+
+
+void MeshData::compressNumbers() {
+  // numbers should start from 1
+  if (nodesNumbers.size() == *std::max_element(nodesNumbers.begin(), nodesNumbers.end())) { 
+    // nothing to do
+    return;
+  }
+  std::map<uint32, uint32> old2new;
+  uint32 nextNumber = 1;
+  for (uint32 i = 0; i < nodesNumbers.size(); i++) {
+    old2new[nodesNumbers[i]] = nextNumber;
+    nodesNumbers[i] = nextNumber;
+    nextNumber++;
+  }
+  assert(nextNumber - 1 == nodesNumbers.size());
+
+  // go through elements and change element's node numbers
+  for (auto e : cellNodes) {
+    for (uint16 i = 0; i < e.size(); i++) {
+      e[i] = old2new[e[i]];
+    }
+  }
+
+  // go through loadBCs
+  for (auto bc : loadBcs) {
+    bc.node = old2new[bc.node];
+  }
+
+  // go through fixBCs
+  for (auto bc : fixBcs) {
+    bc.node = old2new[bc.node];
+  }
+
+  // go through Mpcs
+  for (auto mpc : mpcs) {
+    for (auto term : mpc->eq) {
+      term.node = old2new[term.node];
+    }
+  }
+
+  // go through FE components
+  for (auto pair : feComps) {
+    auto comp = pair.second;
+    if (comp.type == FEComponent::NODES) {
+      for (auto n : comp.list) {
+        n = old2new[n];
+      } 
+    }
+  }
+}
+
+
+std::vector<uint32> MeshData::getDegeneratedCells() {
+  std::vector<uint32> res;
+  for (size_t i = 0; i < cellNumbers.size(); i++) {
+    std::set<uint32> s(cellNodes[i].begin(), cellNodes[i].end());
+    if (s.size() != cellNodes[i].size()) {
+      res.push_back(i);
+    }
+  }
+  return res;
+}
+
+
+std::vector<uint32> MeshData::getCellsByAttribute(std::string atr_name, uint32 atr_val) {
+  std::vector<uint32> res;
+  for (size_t i = 0; i < cellNumbers.size(); i++) {
+    if (cellIntData[atr_name][i] == atr_val) {
+      res.push_back(i);
+    }
+  }
+  return res;
+}
+
+
+string&& strim(string&& str) {
+  size_t st = str.find_first_not_of(space_chars, 0);
+  str.erase(0, st);
+  size_t en = str.find_last_not_of(space_chars);
+  str.erase(en+1);
+  return std::move(str);
+}
+
+
+string& strim(string& str) {
+  size_t st = str.find_first_not_of(space_chars, 0);
+  str.erase(0, st);
+  size_t en = str.find_last_not_of(space_chars);
+  str.erase(en+1);
+  return str;
+}
+
+
+string& stolower(string& str) {
+  std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+  return str;
+}
+
+
+string& stoupper(string& str) {
+  std::transform(str.begin(), str.end(), str.begin(), ::toupper);
+  return str;
+}
+
+
+char sfirstNotBlank(const string& str) {
+  size_t st = str.find_first_not_of(space_chars, 0);
+  return str[st];
+}
+
+
+std::vector<std::string> ssplit(const std::string& line, const std::vector<int>& widths, bool strict) {
+  int ind = 0;
+  vector<string> vv;
+  for (int w : widths) {
+    if (line.length() - ind < w) {
+      // no room for another field
+      if (strict) {
+        LOG(FATAL) << "ssplit: incomplete line: \"" << line << "\"";
+      } else {
+        if (line.length() - ind != 0) {
+          LOG(FATAL) << "ssplit: incomplete field: \"" << line << "\"";
+        }
+        return std::move(vv);
       }
-			storage->createNodes(n_number);
-			file.getline(buf, 1024);
-      string buf_str(buf);
-      // we need to take a format of columns "3i9"
-      size_t start = buf_str.find("(")+1;
-      size_t  stop = buf_str.find("i");
-      string tmp;
-      tmp.assign((char*) (buf + start), stop-start);
-			uint16 frmtn = atoi(tmp.c_str());
+    }
+    vv.push_back(line.substr(ind, w));
+    ind += w;
+  }
+  return vv;
+}
 
-      start = buf_str.find("i")+1;
-      stop = buf_str.find(",");
-      tmp.assign((char*) (buf + start), stop-start);
-			uint16 frmt = atoi(tmp.c_str());
+ 
+bool iequals(const string& a, const string& b) {
+    unsigned int sz = a.size();
+    if (b.size() != sz)
+        return false;
+    for (unsigned int i = 0; i < sz; ++i)
+        if (tolower(a[i]) != tolower(b[i]))
+            return false;
+    return true;
+}
 
-			for (uint32 i=1; i<=n_number; i++) {
-				file.getline(buf, 1024);
-				size_t len=strlen(buf);
-				for (uint16 j=0; j<3;j++)
-					if (len>=frmtn*frmt+20*(j+1))
-            //note that last column in NBLOCK table could be avoided if Z=0.0
-            //but storage->createNodes(n_number) initialize the node table with (0,0,0)
-						storage->getNode(i).pos[j] = atof(string((char*) (buf+frmtn*frmt+20*j),20).c_str());
-			}
-		}//NBLOCK
-		else if (vec[0].find("EBLOCK")!=vec[0].npos)
-		{  
+
+int Tokenizer::tokenize(const string& line) {
+  tokens.clear();
+  dtokens.clear();
+
+  string _delimiters(delimiters.begin(), delimiters.end());
+
+  int found = 0;
+  size_t st = 0;
+
+  while (1) {
+    size_t ind = line.find_first_of(_delimiters, st);
+    found++;
+    if (ind == string::npos) {
+      tokens.push_back(strim(line.substr(st, string::npos)));
+      break;
+    } else {
+      tokens.push_back(strim(line.substr(st, ind - st)));
+      // if we want to store which exactly delimeter was used
+      dtokens.push_back(line[ind]);
+    }
+    st = ind+1;
+  }
+
+  if (tolower) {
+    for (int i = 0; i < tokens.size(); i++) {
+      stolower(tokens[i]);
+    }
+  }
+  return found;
+}
+
+
+int Tokenizer::tokenInt(size_t ind) {
+  return std::stoi(tokens[ind]);
+}
+
+
+double Tokenizer::tokenDouble(size_t ind) {
+  return std::stod(tokens[ind]);
+}
+
+
+bool readCdbFile(std::string filename, MeshData& md) {
+  uint32 n_number, en;
+  ifstream file(filename);
+  if (!file) {
+    LOG(WARNING) << "Can't open cdb file " << filename;
+    return false;
+  }
+  md.clear();
+  // init element addition data which is specific to cdb file format
+  md.cellIntData.insert(std::make_pair("MAT", std::vector<uint32>()));
+  md.cellIntData.insert(std::make_pair("REAL", std::vector<uint32>()));
+  md.cellIntData.insert(std::make_pair("SECT", std::vector<uint32>()));
+  md.cellIntData.insert(std::make_pair("CS", std::vector<uint32>()));
+  md.cellIntData.insert(std::make_pair("SHAPE", std::vector<uint32>()));
+  md.cellIntData.insert(std::make_pair("TYPE", std::vector<uint32>()));
+
+  // current element type number
+  uint32 type = 0;
+
+  Tokenizer t;
+  // do not convert tokens to lower symbols
+  t.tolower = false;
+  t.delimiters.insert(',');
+
+  string line;
+  while (std::getline(file, line)) {
+    // split line with delimiters ','
+    t.tokenize(line);
+    if (t.tokens[0] == "") continue;
+    if (t.tokens[0][0] == '/') continue;
+    if (t.tokens[0][0] == '!') continue;
+
+    if (iequals(t.tokens[0], "NBLOCK")) {
+      // example from cdb Ansys APDL 12.1:
+      //NBLOCK,6,SOLID,     9355,     9355
+      //(3i9,6e20.13)
+      //        1        0        0 7.0785325971794E+01 6.5691449317818E+01-3.6714639015390E+01
+      //
+      // from Ansys WB 17.1:
+      // nblock,3
+      // (1i9,3e20.9e3)
+      //         1    2.000000000E+000    6.000000000E+000    0.000000000E+000
+      //         2    0.000000000E+000    6.000000000E+000    0.000000000E+000
+      // parse format string
+      std::getline(file, line);
+      stolower(strim(line));
+      std::regex re(R"(\((\d+)i(\d+),(\d+)e(\d+)\.[0-9e]+\))");
+      std::smatch match;
+      int int_num;
+      int int_field;
+      int float_num;
+      int float_field;
+      if (std::regex_match(line, match, re)) {
+        int_num = std::stoi(match[1]);
+        int_field = std::stoi(match[2]);
+        float_num = std::stoi(match[3]);
+        float_field = std::stoi(match[4]);
+      } else {
+        LOG(FATAL) << "Don't understand nblock format string \"" << line << "\"";
+      }
+
+      // prepare array of field widths
+      std::vector<int> widths;
+      for (int i = 0; i < int_num; i++) {
+        widths.push_back(int_field);
+      }
+      for (int i = 0; i < float_num; i++) {
+        widths.push_back(float_field);
+      }
+
+      // read nodes info line by line
+      while(std::getline(file, line)) {
+        // check for the end of nodal table
+        char ch = sfirstNotBlank(line);
+        if (ch == '-' || ch == 'N') break;
+
+        auto v = ssplit(line, widths, false);
+        // column no. 1 - node number
+        uint32 number = std::stoi(v[0]);
+        // Vec is initialized with zeros by default
+        Vec<3> pos;
+        // cdb file could skip last components of positions if they are equal to zero
+        if (v.size() > int_num) pos[0] = std::stod(v[int_num]);
+        if (v.size() > int_num + 1) pos[1] = std::stod(v[int_num + 1]);
+        if (v.size() > int_num + 2) pos[2] = std::stod(v[int_num + 2]);
+        md.nodesNumbers.push_back(number);
+        md.nodesPos.push_back(pos);
+      }
+    }//NBLOCK
+    else if (iequals(t.tokens[0], "EBLOCK")) {  
+      // Example of record:
       //EBLOCK,19,SOLID,      7024,      7024
       //(19i9)
-			en = atoi(vec[6].c_str());
-      if (en != atoi(vec[8].c_str())) {
-        LOG(ERROR) << "EBLOCK: maximum element number is " << en << ", but number of element "
-            << "is different. Note that nla3d needs compressed numbering for nodes and elements";
-        exit(1);
+      // ...
+      // Info from Ansys 17 help pages:
+      /*The format of the element "block" is as follows for the SOLID format:
+      Field 1 - The material number.
+      Field 2 - The element type number.
+      Field 3 - The real constant number.
+      Field 4 - The section ID attribute (beam section) number.
+      Field 5 - The element coordinate system number.
+      Field 6 - The birth/death flag.
+      Field 7 - The solid model reference number.
+      Field 8 - The element shape flag.
+      Field 9 - The number of nodes defining this element if Solkey = SOLID; otherwise, Field 9 = 0.
+      Field 10 - Not used.
+      Field 11 - The element number.
+      Fields 12-19 - The node numbers. The next line will have the additional node numbers if there
+      are more than eight.
+
+      The format without the SOLID keyword is:
+      Field 1 - The element number.
+      Field 2 - The type of section ID.
+      Field 3 - The real constant number.
+      Field 4 - The material number.
+      Field 5 - The element coordinate system number.
+      Fields 6-15 - The node numbers. The next line will have the additional node numbers if there
+      are more than ten.
+      The final line of the block will be a -1 in field 1. */
+
+      //TODO: It seems that getline keeps windows line ending
+      bool isSolid = iequals(t.tokens[2], "SOLID");
+      // parse format string
+      std::getline(file, line);
+      stolower(strim(line));
+      std::regex re(R"(\((\d+)i(\d+)\))");
+      std::smatch match;
+      int int_num;
+      int int_field;
+      if (std::regex_match(line, match, re)) {
+        int_num = std::stoi(match[1]);
+        int_field = std::stoi(match[2]);
+      } else {
+        LOG(FATAL) << "Don't understand eblock format string \"" << line << "\"";
       }
-			storage->createElements(en, elType);
-			file.getline(buf, 1024);
-      // we need to take a format of columns "3i9"
-      // in Ansys 12 here is 8 symbols per number (19i8), but in ansys 15 (19i9) is used. 
-      string buf_str(buf);
-      size_t start = buf_str.find("i")+1;
-      size_t stop = buf_str.find(")");
-      string tmp;
-      tmp.assign((char*) (buf + start), stop-start);
-			uint16 frmt = atoi(tmp.c_str()); 
-			for (uint32 i=1; i<=en; i++)
-			{
-				file.getline(buf, 1024);
-				size_t len=strlen(buf);
-        // TODO: here is a problem.. We need to work good with both dos and unix endings
-//        if (buf[len-1] == '\r') {
-//          len--;
-//          buf[len-1] = 0;
-//        }
-        //TODO: It seems that getline keeps windows line ending
-        if (len != 11*frmt+frmt*storage->getElement(i).getNNodes()) {
-          LOG_N_TIMES(10, WARNING) << "in EBLOCK for element " << i 
-                                   << " the number of nodes provided is not equal to "
-                                   << storage->getElement(i).getNNodes();
+
+      // prepare array of field widths
+      std::vector<int> widths;
+      for (int i = 0; i < int_num; i++) {
+        widths.push_back(int_field);
+      }
+      // read element data line by line
+      while(std::getline(file, line)) {
+        // check for the end of element table
+        char ch = sfirstNotBlank(line);
+        if (ch == '-' || ch == 'N') break;
+
+        auto v = ssplit(line, widths, false);
+
+        // initialize values that we read from element table
+        uint32 MAT = 0;
+        uint32 ETYPE = 0;
+        uint32 REAL = 0;
+        uint32 SECT = 0;
+        uint32 CS = 0;
+        uint32 SHAPE = 0;
+        uint32 nNodes = 0;
+        uint32 elNumber = 0;
+        size_t st = 0;
+        if (isSolid) {
+          MAT = static_cast<uint32>(std::stoi(v[0]));
+          ETYPE = static_cast<uint32>(std::stoi(v[1]));
+          REAL = static_cast<uint32>(std::stoi(v[2]));
+          SECT = static_cast<uint32>(std::stoi(v[3]));
+          CS = static_cast<uint32>(std::stoi(v[4]));
+          SHAPE = static_cast<uint32>(std::stoi(v[7]));
+          nNodes = static_cast<uint32>(std::stoi(v[8]));
+          elNumber = static_cast<uint32>(std::stoi(v[10]));
+          st = 11;
+        } else {
+          elNumber = static_cast<uint32>(std::stoi(v[0]));
+          SECT = static_cast<uint32>(std::stoi(v[1]));
+          REAL = static_cast<uint32>(std::stoi(v[2]));
+          MAT = static_cast<uint32>(std::stoi(v[3]));
+          CS = static_cast<uint32>(std::stoi(v[4]));
+          // in this case type of element are declared as last `et`, 'type' APDL commands above the
+          // table
+          ETYPE = type;
+          // in this case we need to determine number of nodes by ourselfs
+          nNodes = v.size() - 5;
+          st = 5;
         }
-				for (uint16 j=0; j<storage->getElement(i).getNNodes();j++)
-					if (len>=11*frmt+frmt*(j+1))
-						storage->getElement(i).getNodeNumber(j) = atoi(string((char*) (buf+11*frmt+frmt*j),frmt).c_str());
-			}
-		}//EBLOCK
-		else if (vec[0].find('D')!=vec[0].npos && vec[0].length()==1)
-		{
-				fixBC bnd;
-				bnd.node = atoi(vec[2].c_str());
-				bnd.value = atof(vec[6].c_str());
-        bnd.node_dof = Dof::label2dofType(vec[4]);
-        solver->addFix(bnd.node, bnd.node_dof, bnd.value);
-		}//D
-    else if (vec[0].compare("CE") == 0)
-    {
-      //How MPC looks like this in cdb file:
+
+        vector<uint32> enodes;
+
+        if (v.size() != st + nNodes) {
+          LOG(FATAL) << "Not enought fields to read element nodes";
+        }
+        // parse element nodes
+        for (int i = 0; i < nNodes; i++) {
+          enodes.push_back(static_cast<uint32>(std::stoi(v[st + i])));
+        }
+
+        md.cellNumbers.push_back(elNumber);
+        md.cellNodes.push_back(enodes);
+        md.cellIntData["TYPE"].push_back(ETYPE);
+        md.cellIntData["MAT"].push_back(MAT);
+        md.cellIntData["REAL"].push_back(REAL);
+        md.cellIntData["SECT"].push_back(SECT);
+        md.cellIntData["CS"].push_back(CS);
+        md.cellIntData["SHAPE"].push_back(SHAPE);
+      } // end of element table
+    }//EBLOCK
+    else if (iequals(t.tokens[0], "D")) {
+      // Fixed dof record
+      fixBC bnd;
+      bool isNumeric = false;
+      try {
+        bnd.node = t.tokenInt(1);
+        bnd.value = t.tokenDouble(3);
+        isNumeric = true;
+      } catch (const std::invalid_argument& ia) {
+        isNumeric = false;
+      }
+      if (isNumeric) {
+        // node and value field are number, we can deal with in. In other cases these can be 'all',
+        bnd.node_dof = Dof::label2dofType(t.tokens[2]);
+        md.fixBcs.push_back(bnd);
+      }
+    }//D
+    else if (iequals(t.tokens[0], "CE")) {
+      // CE - is a command to declare MPC equation
+      // How MPC looks like this in cdb file:
       //CE,R5.0,DEFI,       2,       1,  0.00000000    
       //CE,R5.0,NODE,      1700,UX  ,  1.00000000    ,      1700,UZ  ,  1.00000000  
-      Mpc* mpc = new Mpc;
-      mpc->b = atoi(vec[10].c_str()); //rhs of MPC equation
-      uint16 n_terms = atoi(vec[6].c_str()); //number of terms in equation
-      //debug("MPC link: %d terms, b = %f", n_terms, mpc.b);
-      while (n_terms > 0)
-      {
-        file.getline(buf, 1024);
-        vector<string> vec = read_tokens(buf);
+      // TODO: Mpc is dynamicaly allocated, but MeshData won't free this memory (this should be done
+      // in FEStorage). This is potential memory leak
+      Mpc* mpc = new Mpc();
+      mpc->b = t.tokenDouble(5);
+      int n_terms = t.tokenInt(3);
+      // read MPC terms. They are stored by 2 in a row
+      while (n_terms > 0) {
+        std::getline(file, line);
+        t.tokenize(line);
         uint16 place = 6;
-        for (int i=0; i < max((uint16) n_terms, (uint16) 2); i++) 
-        {
-          uint32 node = atoi(vec[place].c_str());
-          Dof::dofType dof = Dof::label2dofType(vec[place+2]);
-          double coef = atof(vec[place+4].c_str());
-          //debug("%d term: node %d, dof %d, coef = %f", i, node, dof, coef);
+        for (int i = 0; i < std::max(n_terms, 2); i++) {
+          uint32 node = t.tokenInt(3 + 3 * i + 0);
+          Dof::dofType dof = Dof::label2dofType(t.tokens[3 + 3 * i + 1]);
+          double coef = t.tokenDouble(3 + 3 * i + 2);
           mpc->eq.push_back(MpcTerm(node,dof,coef));
-          place += 6;
           n_terms--;
         }
       }
-			storage->addMpc(mpc);
+      md.mpcs.push_back(mpc);
     }//CE (MPC)
-    else if (vec[0].compare("CMBLOCK") == 0) {
-       if (vec[2].c_str()[0] != '_') {
-         FEComponent* comp = new FEComponent();
-         comp->name = vec[2];
+    else if (iequals(t.tokens[0], "CMBLOCK")) {
+      // Example of CMBLOCK command:
       //CMBLOCK,BOTTOM_SIDE,NODE,      17  ! users node component definition
       //(8i10)
       //      5037     -5341      6330     -6352      6355      6357      6433     -6456
       //      6459      6470     -6473      6537     -6556      6566     -6569      6633
       //     -6652
-        comp->type = FEComponent::typeFromString(vec[4]);
+      if (t.tokens[1][0] != '_') {
+        // we work only with component names started not with underscore '_'
+        FEComponent comp;
+        comp.name = t.tokens[1];
+        // NODE or ELEMENT component?
+        comp.type = FEComponent::typeFromString(stoupper(t.tokens[2]));
 
-        size_t numRanges = atoi(vec[6].c_str());
-        file.getline(buf, 1024);
-        // we need to take a format of columns "8i10"
+        size_t numRanges = t.tokenInt(3);
+        std::getline(file, line);
+        // we need to take a format of columns "(8i10)"
         // read how many records in a single row
-        string buf_str(buf);
-        size_t start = buf_str.find("(")+1;
-        size_t stop = buf_str.find("i");
-        string tmp;
-        tmp.assign((char*) (buf + start), stop-start);
-        uint16 numRangesInRow = atoi(tmp.c_str()); 
-        // read how many symbols dedicated to a number
-        start = buf_str.find("i")+1;
-        stop = buf_str.find(")");
-        tmp.assign((char*) (buf + start), stop-start);
-        uint16 frmt = atoi(tmp.c_str()); 
+        stolower(strim(line));
+        std::regex re(R"(\((\d+)i(\d+)\))");
+        std::smatch match;
+        int int_num;
+        int int_field;
+        if (std::regex_match(line, match, re)) {
+          int_num = std::stoi(match[1]);
+          int_field = std::stoi(match[2]);
+        } else {
+          LOG(FATAL) << "Don't understand CMBLOCK format string \"" << line << "\"";
+        }
+        // prepare array of field widths
+        std::vector<int> widths;
+        for (int i = 0; i < int_num; i++) {
+          widths.push_back(int_field);
+        }
+
         uint16 in_row = 0;
         uint16 all = 0;
 
-        file.getline(buf, 1024);
+        // read all ranges and calculate overall number of entities in component list
         vector<int32> rangesVec;
         rangesVec.reserve(numRanges);
+        std::getline(file, line);
+        auto v = ssplit(line, widths, false);
         size_t numEntity = 0;
         while (all < numRanges) {
-           if (in_row == numRangesInRow) {
-              file.getline(buf, 1024);
+           if (in_row == int_num) {
+              std::getline(file, line);
+              v = ssplit(line, widths, false);
               in_row = 0;
            }
-           tmp.assign((char*) (buf+in_row*frmt),frmt);
-           rangesVec.push_back(atoi(tmp.c_str())); 
+           rangesVec.push_back(std::stoi(v[in_row]));
            if (rangesVec[all] > 0) {
               numEntity++;
            } else {
-             //4 -9 : 4 5 6 7 8 9
+              // if next index is negative that means a range with step 1
+              // for example: 4 -9 --> 4 5 6 7 8 9
               assert(all > 0);
               assert(rangesVec[all-1] > 0);
               numEntity += -rangesVec[all] - rangesVec[all-1];
@@ -182,24 +523,56 @@ bool readCdbFile(const char *filename, FEStorage *storage, FESolver* solver, Ele
            in_row ++;
            all ++;
         }
-        comp->list.reserve(numEntity);
+        // fill list of entities numbers
+        comp.list.reserve(numEntity);
         all = 0;
         while (all < numRanges) {
           if (rangesVec[all] > 0) {
-            comp->list.push_back(rangesVec[all]);
+            comp.list.push_back(rangesVec[all]);
           } else {
             for (uint32 i = rangesVec[all-1] + 1; i < static_cast<uint32> (-rangesVec[all]+1); i++) {
-              //TODO: need assert for overflow
-              comp->list.push_back(i);
+              // TODO: need assert for overflow
+              comp.list.push_back(i);
             }
           }
           all++;
         }
-        storage->addFEComponent(comp);
+        md.feComps.insert(std::make_pair(comp.name, comp));
       }
     } //CMBLOCK
-    //TODO: add FX FY FZ
-	}
-	file.close();
-	return true;
+    else if (iequals(t.tokens[0], "ET") || iequals(t.tokens[0], "ETYPE")) {
+      // keep a track on last ET command.. we need this info to know element type
+      type = t.tokenInt(1);
+    } // ETYPE
+    else if (iequals(t.tokens[0], "TYPE")) {
+      // keep a track on last TYPE command.. we need this info to know element type
+      type = t.tokenInt(1);
+    } // ETYPE
+    // TODO: add FX FY FZ
+    else if (iequals(t.tokens[0], "F")) {
+      // Dof force record
+      //f,42,heat,800000.
+      loadBC bnd;
+      bool isNumeric = false;
+      try {
+        bnd.node = t.tokenInt(1);
+        bnd.value = t.tokenDouble(3);
+        isNumeric = true;
+      } catch (const std::invalid_argument& ia) {
+        isNumeric = false;
+      }
+      if (isNumeric) {
+        // node and value field are number, we can deal with in. In other cases these can be 'all',
+        // parameter or reference to table '%my_apdl_table%. We can't work with these complex cases.
+        if (iequals(t.tokens[2], "HEAT")) {
+          bnd.node_dof = Dof::TEMP;
+        } else {
+          bnd.node_dof = Dof::label2dofType(t.tokens[2]);
+        }
+        md.loadBcs.push_back(bnd);
+      }
+    }//F
+  }
+  file.close();
+  return true;
 }

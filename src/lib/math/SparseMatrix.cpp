@@ -185,6 +185,9 @@ void BaseSparseMatrix::writeCoordinateTextFormat(std::ostream& out) {
   assert(si);
   assert(values);
   assert(si->compressed);
+  // we need to return back old preferences after usage
+  auto old_precision = out.precision(15);
+  auto old_flags = out.setf(std::ios_base::scientific, std::ios_base::floatfield);
   // write header: nRows, nColumns, numberOfValues
   out << si->nRows << ' ' << si->nColumns << ' ' << si->numberOfValues << std::endl;
   uint32 total = 0;
@@ -195,6 +198,9 @@ void BaseSparseMatrix::writeCoordinateTextFormat(std::ostream& out) {
     }
   }
   assert(total == si->numberOfValues);
+  // return back old setup
+  out.precision(old_precision);
+  out.setf(old_flags);
 }
 
 

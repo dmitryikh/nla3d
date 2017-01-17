@@ -203,22 +203,26 @@ public:
   // instanses in `nodes` array
   void addNode(Node* node);
   // The function creates an vector `nodes` with dynamically allocated Node instances inside.
-  // All previously created Nodes will be deleted. That means that by this function one can
-  // reallocate node table. 
+  // Numbers of newly created elements pass back to the caller.  
   // NOTE: nodes will be created with default Node() constructor (node coordinates 0, 0, 0). 
-	void createNodes(uint32 nn); 
+  // NOTE: new nodes are concantenated to old nodes which already were in FEStorage 
+	std::vector<uint32> createNodes(uint32 nn); 
   // add an element to the element array `elements`.
   // TODO: this is inefficient functions because we can't ensure memory localization for all
   // elements instances in `elements` array
   void addElement(Element* el);
   // The function creates a vector with dynamically allocated Element instances inside.  Particular
   // realization of abstract Element class is chosen from elType variable by mean of ElementFactory
-  // class (see elements/ElemenetFactory.h). All previously created elements will be deleted. That
-  // means that by this function one can reallocate element table. 
+  // class (see elements/ElemenetFactory.h). Numbers of newly created elements pass back to the
+  // caller. 
   // NOTE: elements will be created with default constructor. User code should then fill node
   // numbers (by Element::getNodeNumber(..)) and other stuff related to particular realization of
   // Element class.
-	void createElements(uint32 en, ElementType elType);
+  std::vector<uint32> createElements(uint32 en, ElementType elType);
+  // template version of function described above. User code should provide example Element entity
+  // of particular class. 
+  template<typename T>
+  std::vector<uint32> createElements(uint32 _en, T example);
 
   // delete procedures
   //
@@ -257,7 +261,6 @@ public:
   void assignEquationNumbers();
   // 4. Allocate all solution data structures: matK/C/M, vecU/DU/DDU/F/R
 	void initSolutionData();
-
 
   // After global equations system is solved and vecU/DU/DDU/R is updated with appropriate values
   // FESolver should call this procedure to update element solution data
@@ -628,7 +631,7 @@ inline double FEStorage::getElementDofSolution (uint32 el, Dof::dofType dof) {
 
 
 inline Node& FEStorage::getNode(uint32 _nn) {
-	assert(_nn <= nNodes());
+	assert(_nn> 0 && _nn <= nNodes());
 	return *nodes[_nn-1];
 }
 
@@ -653,5 +656,37 @@ inline void FEStorage::addEntryMPC(uint32 eq_num, uint32 eqj) {
   assert(eqj > 0 && eqj <= nConstrainedDofs() + nUnknownDofs());
   matK->addEntry(eq_num, eqj);
 }
+
+
+} // namespace nla3d 
+
+// 'dirty' hack to avoid include loops (element-vs-festorage)
+#include "elements/element.h"
+
+namespace nla3d {
+template<typename T>
+std::vector<uint32> FEStorage::createElements(uint32 _en, T example) {
+  //TODO: catch if not enough memory
+  std::vector<uint32> newIndexes;
+  newIndexes.reserve(_en);
+  uint32 nextNumber = elements.size() + 1;
+
+  elements.reserve(elements.size() + _en);
+
+  for (uint32 i = 0; i < _en; i++) {
+    T* els = new T;
+    elements.push_back(els);
+  }
+
+  for (uint32 i = nextNumber; i <= elements.size(); i++) {
+    //access elNum protected values as friend
+    elements[i - 1]->elNum = i;
+    elements[i - 1]->storage = this;
+    newIndexes.push_back(i);
+  }
+  return newIndexes;
+}
+
+
 
 } // namespace nla3d 

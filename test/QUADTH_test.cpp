@@ -29,42 +29,54 @@ int main (int argc, char* argv[]) {
     res_filename = argv[2];
   }
 
-  // Definition of the element table for SurfaceLINETH
-  const uint32 numberOfElements = 5;
-  uint32 elementTable[numberOfElements][2] = {
-                              {6, 5},
-                              {5, 4},
-                              {4, 3},
-                              {3, 1},
-                              {2, 6}};
+  MeshData md;
+  if (!readCdbFile(cdb_filename, md)) {
+    LOG(FATAL) << "Can't read FE data from cdb";
+  }
+  md.compressNumbers();
+
+  if (md.getDegeneratedCells().size() > 0) {
+    LOG(FATAL) << "Can't work with degenerated element in the mesh";
+  }
 
   // Create an instance of FEStorage.
 	FEStorage storage;
   // We have a deal with linear FE. Then it's ok to use linear solver (just one equilibrium iteration without
   // convergence controls)
 	LinearFESolver solver;
-  if (!readCdbFile (cdb_filename.c_str(), &storage, &solver, ElementType::QUADTH)) {
-    LOG(ERROR) << "Can't read FE info from cdb";
-    exit(1);
+
+  auto sind = storage.createNodes(md.nodesNumbers.size());
+  auto ind = md.nodesNumbers;
+  for (uint32 i = 0; i < sind.size(); i++) {
+    storage.getNode(sind[i]).pos = md.nodesPos[i];
   }
 
-  for (uint32 i = 1; i <= storage.nElements(); i++) {
-    ElementQUADTH& el = dynamic_cast<ElementQUADTH&>(storage.getElement(i));
+  ind = md.getCellsByAttribute("TYPE", 1);
+  sind = storage.createElements(ind.size(), ElementQUADTH());
+  for (uint32 i = 0; i < sind.size(); i++) {
+    ElementQUADTH& el = dynamic_cast<ElementQUADTH&>(storage.getElement(sind[i]));
+    assert(el.getNNodes() == md.cellNodes[ind[i]].size());
+    for (uint16 j = 0; j < el.getNNodes(); j++) {
+      el.getNodeNumber(j) = md.cellNodes[ind[i]][j];
+    }
     el.k = 0.018;
   }
 
-  // Create elements instances, define needed element parameters and add them into FEStorage.
-  for (uint32 i = 1; i <= numberOfElements; i++) {
-    SurfaceLINETH* el = new SurfaceLINETH;
-    el->htc = 0.0034;
-    el->etemp[0] = -6.0;
-    el->etemp[1] = -6.0;
-    el->getNodeNumber(0) = elementTable[i-1][0];
-    el->getNodeNumber(1) = elementTable[i-1][1];
-    storage.addElement(el);
+
+  ind = md.getCellsByAttribute("TYPE", 2);
+  sind = storage.createElements(ind.size(), SurfaceLINETH());
+  for (uint32 i = 0; i < sind.size(); i++) {
+    SurfaceLINETH& el = dynamic_cast<SurfaceLINETH&>(storage.getElement(sind[i]));
+    assert(el.getNNodes() == md.cellNodes[ind[i]].size());
+    for (uint16 j = 0; j < el.getNNodes(); j++) {
+      el.getNodeNumber(j) = md.cellNodes[ind[i]][j];
+    }
+    el.htc = 0.0034;
+    el.etemp[0] = -6.0;
+    el.etemp[1] = -6.0;
   }
 
-  solver.addLoad(7, Dof::TEMP, 0.08);
+  solver.addLoad(md.feComps["C0"].list[0], Dof::TEMP, 0.08);
 
 #ifdef NLA3D_USE_MKL
     math::PARDISO_equationSolver eqSolver = math::PARDISO_equationSolver();

@@ -141,7 +141,7 @@ int main (int argc, char* argv[]) {
   std::vector<double> curCurve;
 
   ReactionProcessor* reactProc;
-	LOG(INFO) << "---=== WELCOME TO NLA PROGRAM ===---";
+  LOG(INFO) << "---=== WELCOME TO NLA PROGRAM ===---";
   if (!parse_args(argc, argv)) {
     usage();
     exit(1);
@@ -161,13 +161,15 @@ int main (int argc, char* argv[]) {
     }
   }
 
-	Timer pre_solve(true);
-	FEStorage storage;
-	NonlinearFESolver solver;
-  if (!readCdbFile (options::modelFilename.c_str(), &storage, &solver, options::elementType)) {
-    LOG(ERROR) << "Can't read FE info from " << options::modelFilename << "file. exiting..";
-    exit(1);
+  Timer pre_solve(true);
+  FEStorage storage;
+  NonlinearFESolver solver;
+  MeshData md;
+  if (!readCdbFile (options::modelFilename, md)) {
+    LOG(FATAL) << "Can't read FE info from " << options::modelFilename << "file. exiting..";
   }
+  md.compressNumbers();
+
   Material* mat = CHECK_NOTNULL (MaterialFactory::createMaterial(options::materialName));
   if (mat->getNumC() != options::materialConstants.size())
     LOG(ERROR) << "Material " << options::materialName << " needs exactly " << mat->getNumC()
@@ -175,15 +177,53 @@ int main (int argc, char* argv[]) {
   for (uint16 i = 0; i < mat->getNumC(); i++) {
     mat->Ci(i) = options::materialConstants[i];
   }
-	storage.material = mat;
+  storage.material = mat;
   LOG(INFO) << "Material: " << mat->toString();
 
   LOG(INFO) << "Loaded components:";
-  storage.listFEComponents();
+  for (auto v : md.feComps) {
+    LOG(INFO) << v.second;
+  }
 
-	solver.attachFEStorage (&storage);
-	solver.numberOfIterations = options::numberOfIterations;
-	solver.numberOfLoadsteps = options::numberOfLoadsteps;
+  // add nodes
+  auto sind = storage.createNodes(md.nodesNumbers.size());
+  auto ind = md.nodesNumbers;
+  for (uint32 i = 0; i < sind.size(); i++) {
+    storage.getNode(sind[i]).pos = md.nodesPos[i];
+  }
+
+
+  // add elements
+  ind = md.getCellsByAttribute("TYPE", 1);
+  sind = storage.createElements(ind.size(), options::elementType);
+  for (uint32 i = 0; i < sind.size(); i++) {
+    Element& el = storage.getElement(sind[i]);
+    assert(el.getNNodes() == md.cellNodes[ind[i]].size());
+    for (uint16 j = 0; j < el.getNNodes(); j++) {
+      el.getNodeNumber(j) = md.cellNodes[ind[i]][j];
+    }
+  }
+
+  // add Mpcs
+  for (auto mpc : md.mpcs) {
+    // TODO: here the allocated Mpc instance is kept in MeshData,
+    // but storage will only have a pointer on it
+    storage.addMpc(mpc);
+  }
+
+  // add loadBc
+  for (auto v : md.loadBcs) {
+    solver.addLoad(v.node, v.node_dof, v.value);
+  }
+
+  // add fixBc
+  for (auto v : md.fixBcs) {
+    solver.addFix(v.node, v.node_dof, v.value);
+  }
+
+  solver.attachFEStorage (&storage);
+  solver.numberOfIterations = options::numberOfIterations;
+  solver.numberOfLoadsteps = options::numberOfLoadsteps;
     // NOTE: use PARDISO eq. solver by default (if accessible..)
 #ifdef NLA3D_USE_MKL
     math::PARDISO_equationSolver eqSolver = math::PARDISO_equationSolver();
@@ -202,7 +242,7 @@ int main (int argc, char* argv[]) {
   if (options::reactionComponentName.length() > 0) {
     reactProc = new ReactionProcessor(&storage);
     solver.addPostProcessor(reactProc);
-    FEComponent* feComp = storage.getFEComponent(options::reactionComponentName);
+    FEComponent* feComp = &(md.feComps[options::reactionComponentName]);
     if (feComp->type != FEComponent::NODES) {
       LOG(ERROR) << "To calculate reactions it's needed to provide a component with nodes";
       exit(1);
@@ -221,7 +261,7 @@ int main (int argc, char* argv[]) {
     RigidBodyMpc* mpc = new RigidBodyMpc;
     mpc->storage = &storage;
     mpc->masterNode = options::rigidBodyMasterNode;
-    FEComponent* comp = storage.getFEComponent(options::rigidBodySlavesComponent);
+    FEComponent* comp = &(md.feComps[options::rigidBodySlavesComponent]);
     if (comp->type != FEComponent::NODES) {
       LOG(ERROR) << "For creation a rigid body MPC it's needed to provide a component with nodes";
       exit(1);
@@ -247,7 +287,7 @@ int main (int argc, char* argv[]) {
         mpc->slaveNodes.size() << ", slaves DoFs = " << slaveDofLabels; 
   }
 
-	solver.solve();
+  solver.solve();
 
   if (reactProc) {
     std::stringstream ss;
@@ -280,7 +320,7 @@ int main (int argc, char* argv[]) {
     }
   }
 
-	return 0;
+  return 0;
 }
 
 

@@ -11,7 +11,6 @@
 
 #include "query.h"
 #include "Node.h"
-#include "FEStorage.h"
 #include "math/Vec.h"
 #include "math/Mat.h"
 
@@ -193,7 +192,12 @@ class ElementHEXAHEDRON : public Element {
     }
 };
 
+} // namespace nla3d
 
+// 'dirty' hack to avoid include loops (element-vs-festorage)
+#include "FEStorage.h"
+
+namespace nla3d {
 
 template <uint16 dimM>
 void Element::assembleK(math::MatSym<dimM> &Ke, std::initializer_list<Dof::dofType> _nodeDofs) {

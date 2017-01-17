@@ -197,14 +197,24 @@ void FEStorage::addNode (Node* node) {
 }
 
 
-void FEStorage::createNodes (uint32 _nn) {
-	deleteNodes();
+std::vector<uint32> FEStorage::createNodes (uint32 _nn) {
   //Node() fires Vec<3> constructor, thus Node coordinates are (0,0,0) by default
   //TODO: try-catch of memory overflow
-  nodes.reserve(_nn);
+  std::vector<uint32> newIndexes;
+  newIndexes.reserve(_nn);
+  uint32 nextNumber = nodes.size() + 1;
+
+  nodes.reserve(elements.size() + _nn);
+
   for (uint32 i = 0; i < _nn; i++) {
-    nodes.push_back(new Node);
+    Node* pnode = new Node;
+    nodes.push_back(pnode);
   }
+
+  for (uint32 i = nextNumber; i <= nodes.size(); i++) {
+    newIndexes.push_back(i);
+  }
+  return newIndexes;
 }
 
 
@@ -216,16 +226,19 @@ void FEStorage::addElement (Element* el) {
 }
 
 
-void FEStorage::createElements(uint32 _en, ElementType elType) {
-  deleteElements();
+std::vector<uint32> FEStorage::createElements(uint32 _en, ElementType elType) {
   //TODO: catch if not enough memory
-  elements.reserve(_en);
-  ElementFactory::createElements (elType, _en, elements); 
-  for (uint32 i = 0; i < _en; i++) {
+  std::vector<uint32> newIndexes;
+  newIndexes.reserve(_en);
+  uint32 nextNumber = elements.size() + 1;
+  ElementFactory::createElements(elType, _en, elements); 
+  for (uint32 i = nextNumber; i <= elements.size(); i++) {
     //access elNum protected values as friend
-    elements[i]->elNum = i+1;
-    elements[i]->storage = this;
+    elements[i - 1]->elNum = i;
+    elements[i - 1]->storage = this;
+    newIndexes.push_back(i);
   }
+  return newIndexes;
 }
 
 
@@ -408,6 +421,7 @@ void FEStorage::assignEquationNumbers() {
   assert(next_eq_solve - 1 == nDofs());
 
   for (auto mpc : mpcs) {
+    assert(mpc->eq.size());
     mpc->eqNum = next_eq_solve++;
   }
 
@@ -518,6 +532,7 @@ void FEStorage::initSolutionData () {
 
   // register MPC coefficients
   for (auto mpc : mpcs) {
+    assert(mpc->eq.size());
     uint32 eq_num = mpc->eqNum;
     for (auto term : mpc->eq) {
     uint32 eq_j = getNodeDofEqNumber(term.node, term.node_dof);

@@ -259,6 +259,74 @@ void FESolver::addLoad(int32 n, Dof::dofType dof, const double value) {
 }
 
 
+void FESolver::dumpMatricesAndVectors(std::string filename) {
+  std::ofstream out(filename);
+  matK->block(1)->writeCoordinateTextFormat(out);
+  matK->block(1, 2)->writeCoordinateTextFormat(out);
+  matK->block(2)->writeCoordinateTextFormat(out);
+  if (storage->isTransient()) {
+    matC->block(1)->writeCoordinateTextFormat(out);
+    matC->block(1, 2)->writeCoordinateTextFormat(out);
+    matC->block(2)->writeCoordinateTextFormat(out);
+    matM->block(1)->writeCoordinateTextFormat(out);
+    matM->block(1, 2)->writeCoordinateTextFormat(out);
+    matM->block(2)->writeCoordinateTextFormat(out);
+  }
+
+  vecF.writeTextFormat(out);
+  vecR.writeTextFormat(out);
+
+  out.close();
+}
+
+
+void FESolver::compareMatricesAndVectors(std::string filename, double th) {
+  std::ifstream in(filename);
+  SparseSymMatrix K1;
+  K1.readCoordinateTextFormat(in);
+  CHECK(matK->block(1)->compare(K1, th));
+  SparseMatrix K12;
+  K12.readCoordinateTextFormat(in);
+  CHECK(matK->block(1, 2)->compare(K12, th));
+  SparseSymMatrix K2;
+  K2.readCoordinateTextFormat(in);
+  CHECK(matK->block(2)->compare(K2, th));
+
+  if (storage->isTransient()) {
+    SparseSymMatrix C1;
+    C1.readCoordinateTextFormat(in);
+    CHECK(matC->block(1)->compare(C1, th));
+    SparseMatrix C12;
+    C12.readCoordinateTextFormat(in);
+    CHECK(matC->block(1, 2)->compare(C12, th));
+    SparseSymMatrix C2;
+    C2.readCoordinateTextFormat(in);
+    CHECK(matC->block(2)->compare(C2, th));
+
+    SparseSymMatrix M1;
+    M1.readCoordinateTextFormat(in);
+    CHECK(matM->block(1)->compare(M1, th));
+    SparseMatrix M12;
+    M12.readCoordinateTextFormat(in);
+    CHECK(matM->block(1, 2)->compare(M12, th));
+    SparseSymMatrix M2;
+    M2.readCoordinateTextFormat(in);
+    CHECK(matM->block(2)->compare(M2, th));
+  }
+
+  dVec fvecF;
+  fvecF.readTextFormat(in);
+  CHECK(vecF.compare(fvecF, th));
+
+  dVec fvecR;
+  fvecR.readTextFormat(in);
+  in.close();
+  CHECK(vecR.compare(fvecR, th));
+
+  in.close();
+}
+
+
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 // LinearFESolver
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -405,9 +473,9 @@ void NonlinearFESolver::solve() {
       // calculate convergence criteria
       currentCriteria = calculateCriteria(deltaUs);
 
-      // TODO: 1. It seem's that currentCriteria is already normalized in calculateCriteria(). we
+      // TODO: 1. It seems that currentCriteria is already normalized in calculateCriteria(). we
       //          need to compare currentCriteria with 1.0 
-      // TODO: 2. Current convergence criteria is not good. We nee to intorduce equilibrium balance
+      // TODO: 2. Current convergence criteria is not good. We need to introduce equilibrium balance
       //          criteria too along with kinematic one. 
       if (currentCriteria < convergenceCriteria) {
         converged = true;
