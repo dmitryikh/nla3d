@@ -1,0 +1,41 @@
+# Operating system (build VM template)
+os: Visual Studio 2015
+
+# scripts that are called at very beginning, before repo cloning
+# init:
+#   - git config --global core.autocrlf input
+
+
+platform: x64
+configuration: Release
+
+install:
+  # by default, all script lines are interpreted as batch
+
+build_script:
+  - git submodule update --init
+  - mkdir build
+  - cd build
+  - cmake -DCMAKE_BUILD_TYPE=Release ..
+  - cmake --build . --config Release --target check
+  - ctest -E "a2000|damper" -C Release --output-on-failure
+
+# scripts to run before build
+before_build:
+  # - echo Running cmake...
+  # - cd c:\projects\sqlite
+  # - cmake -G "Visual Studio 14 2015 Win64" -DCMAKE_INSTALL_PREFIX=%P%
+
+# scripts to run after build
+# after_build:
+#   - cd %P%
+#   - 7z a c:\projects\sqlite\sqlite.zip * -tzip
+#   - cd c:\projects\sqlite
+
+# artifacts:
+#  - path: sqlite.zip
+#    name: sqlite.zip
+
+# deploy_script:
+#   - cd c:\projects\sqlite
+#   - curl -T sqlite.zip --user %ACCOUNT% https://webdav.yandex.ru/libs/sqlite.zip

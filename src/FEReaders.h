@@ -73,6 +73,9 @@ std::vector<std::string> ssplit(const std::string& line, const std::vector<int>&
 // case insensitive string comparison
 bool iequals(const string& a, const string& b);
 
+// get line from the `is`, supported all types of line endings
+std::istream& getLine(std::istream& is, std::string& t);
+
 
 // class to split line into substrings with delimiters.
 class Tokenizer {

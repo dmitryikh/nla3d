@@ -3,6 +3,7 @@
 // https://github.com/dmitryikh/nla3d 
 
 #include "FEReaders.h"
+#include <algorithm>
 
 using std::ifstream;
 using std::vector;
@@ -172,6 +173,42 @@ bool iequals(const string& a, const string& b) {
     return true;
 }
 
+// taken from
+// http://stackoverflow.com/questions/6089231/getting-std-ifstream-to-handle-lf-cr-and-crlf/6089413#6089413 
+std::istream& getLine(std::istream& is, std::string& t) {
+  t.clear();
+
+  // The characters in the stream are read one-by-one using a std::streambuf.
+  // That is faster than reading them one-by-one using the std::istream.
+  // Code that uses streambuf this way must be guarded by a sentry object.
+  // The sentry object performs various tasks,
+  // such as thread synchronization and updating the stream state.
+
+  std::istream::sentry se(is, true);
+  std::streambuf* sb = is.rdbuf();
+
+  for (;;) {
+    int c = sb->sbumpc();
+    switch (c) {
+      case '\n':
+        return is;
+      case '\r':
+        if (sb->sgetc() == '\n') {
+          sb->sbumpc();
+        }
+        return is;
+      case EOF:
+        // Also handle the case when the last line has no line ending
+        if (t.empty()) {
+          is.setstate(std::ios::eofbit);
+        }
+        return is;
+      default:
+        t += (char)c;
+    }
+  }
+}
+
 
 int Tokenizer::tokenize(const string& line) {
   tokens.clear();
@@ -240,7 +277,7 @@ bool readCdbFile(std::string filename, MeshData& md) {
   t.delimiters.insert(',');
 
   string line;
-  while (std::getline(file, line)) {
+  while (!getLine(file, line).eof()) {
     // split line with delimiters ','
     t.tokenize(line);
     if (t.tokens[0] == "") continue;
@@ -258,8 +295,14 @@ bool readCdbFile(std::string filename, MeshData& md) {
       // (1i9,3e20.9e3)
       //         1    2.000000000E+000    6.000000000E+000    0.000000000E+000
       //         2    0.000000000E+000    6.000000000E+000    0.000000000E+000
+      //
+      // from Ansys WB APDL 17.1: 
+      //NBLOCK,6,SOLID,       341,       341
+      //(3i9,6e21.13e3)
+      //        1        0        0 0.0000000000000E+000 4.0000000000000E+000
+      //        2        0        0 0.0000000000000E+000 6.0000000000000E+000
       // parse format string
-      std::getline(file, line);
+      getLine(file, line);
       stolower(strim(line));
       std::regex re(R"(\((\d+)i(\d+),(\d+)e(\d+)\.[0-9e]+\))");
       std::smatch match;
@@ -286,7 +329,7 @@ bool readCdbFile(std::string filename, MeshData& md) {
       }
 
       // read nodes info line by line
-      while(std::getline(file, line)) {
+      while(!getLine(file, line).eof()) {
         // check for the end of nodal table
         char ch = sfirstNotBlank(line);
         if (ch == '-' || ch == 'N') break;
@@ -338,7 +381,7 @@ bool readCdbFile(std::string filename, MeshData& md) {
       //TODO: It seems that getline keeps windows line ending
       bool isSolid = iequals(t.tokens[2], "SOLID");
       // parse format string
-      std::getline(file, line);
+      getLine(file, line);
       stolower(strim(line));
       std::regex re(R"(\((\d+)i(\d+)\))");
       std::smatch match;
@@ -357,7 +400,7 @@ bool readCdbFile(std::string filename, MeshData& md) {
         widths.push_back(int_field);
       }
       // read element data line by line
-      while(std::getline(file, line)) {
+      while(!getLine(file, line).eof()) {
         // check for the end of element table
         char ch = sfirstNotBlank(line);
         if (ch == '-' || ch == 'N') break;
@@ -447,7 +490,7 @@ bool readCdbFile(std::string filename, MeshData& md) {
       int n_terms = t.tokenInt(3);
       // read MPC terms. They are stored by 2 in a row
       while (n_terms > 0) {
-        std::getline(file, line);
+        getLine(file, line);
         t.tokenize(line);
         uint16 place = 6;
         for (int i = 0; i < std::max(n_terms, 2); i++) {
@@ -475,7 +518,7 @@ bool readCdbFile(std::string filename, MeshData& md) {
         comp.type = FEComponent::typeFromString(stoupper(t.tokens[2]));
 
         size_t numRanges = t.tokenInt(3);
-        std::getline(file, line);
+        getLine(file, line);
         // we need to take a format of columns "(8i10)"
         // read how many records in a single row
         stolower(strim(line));
@@ -501,12 +544,12 @@ bool readCdbFile(std::string filename, MeshData& md) {
         // read all ranges and calculate overall number of entities in component list
         vector<int32> rangesVec;
         rangesVec.reserve(numRanges);
-        std::getline(file, line);
+        getLine(file, line);
         auto v = ssplit(line, widths, false);
         size_t numEntity = 0;
         while (all < numRanges) {
            if (in_row == int_num) {
-              std::getline(file, line);
+              getLine(file, line);
               v = ssplit(line, widths, false);
               in_row = 0;
            }

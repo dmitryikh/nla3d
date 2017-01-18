@@ -1,0 +1,163 @@
+/BATCH  
+/NOPR   
+KEYW,PR_SET,1   
+KEYW,PR_STRUC,0 
+KEYW,PR_THERM,1 
+KEYW,PR_FLUID,0 
+KEYW,PR_ELMAG,0 
+KEYW,MAGNOD,0   
+KEYW,MAGEDG,0   
+KEYW,MAGHFE,0   
+KEYW,MAGELC,0   
+KEYW,PR_MULTI,0 
+/GO 
+/COM,  Thermal  
+!*  
+/PREP7  
+k,,0,4  
+k,,0,6  
+k,,2,6  
+k,,2,0  
+k,,0,0  
+l,1,2   
+l,2,3   
+l,3,4   
+l,4,5   
+l,5,1   
+al,1,2,3,4,5
+!*  
+ET,1,PLANE55
+!*  
+KEYOPT,1,1,0
+KEYOPT,1,3,0
+KEYOPT,1,4,0
+KEYOPT,1,8,0
+KEYOPT,1,9,0
+!*  
+MPTEMP,,,,,,,,  
+MPTEMP,1,0  
+MPDATA,KXX,1,,0.018 
+MPTEMP,,,,,,,,  
+MPTEMP,1,0  
+MPDATA,DENS,1,,1.1e-3   
+MPTEMP,,,,,,,,  
+MPTEMP,1,0  
+MPDATA,C,1,,920 
+
+! *** meshing *** !
+MSHAPE,0,2D 
+MSHKEY,0
+AESIZE,ALL,0.2, 
+AMESH,ALL   
+!*  
+ET,2,SURF151
+!*  
+KEYOPT,2,3,10   
+KEYOPT,2,4,1
+KEYOPT,2,8,2
+KEYOPT,2,13,0  
+!*  
+TYPE,   2   
+MAT,       1
+REAL,   
+ESYS,       0   
+SECNUM, 
+!*  
+LMESH,       2  
+
+ANTYPE,0
+! *** Apply BC *** !
+! FLST,2,1,4,ORDE,1   
+! FITEM,2,2   
+! SFL,P51X,CONV,0.0034, ,-6,   
+
+ESEL,S,TYPE,,2
+SFE,ALL,1,CONV, ,0.0034 
+SFE,ALL,1,CONV,2,-6 
+ESEL,ALL
+
+FLST,2,1,3,ORDE,1   
+FITEM,2,1   
+FK,P51X,HEAT,0.08   
+
+! *** Create PROBE node component for transient probe node *** !
+*SET,probe , NODE(2,6,0)
+NSEL,S, , ,      probe 
+CM,PROBE,NODE   
+CMSEL,A,PROBE
+NSEL,ALL
+
+! *** convert all surface loads to FE loads *** !
+NUMCMP,NODE 
+SBCTRAN 
+CDWRITE,DB,'heat','cdb',,'',''  
+
+! *** solve problem *** !
+FINISH  
+/SOL
+/STATUS,SOLU
+SOLVE   
+
+! *** postprocess results *** !
+*GET, nnodes, NODE, 0, COUNT
+*DIM,ntemps, ,nnodes
+*DIM,nnode, ,nnodes
+
+*DO,i,1,nnodes
+  *GET,ntemps(i),NODE,i, TEMP
+  nnode(i) = i
+*ENDDO
+
+*cfopen,temp.res
+*VWRITE,'node', 'temp'
+(A5,A5)
+*VWRITE,nnode(1), ntemps(1)
+(F8.0,e16.8)
+*cfclose
+
+FINISH
+
+! *** Solve transient *** !
+/SOL
+ANTYPE,4
+TRNOPT,FULL 
+LUMPM,0
+TUNIF,-6, 
+NSUBST,100,100,100  
+OUTRES,ERASE
+OUTRES,ALL,1
+TIME,30000  
+/STATUS,SOLU
+SOLVE   
+FINISH  
+
+! *** Post process results *** !
+/POST26 
+FILE,'file','rth','.'   
+/UI,COLL,1  
+NUMVAR,200  
+SOLU,191,NCMIT  
+STORE,MERGE 
+FILLDATA,191,,,,1,1 
+REALVAR,191,191 
+!*  
+NSOL,2,NODE(2,6,0),TEMP,, TEMP_2,
+STORE,MERGE 
+XVAR,1  
+PLVAR,2,
+! Save time history variables to file
+*CREATE,scratch,gui 
+*DEL,_P26_EXPORT
+*DIM,_P26_EXPORT,TABLE,100,1
+VGET,_P26_EXPORT(1,0),1 
+VGET,_P26_EXPORT(1,1),2 
+/OUTPUT,'temphistory','res','.' 
+*VWRITE,'TIME','TEMP_2' 
+%C, %C  
+*VWRITE,_P26_EXPORT(1,0),_P26_EXPORT(1,1)   
+%G, %G  
+/OUTPUT,TERM
+*END
+/INPUT,scratch,gui  
+! End of time history save  
+

@@ -11,6 +11,50 @@
 
 using namespace nla3d;
 
+class ProbeProcessor : public PostProcessor {
+public:
+	ProbeProcessor(FEStorage *st);
+	virtual ~ProbeProcessor() { };
+
+	virtual void pre ();
+	virtual void process(uint16 curLoadstep);
+	virtual void post(uint16 curLoadstep);
+
+  std::vector<double> getMeasurments();
+	
+	uint32 node = 0;
+	Dof::dofType dof = Dof::UNDEFINED;
+protected:
+	std::vector<double> measurments;
+};
+
+
+ProbeProcessor::ProbeProcessor(FEStorage *st) : PostProcessor(st) {
+	name ="ProbeProcessor";
+}
+
+
+void ProbeProcessor::pre() {
+	if (node == 0 || dof == Dof::UNDEFINED) {
+    LOG(FATAL) << "Can't work. No node number and/or Dof id. Processor name = " << name;
+    return;
+  }
+}
+
+
+void ProbeProcessor::process(uint16 curLoadstep) {
+  double val = storage->getNodeDofSolution(node, dof);
+  measurments.push_back(val);
+}
+
+
+void ProbeProcessor::post(uint16 curLoadstep) {
+}
+
+
+std::vector<double> ProbeProcessor::getMeasurments() {
+  return measurments;
+}
 
 std::vector<double> readTempData (std::string fileRefCurve);
 
@@ -79,8 +123,15 @@ int main (int argc, char* argv[]) {
     el.etemp[1] = -6.0; // bulk temperature at 2-nd node
   }
 
-  // component C0 contains single node for applying thermal source
-  solver.addLoad(md.feComps["C0"].list[0], Dof::TEMP, 0.08);
+  // add loadBc
+  for (auto v : md.loadBcs) {
+    solver.addLoad(v.node, v.node_dof, v.value);
+  }
+
+  // add fixBc
+  for (auto v : md.fixBcs) {
+    solver.addFix(v.node, v.node_dof, v.value);
+  }
 
   // time period to solve in seconds
   solver.time1 = 30000.0;
@@ -96,39 +147,57 @@ int main (int argc, char* argv[]) {
   VtkProcessor* vtk = new VtkProcessor(&storage, "QUADTH_transient");
   solver.addPostProcessor(vtk);
 
+  ProbeProcessor* probe = new ProbeProcessor(&storage);
+  probe->node = md.feComps["PROBE"].list[0];
+  probe->dof = Dof::TEMP;
+  solver.addPostProcessor(probe);
+
 	solver.solve();
   
   // Log all results about the model
-  LOG(INFO) << "DoF solution:";
-  for (uint32 i = 1; i <= storage.nNodes(); i++) {
-    LOG(INFO) << i << ":" << Dof::dofTypeLabels[Dof::TEMP] << " = " << storage.getNodeDofSolution(i, Dof::TEMP);
+  LOG(INFO) << " Probe Temperature:";
+  auto meas = probe->getMeasurments();
+  for (uint32 i = 1; i <= meas.size(); i++) {
+    LOG(INFO) << float(i * solver.time1) / float(solver.numberOfTimesteps)  << ": " << meas[i - 1];
   }
 
 
   // check results with Ansys data
-  // if (res_filename != "") {
-  //   auto ansTemp = readTempData (res_filename);
-  //   for (uint32 i = 1; i <= storage.getNumberOfNodes(); i++) {
-  //     double my_temp = storage.getNodeDofSolution(i, Dof::TEMP);
-  //     double ans_temp = ansTemp[i-1];
-  //     CHECK_EQTH(my_temp, ans_temp, 1.0e-3);
-  //   }
-  // }
+  if (res_filename != "") {
+    double ave_fabs = 0.0;
+    auto ansTemp = readTempData(res_filename);
+    for (uint32 i = 1; i <= meas.size(); i++) {
+      double my_temp = meas[i - 1];
+      double ans_temp = ansTemp[i - 1];
+      ave_fabs += fabs(my_temp - ans_temp);
+    }
+    ave_fabs /= meas.size();
+    LOG(INFO) << "Average error is: " << ave_fabs;
+    CHECK(ave_fabs < 5.0e-2);
+  }
 
 	return 0;
 }
 
 
 std::vector<double> readTempData (std::string fileRefCurve) {
-  std::ifstream file(fileRefCurve.c_str());
-  double tmp;
   std::vector<double> res;
+  std::ifstream file(fileRefCurve.c_str());
+  if (!file.is_open()) {
+    return res;
+  }
+  double tmp;
+  std::string line;
   // skip first line
-  file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-  while (!file.eof()) {
+  getLine(file, line);
+
+  Tokenizer t;
+  t.delimiters.insert(',');
+
+  while (!getLine(file, line).eof()) {
     // read second column
-    file >> tmp >> tmp;
-    res.push_back(tmp);
+    t.tokenize(line);
+    res.push_back(t.tokenDouble(1));
   }
   file.close();
   return res;

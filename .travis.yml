@@ -26,6 +26,5 @@ matrix:
 install: true
 
 script: 
- - cmake --version
  - mkdir build && cd build && cmake -DCMAKE_CXX_COMPILER=$COMPILER -DCMAKE_BUILD_TYPE=Release ..
  - make -j 2 && make check -j 2

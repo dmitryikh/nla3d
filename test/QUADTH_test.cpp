@@ -3,6 +3,7 @@
 // https://github.com/dmitryikh/nla3d 
 
 #include "sys.h"
+#include <limits>
 #include "FEStorage.h"
 #include "VtkProcessor.h"
 #include "FESolver.h"
@@ -76,7 +77,15 @@ int main (int argc, char* argv[]) {
     el.etemp[1] = -6.0;
   }
 
-  solver.addLoad(md.feComps["C0"].list[0], Dof::TEMP, 0.08);
+  // add loadBc
+  for (auto v : md.loadBcs) {
+    solver.addLoad(v.node, v.node_dof, v.value);
+  }
+
+  // add fixBc
+  for (auto v : md.fixBcs) {
+    solver.addFix(v.node, v.node_dof, v.value);
+  }
 
 #ifdef NLA3D_USE_MKL
     math::PARDISO_equationSolver eqSolver = math::PARDISO_equationSolver();
@@ -111,9 +120,12 @@ int main (int argc, char* argv[]) {
 
 
 std::vector<double> readTempData (std::string fileRefCurve) {
-  std::ifstream file(fileRefCurve.c_str());
-  double tmp;
   std::vector<double> res;
+  std::ifstream file(fileRefCurve.c_str());
+  if (!file.is_open()) {
+    return res;
+  }
+  double tmp;
   // skip first line
   file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
   while (!file.eof()) {

@@ -3,6 +3,10 @@
 // https://github.com/dmitryikh/nla3d 
 
 #pragma once
+// before any include we need to define NOMINMAX to avoid redefining `max` with macros
+#ifdef WIN32
+  #define NOMINMAX
+#endif
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -11,7 +15,6 @@
 #include <assert.h>
 #include <time.h>
 #include <sstream>
-#include <iostream>
 #include <vector>
 #include <set>
 #include <list>
