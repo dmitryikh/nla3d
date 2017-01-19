@@ -78,6 +78,14 @@ the solver, boundary conditions, MPC, post-processors.
   * It's not capable to run large scale problems in parrallel or on clusters.
 
 
+## Gallery
+
+| 2D Transient Thermal | 3D Large Strain Quasi-Static |
+|----------------------|------------------------------|
+| ![Thermal transient](test/QUADTH/timeplot.gif?raw=true "Thermal transient") | ![3D large strain hyperelasticity](test/3d_damper/3d_damper_timeplot.gif?raw=true "3D large strain hyperelasticity") |
+| see `test/QUADTH/..` for details | see `test/3d_damper/.. for details |
+
+
 ## Requirements
 
 _nla3d_ is written in C++ language. It uses C++11 standart in the code. It is compiled ok with
