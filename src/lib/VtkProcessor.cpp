@@ -40,6 +40,11 @@ void VtkProcessor::pre(){
     elementDofTypes.insert(type);
   }
 
+  // if was requested reveal query codes to be written into VTK
+  if(_writeAllResults) {
+    revealAllResults();
+  }
+
   // write zero VTK file (before solution)
 	std::string cur_fn = file_name + "0"  + ".vtk";
 	std::ofstream file(cur_fn.c_str(), std::ios::trunc);
@@ -62,6 +67,45 @@ void VtkProcessor::process (uint16 curLoadstep) {
 
 void VtkProcessor::post (uint16 curLoadstep) {
 }
+
+
+void VtkProcessor::writeAllResults(bool write) {
+  _writeAllResults = write;
+}
+
+
+bool VtkProcessor::registerResults(std::initializer_list<scalarQuery> queries) {
+  // check that each query is valid
+  for(auto v : queries) {
+    assert(v > scalarQuery::UNDEF && v < scalarQuery::LAST);
+  }
+
+  cellScalarQueries.insert(queries);
+  return true;
+}
+
+
+bool VtkProcessor::registerResults(std::initializer_list<vectorQuery> queries) {
+  // check that each query is valid
+  for(auto v : queries) {
+    assert(v > vectorQuery::UNDEF && v < vectorQuery::LAST);
+  }
+
+  cellVectorQueries.insert(queries);
+  return true;
+}
+
+
+bool VtkProcessor::registerResults(std::initializer_list<tensorQuery> queries) {
+  // check that each query is valid
+  for(auto v : queries) {
+    assert(v > tensorQuery::UNDEF && v < tensorQuery::LAST);
+  }
+
+  cellTensorQueries.insert(queries);
+  return true;
+}
+
 
 void VtkProcessor::write_header (std::ofstream &file) {
 	file << "# vtk DataFile Version 2.0" << std::endl;
@@ -168,13 +212,14 @@ void VtkProcessor::write_cell_data(std::ofstream &file) {
   std::vector<double> dataScalar;
 
   // if queries are empty - no cell data to be stored into VTK
-  if (cellScalarQuery.size() == 0 && cellVectorQuery.size() == 0 &&
-      cellTensorQuery.size() == 0 && elementDofTypes.size() == 0) {
+  if (cellScalarQueries.size() == 0 && cellVectorQueries.size() == 0 &&
+      cellTensorQueries.size() == 0 && elementDofTypes.size() == 0) {
     return;
   }
 
 	file << "CELL_DATA " << en << std::endl;
   
+  // write element DoFs
   for (auto v : elementDofTypes) {
     dataScalar.assign(en, 0.0);
     for (uint32 j = 1; j <= en; j++) {
@@ -186,40 +231,34 @@ void VtkProcessor::write_cell_data(std::ofstream &file) {
     dataScalar.clear();
   }
 
-  if (cellScalarQuery.size() > 0) {
+  // write Element scalar results (only if they are requested in cellScalarQueries)
+  for(auto query : cellScalarQueries) {
     dataScalar.assign(en, 0.0);
-    for (size_t j = 0; j < cellScalarQuery.size(); j++) {
-      for (uint32 i = 1; i <= storage->nElements(); i++) {
-        dataScalar[i-1] = 0.0;
-        storage->getElement(i).getScalar(dataScalar[i-1], cellScalarQuery[j]);
-      }
-      writeScalar(file, query::scalarQueryLabels[cellScalarQuery[j]], dataScalar); 
+    for (uint32 i = 1; i <= storage->nElements(); i++) {
+      // dataScalar[i-1] = 0.0;
+      storage->getElement(i).getScalar(&(dataScalar[i-1]), query);
     }
-    dataScalar.clear();
+    writeScalar(file, query2label(query), dataScalar); 
   }
 
-  if (cellVectorQuery.size() > 0) {
-    dataVector.assign(en, Vec<3> ());
-    for (size_t j = 0; j < cellVectorQuery.size(); j++) {
-      for (uint32 i = 1; i <= storage->nElements(); i++) {
-        dataVector[i-1].zero();
-        storage->getElement(i).getVector(dataVector[i-1].ptr(), cellVectorQuery[j]);
-      }
-      writeVector (file, query::vectorQueryLabels[cellVectorQuery[j]], dataVector); 
+  // write Element vector results (only if they are requested in cellScalarQueries)
+  for(auto query : cellVectorQueries) {
+    dataVector.assign(en, Vec<3>());
+    for (uint32 i = 1; i <= storage->nElements(); i++) {
+      // dataVector[i-1].zero();
+      storage->getElement(i).getVector(&(dataVector[i-1]), query);
     }
-    dataVector.clear();
+    writeVector(file, query2label(query), dataVector); 
   }
 
-  if (cellTensorQuery.size() > 0) {
-    dataTensor.assign(en, MatSym<3> ());
-    for (size_t j = 0; j < cellTensorQuery.size(); j++) {
-      for (uint32 i = 1; i <= storage->nElements(); i++) {
-        dataTensor[i-1].zero();
-        storage->getElement(i).getTensor(dataTensor[i-1], cellTensorQuery[j]);
-      }
-      writeTensor (file, query::tensorQueryLabels[cellTensorQuery[j]], dataTensor); 
+  // write Element tensor results (only if they are requested in cellScalarQueries)
+  for(auto query : cellTensorQueries) {
+    dataTensor.assign(en, MatSym<3>());
+    for (uint32 i = 1; i <= storage->nElements(); i++) {
+      // dataTensor[i-1].zero();
+      storage->getElement(i).getTensor(&(dataTensor[i-1]), query);
     }
-    dataTensor.clear();
+    writeTensor(file, query2label(query), dataTensor); 
   }
 }
 
@@ -254,5 +293,59 @@ void VtkProcessor::writeVector(std::ofstream &file, const char* name, std::vecto
   file << std::endl;
 
 }
+
+
+void VtkProcessor::revealAllResults() {
+  std::set<ElementType> typesRevealed;
+  bool ret;
+
+  for (uint32 i = 1; i <= storage->nElements(); i++) {
+    Element& el = storage->getElement(i);
+    ElementType etype = el.getType();
+    if(typesRevealed.find(etype) != typesRevealed.end()) continue;
+
+    typesRevealed.insert(etype);
+    // This code doesn't work on -O2 optimized code under clang..
+    // Here is a kludge - we just print out the etype number..
+    LOG(INFO) << static_cast<int>(etype);
+    double sdummy = 0.0;
+    scalarQuery squery = scalarQuery::UNDEF;
+    while(true) {
+      squery = static_cast<scalarQuery>(static_cast<int>(squery) + 1);
+      if(squery == scalarQuery::LAST) break;
+      sdummy = 0.0;
+      ret = el.getScalar(&sdummy, squery);
+      if(ret == true) {
+        cellScalarQueries.insert(squery);
+      }
+    }
+
+    Vec<3> vdummy;
+    vectorQuery vquery = vectorQuery::UNDEF;
+    while(true) {
+      vquery = static_cast<vectorQuery>(static_cast<int>(vquery) + 1);
+      if(vquery == vectorQuery::LAST) break;
+      vdummy.zero();
+      ret = el.getVector(&vdummy, vquery);
+      if(ret == true) {
+        cellVectorQueries.insert(vquery);
+      }
+    }
+
+    MatSym<3> mdummy;
+    tensorQuery tquery = tensorQuery::UNDEF;
+    while(true) {
+      tquery = static_cast<tensorQuery>(static_cast<int>(tquery) + 1);
+      if(tquery == tensorQuery::LAST) break;
+      mdummy.zero();
+      ret = el.getTensor(&mdummy, tquery);
+      if(ret == true) {
+        cellTensorQueries.insert(tquery);
+      }
+    }
+  }
+
+}
+
 
 } // namespace nla3d

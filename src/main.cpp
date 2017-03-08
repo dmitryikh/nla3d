@@ -236,6 +236,7 @@ int main (int argc, char* argv[]) {
     std::string jobname = getFileNameFromPath(options::modelFilename);
     VtkProcessor* vtk = new VtkProcessor (&storage, jobname);
     solver.addPostProcessor(vtk);
+    vtk->writeAllResults();
   }
 
   reactProc = NULL;

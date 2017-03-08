@@ -30,9 +30,9 @@ class ElementPLANE41 : public ElementIsoParamQUAD {
     math::Mat<4,8> make_Bomega (uint16 nPoint); //функция создает линейную матрицу [Bomega]
 
     //postproc procedures
-    void getScalar(double& scalar, query::scalarQuery code, uint16 gp, const double scale);
-    void getVector(double* vector, query::vectorQuery code, uint16 gp, const double scale);
-    void getTensor(math::MatSym<3>& tensor, query::tensorQuery code, uint16 gp, const double scale);
+    bool getScalar(double* scalar, scalarQuery code, uint16 gp, const double scale);
+    bool getVector(math::Vec<3>* vector, vectorQuery code, uint16 gp, const double scale);
+    bool getTensor(math::MatSym<3>* tensor, tensorQuery code, uint16 gp, const double scale);
 
     // internal element data
     // S[0] - Sx  S[1] - Sy S[2] - Sxy

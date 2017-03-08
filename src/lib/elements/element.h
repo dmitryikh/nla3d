@@ -75,34 +75,57 @@ static const uint16 _shape_nnodes[] = {
 };
 
 
-//Element abstract class
+// Element base class
+// All FE should be derived from that class. The class provide interface for building stiffness,
+// damping and inertia matrices (methods buildK(), buildC(), buildM()), for get element results
+// (methods getScalar(...), getVector(...), getTensor(...)), for update element state after solution
+// iteration (method update()).
 class Element {
   public: 
     Element ();
     virtual ~Element();
 
+    // get element number, as it is stored in FEStorage. Numbers start from 1.
     uint32 getElNum();
+    // return number of nodes for the element
     uint16 getNNodes();
+    // return number of dimensions (0D, 1D, 2D, 3D) occupied by element shape. 
     uint16 getDim();
+    // return element shape
     ElementShape getShape();
+    // return element type
     ElementType getType();
+    // return node number (as it stored in FEStorage) of the i-th node in the element
     uint32& getNodeNumber (uint16 num);
+    // return the FEStorage to which element belongs
     FEStorage& getStorage();
+    // return order of integration scheme used in the particular element for integration over volume
     uint16 getIntegrationOrder();
+    // set the integration order for the element
     void setIntegrationOrder(uint16 _nint); // нельзя вызывать после выполнения функции pre() (начало решения)
 
     // heart of the element class
+    // TODO: comment massively here
     virtual void pre()=0;
     virtual void buildK()=0;
     virtual void buildC();
     virtual void buildM();
     virtual void update()=0;
-    virtual void getScalar(double& scalar, query::scalarQuery code,
-                           uint16 gp = query::GP_MEAN, const double scale = 1.0);
-    virtual void getVector(double* vector, query::vectorQuery code,
-                           uint16 gp = query::GP_MEAN, const double scale = 1.0);
-    virtual void getTensor(math::MatSym<3>& tensor, query::tensorQuery code,
-                           uint16 gp = query::GP_MEAN, const double scale = 1.0);
+
+    // The methods below are getters to receive solution information related to elements (like
+    // stresses, strains, volume and so on). The first argument is a pointer on return value. Please
+    // note, that result of the function times scale will be added to the pointer's value (*scalar
+    // += result * scale, in particular case). query is a value from enum shows with particular
+    // result should be returned. gp is a number of Gaussian point, if gp == GP_MEAN then the
+    // result will be averaged over the element based on current integration scheme.
+    // The methods return true if the query is relevant for the element and false if the element
+    // can't return asked query code.
+    virtual bool getScalar(double* scalar, scalarQuery query,
+                           uint16 gp = GP_MEAN, const double scale = 1.0);
+    virtual bool getVector(math::Vec<3>* vector, vectorQuery query,
+                           uint16 gp = GP_MEAN, const double scale = 1.0);
+    virtual bool getTensor(math::MatSym<3>* tensor, tensorQuery query,
+                           uint16 gp = GP_MEAN, const double scale = 1.0);
 
     Element& operator= (const Element& from);
 
@@ -319,6 +342,11 @@ inline uint16 Element::getDim() {
 
 inline ElementShape Element::getShape() {
   return shape;
+}
+
+inline ElementType Element::getType() {
+  return type;
+
 }
 
 

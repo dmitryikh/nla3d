@@ -190,84 +190,93 @@ void ElementSOLID81::make_Omega (uint16 np, Mat<6,9> &B) {
   }
 }
 
-void ElementSOLID81::getScalar(double& scalar, query::scalarQuery code, uint16 gp, const double scale) {
-  //see codes in sys.h
+bool ElementSOLID81::getScalar(double* scalar, scalarQuery query, uint16 gp, const double scale) {
+  //see queries in query.h
   //gp - needed gauss point 
-  if (gp == query::GP_MEAN) { //need to average result over the element
+  if (gp == GP_MEAN) { //need to average result over the element
     double dWtSum = volume();
     double dWt;
     for (uint16 np = 0; np < nOfIntPoints(); np ++) {
       dWt = intWeight(np);
-      getScalar(scalar, code, np, dWt/dWtSum*scale);
+      bool ret = getScalar(scalar, query, np, dWt / dWtSum * scale);
+      if(ret == false) return false;
     }
-    return;
+    return true;
   }
+
+  // here we obtain results for particular Gaussian point gp
   assert (gp < nOfIntPoints());
-  double tmp[3];
+
+  Vec<3> tmp;
   Mat_Hyper_Isotrop_General* mat;
   double J;
-  switch (code) {
-    case query::SCALAR_SP:
-      scalar += storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE) * scale;
-      break;
-    case query::SCALAR_WU:
-      tmp[0] = 0.0;
-      tmp[1] = 0.0;
-      tmp[2] = 0.0;
-      getVector(tmp, query::VECTOR_IC, gp, 1.0);
-      mat = CHECK_NOTNULL(dynamic_cast<Mat_Hyper_Isotrop_General*> (storage->getMaterial()));
-      scalar += mat->W(tmp[0], tmp[1], tmp[2])*scale;
-      break;
-    case query::SCALAR_WP:
+  switch (query) {
+    case scalarQuery::SP:
+      *scalar += storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE) * scale;
+      return true;
+
+    case scalarQuery::WU:
+      getVector(&tmp, vectorQuery::IC, gp, 1.0);
+      mat = CHECK_NOTNULL(dynamic_cast<Mat_Hyper_Isotrop_General*>(storage->getMaterial()));
+      *scalar += mat->W(tmp[0], tmp[1], tmp[2]) * scale;
+      return true;
+
+    case scalarQuery::WP:
       J = solidmech::J_C(C[gp].ptr());
-      mat = CHECK_NOTNULL(dynamic_cast<Mat_Hyper_Isotrop_General*> (storage->getMaterial()));
-      scalar += 0.5*mat->getK()*(J-1.0)*(J-1.0)*scale;
-      break;
-    case query::SCALAR_VOL:
-      scalar += volume()*scale;
-      break;
-    default:
-      LOG_N_TIMES(10, WARNING) << "No data for code " << code;
+      mat = CHECK_NOTNULL(dynamic_cast<Mat_Hyper_Isotrop_General*>(storage->getMaterial()));
+      *scalar += 0.5 * mat->getK() * (J - 1.0) * (J - 1.0) * scale;
+      return true;
+
+    case scalarQuery::VOL:
+      *scalar += volume() * scale;
+      return true;
   }
+  return false;
 }
 
 
-void ElementSOLID81::getVector(double* vector, query::vectorQuery code, uint16 gp, const double scale) {
-  if (gp == query::GP_MEAN) { //need to average result over the element
+bool ElementSOLID81::getVector(math::Vec<3>* vector, vectorQuery query, uint16 gp, const double scale) {
+  if (gp == GP_MEAN) { //need to average result over the element
     double dWtSum = volume();
     double dWt;
     for (uint16 np = 0; np < nOfIntPoints(); np ++) {
       dWt = intWeight(np);
-      getVector(vector, code, np, dWt/dWtSum*scale );
+      bool ret = getVector(vector, query, np, dWt/dWtSum*scale );
+      if(ret == false) return false;
     }
-    return;
+    return true;
   }
+
+  // here we obtain results for particular Gaussian point gp
+  assert (gp < nOfIntPoints());
+
   double IC[3];
-  switch (code) {
-    case query::VECTOR_IC:
+  switch (query) {
+    case vectorQuery::IC:
       solidmech::IC_C(C[gp].ptr(), IC);
-      vector[0] += IC[0] * scale;
-      vector[1] += IC[1] * scale;
-      vector[2] += IC[2] * scale;
-      break;
-    default:
-      LOG_N_TIMES(10, WARNING) << "No data for code " << code;
+      (*vector)[0] += IC[0] * scale;
+      (*vector)[1] += IC[1] * scale;
+      (*vector)[2] += IC[2] * scale;
+      return true;
   }
+  return false;
 }
 
 
 
 //return a tensor in a global coordinate system
-void  ElementSOLID81::getTensor(math::MatSym<3>& tensor, query::tensorQuery code, uint16 gp, const double scale) {
-  if (gp == query::GP_MEAN) { //need to average result over the element
+bool  ElementSOLID81::getTensor(math::MatSym<3>* tensor, tensorQuery query, uint16 gp, const double scale) {
+  if (gp == GP_MEAN) { //need to average result over the element
     double dWtSum = volume();
     double dWt;
     for (uint16 np = 0; np < nOfIntPoints(); np ++) {
       dWt = intWeight(np);
-      getTensor(tensor, code, np, dWt/dWtSum*scale);
+      bool ret = getTensor(tensor, query, np, dWt / dWtSum * scale);
+      if(ret == false) return false;
     }
-    return;
+    return true;
   }
+
   assert (gp < nOfIntPoints());
 
   Mat<3,3> matF;
@@ -276,8 +285,8 @@ void  ElementSOLID81::getTensor(math::MatSym<3>& tensor, query::tensorQuery code
   double cInv[6];
   double pe;
 
-  switch (code) {
-    case query::TENSOR_COUCHY:
+  switch (query) {
+    case tensorQuery::COUCHY:
 
       //matF^T  
       matF.data[0][0] = 1+O[gp][0];
@@ -301,36 +310,38 @@ void  ElementSOLID81::getTensor(math::MatSym<3>& tensor, query::tensorQuery code
       for (uint16 i = 0; i < 6; i++) {
         matS.data[i] = S[gp][i] + pe * J * cInv[i];
       }
-      matBTDBprod (matF, matS, 1.0/J*scale, tensor); //Symmetric Couchy tensor
-      break;
-    case query::TENSOR_PK2:
+      matBTDBprod (matF, matS, 1.0/J*scale, *tensor); //Symmetric Couchy tensor
+      return true;
+
+    case tensorQuery::PK2:
       // hydrostatic part of S: Sp = p * J * C^(-1)
       J = solidmech::J_C(C[gp].ptr());
       solidmech::invC_C (C[gp].ptr(), J, cInv); 
       pe = storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE);
       for (uint16 i = 0; i < 6; i++) {
-        tensor.data[i] += (S[gp][i] + pe * J * cInv[i]) * scale;
+        tensor->data[i] += (S[gp][i] + pe * J * cInv[i]) * scale;
       }
-      break;
-    case query::TENSOR_C:
-      tensor.data[0] += C[gp][M_XX]*scale;
-      tensor.data[1] += C[gp][M_XY]*scale;
-      tensor.data[2] += C[gp][M_XZ]*scale;
-      tensor.data[3] += C[gp][M_YY]*scale;
-      tensor.data[4] += C[gp][M_YZ]*scale;
-      tensor.data[5] += C[gp][M_ZZ]*scale;
-      break;
-    case query::TENSOR_E:
-      tensor.data[0] += (C[gp][M_XX]-1.0)*0.5*scale;
-      tensor.data[1] += C[gp][M_XY]*0.5*scale;
-      tensor.data[2] += C[gp][M_XZ]*0.5*scale;
-      tensor.data[3] += (C[gp][M_YY]-1.0)*0.5*scale;
-      tensor.data[4] += C[gp][M_YZ]*0.5*scale;
-      tensor.data[5] += (C[gp][M_ZZ]-1.0)*0.5*scale;
-      break;
-    default:
-      LOG_N_TIMES(10, WARNING) << "No data for code " << code;
+      return true;
+
+    case tensorQuery::C:
+      tensor->data[0] += C[gp][M_XX]*scale;
+      tensor->data[1] += C[gp][M_XY]*scale;
+      tensor->data[2] += C[gp][M_XZ]*scale;
+      tensor->data[3] += C[gp][M_YY]*scale;
+      tensor->data[4] += C[gp][M_YZ]*scale;
+      tensor->data[5] += C[gp][M_ZZ]*scale;
+      return true;
+
+    case tensorQuery::E:
+      tensor->data[0] += (C[gp][M_XX]-1.0)*0.5*scale;
+      tensor->data[1] += C[gp][M_XY]*0.5*scale;
+      tensor->data[2] += C[gp][M_XZ]*0.5*scale;
+      tensor->data[3] += (C[gp][M_YY]-1.0)*0.5*scale;
+      tensor->data[4] += C[gp][M_YZ]*0.5*scale;
+      tensor->data[5] += (C[gp][M_ZZ]-1.0)*0.5*scale;
+      return true;
   }
+  return false;
 }
 
 } // namespace nla3d

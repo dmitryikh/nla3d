@@ -149,42 +149,50 @@ void ElementPLANE41::update() {
   }
 }
 
-void ElementPLANE41::getScalar(double& scalar, query::scalarQuery code, uint16 gp, const double scale) {
-  //see codes in sys.h
+
+bool ElementPLANE41::getScalar(double* scalar, scalarQuery query, uint16 gp, const double scale) {
+  //see queries in query.h
   //gp - needed gauss point 
-  if (gp == query::GP_MEAN) { //need to average result over the element
+  assert(scalar != nullptr);
+
+  if (gp == GP_MEAN) { //need to average result over the element
     double dWtSum = volume();
     double dWt;
     for (uint16 np = 0; np < nOfIntPoints(); np ++) {
       dWt = intWeight(np);
-      getScalar(scalar, code, np, dWt/dWtSum*scale );
+      bool ret = getScalar(scalar, query, np, dWt / dWtSum * scale);
+      if(ret == false) return false;
     }
-    return;
+    return true;
   }
 
-  switch (code) {
-    case query::SCALAR_SP:
-      scalar += storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE) * scale;
-      break;
-    default:
-      LOG_N_TIMES(10, WARNING) << "No data for code " << code;
+  switch (query) {
+    case scalarQuery::SP:
+      *scalar += storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE) * scale;
+      return true;
   }
+  return false;
 }
 
-void ElementPLANE41::getVector(double* vector, query::vectorQuery code, uint16 gp, const double scale) {
-  if (gp == query::GP_MEAN) { //need to average result over the element
+
+bool ElementPLANE41::getVector(math::Vec<3>* vector, vectorQuery query, uint16 gp, const double scale) {
+  assert(vector != nullptr);
+
+  if (gp == GP_MEAN) { //need to average result over the element
     double dWtSum = volume();
     double dWt;
     for (uint16 np = 0; np < nOfIntPoints(); np ++) {
       dWt = intWeight(np);
-      getVector(vector, code, np, dWt/dWtSum*scale );
+      bool ret = getVector(vector, query, np, dWt / dWtSum * scale);
+      if(ret == false) return false;
     }
-    return;
+    return true;
   }
+
   double IC[3];
   Vec<6> CVec;
-  switch (code) {
-    case query::VECTOR_IC:
+  switch (query) {
+    case vectorQuery::IC:
       CVec[M_XZ] = 0.0;
       CVec[M_YZ] = 0.0;
       CVec[M_ZZ] = 1.0;
@@ -195,22 +203,27 @@ void ElementPLANE41::getVector(double* vector, query::vectorQuery code, uint16 g
       vector[0] += IC[0] * scale;
       vector[1] += IC[1] * scale;
       vector[2] += IC[2] * scale;
-      break;
-    default:
-      LOG_N_TIMES(10, WARNING) << "No data for code " << code;
+      return true;
   }
+  return false;
 }
+
+
 //return a tensor in a global coordinate system
-void  ElementPLANE41::getTensor(math::MatSym<3>& tensor, query::tensorQuery code, uint16 gp, const double scale) {
-  if (gp == query::GP_MEAN) { //need to average result over the element
+bool  ElementPLANE41::getTensor(math::MatSym<3>* tensor, tensorQuery query, uint16 gp, const double scale) {
+  assert(tensor != nullptr);
+  if (gp == GP_MEAN) { //need to average result over the element
     double dWtSum = volume();
     double dWt;
     for (uint16 np = 0; np < nOfIntPoints(); np ++) {
       dWt = intWeight(np);
-      getTensor(tensor, code, np, dWt/dWtSum*scale);
+      bool ret = getTensor(tensor, query, np, dWt / dWtSum * scale);
+      if(ret == false) return false;
     }
-    return;
+    return true;
   }
+
+  // here we obtain result for query on particular Gaussian point
   assert (gp < nOfIntPoints());
 
   MatSym<3> matS;
@@ -228,8 +241,8 @@ void  ElementPLANE41::getTensor(math::MatSym<3>& tensor, query::tensorQuery code
 
   double p_e;
 
-  switch (code) {
-    case query::TENSOR_COUCHY:
+  switch (query) {
+    case tensorQuery::COUCHY:
 
       matF.zero();
       matF.data[0][0] = 1+O[gp][0]; //11
@@ -238,7 +251,9 @@ void  ElementPLANE41::getTensor(math::MatSym<3>& tensor, query::tensorQuery code
       matF.data[1][1] = 1+O[gp][3];//22
       matF.data[2][2] = 1; //33
 
-      J = matF.data[0][0]*(matF.data[1][1]*matF.data[2][2]-matF.data[1][2]*matF.data[2][1])-matF.data[0][1]*(matF.data[1][0]*matF.data[2][2]-matF.data[1][2]*matF.data[2][0])+matF.data[0][2]*(matF.data[1][0]*matF.data[2][1]-matF.data[1][1]*matF.data[2][0]);
+      J = matF.data[0][0]*(matF.data[1][1]*matF.data[2][2]-matF.data[1][2]*matF.data[2][1])-
+          matF.data[0][1]*(matF.data[1][0]*matF.data[2][2]-matF.data[1][2]*matF.data[2][0])+
+          matF.data[0][2]*(matF.data[1][0]*matF.data[2][1]-matF.data[1][1]*matF.data[2][0]);
       //In order to complete matS (3x3 symmetric matrix, PK2 tensor) we need 
       //to know S33 component: 
       //1) One solution is to calculate S33 on every solution step
@@ -246,42 +261,44 @@ void  ElementPLANE41::getTensor(math::MatSym<3>& tensor, query::tensorQuery code
       //2) Second solution is to resotre S33 right here.
       //Now 2) is working.
       p_e = storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE);
-      mat = dynamic_cast<Mat_Hyper_Isotrop_General*> (storage->getMaterial());
+      mat = dynamic_cast<Mat_Hyper_Isotrop_General*>(storage->getMaterial());
       CHECK_NOTNULL(mat);
-      mat->getS_UP (6, solidmech::defaultTensorComponents, CVec.ptr(), p_e, matS.data);
-      matBTDBprod (matF, matS, 1.0/J, tensor); //Symmetric Couchy tensor
-      break;
-    case query::TENSOR_PK2:
-      mat = dynamic_cast<Mat_Hyper_Isotrop_General*> (storage->getMaterial());
+      mat->getS_UP(6, solidmech::defaultTensorComponents, CVec.ptr(), p_e, matS.data);
+      matBTDBprod(matF, matS, 1.0/J, *tensor); //Symmetric Couchy tensor
+      return true;
+
+    case tensorQuery::PK2:
+      mat = dynamic_cast<Mat_Hyper_Isotrop_General*>(storage->getMaterial());
       CHECK_NOTNULL(mat);
       p_e = storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE);
-      mat->getS_UP (6, solidmech::defaultTensorComponents, CVec.ptr(), p_e, matS.data);
-      tensor.data[0] += matS.data[0]*scale;
-      tensor.data[1] += matS.data[1]*scale;
-      tensor.data[2] += matS.data[2]*scale;
-      tensor.data[3] += matS.data[3]*scale;
-      tensor.data[4] += matS.data[4]*scale;
-      tensor.data[5] += matS.data[5]*scale;
-      break;
-    case query::TENSOR_C:
-      tensor.data[0] += CVec[M_XX]*scale;
-      tensor.data[1] += CVec[M_XY]*scale;
-      tensor.data[2] += CVec[M_XZ]*scale;
-      tensor.data[3] += CVec[M_YY]*scale;
-      tensor.data[4] += CVec[M_YZ]*scale;
-      tensor.data[5] += CVec[M_ZZ]*scale;
-      break;
-    case query::TENSOR_E:
-      tensor.data[0] += (CVec[M_XX]-1.0)*0.5*scale;
-      tensor.data[1] += CVec[M_XY]*0.5*scale;
-      tensor.data[2] += CVec[M_XZ]*0.5*scale;
-      tensor.data[3] += (CVec[M_YY]-1.0)*0.5*scale;
-      tensor.data[4] += CVec[M_YZ]*0.5*scale;
-      tensor.data[5] += (CVec[M_ZZ]-1.0)*0.5*scale;
-      break;
-    default:
-      LOG_N_TIMES(10, WARNING) << "No data for code " << code;
+      mat->getS_UP(6, solidmech::defaultTensorComponents, CVec.ptr(), p_e, matS.data);
+      tensor->data[0] += matS.data[0]*scale;
+      tensor->data[1] += matS.data[1]*scale;
+      tensor->data[2] += matS.data[2]*scale;
+      tensor->data[3] += matS.data[3]*scale;
+      tensor->data[4] += matS.data[4]*scale;
+      tensor->data[5] += matS.data[5]*scale;
+      return true;
+
+    case tensorQuery::C:
+      tensor->data[0] += CVec[M_XX]*scale;
+      tensor->data[1] += CVec[M_XY]*scale;
+      tensor->data[2] += CVec[M_XZ]*scale;
+      tensor->data[3] += CVec[M_YY]*scale;
+      tensor->data[4] += CVec[M_YZ]*scale;
+      tensor->data[5] += CVec[M_ZZ]*scale;
+      return true;
+
+    case tensorQuery::E:
+      tensor->data[0] += (CVec[M_XX]-1.0)*0.5*scale;
+      tensor->data[1] += CVec[M_XY]*0.5*scale;
+      tensor->data[2] += CVec[M_XZ]*0.5*scale;
+      tensor->data[3] += (CVec[M_YY]-1.0)*0.5*scale;
+      tensor->data[4] += CVec[M_YZ]*0.5*scale;
+      tensor->data[5] += (CVec[M_ZZ]-1.0)*0.5*scale;
+      return true;
   }
+  return false;
 }
 
 } // namespace nla3d
