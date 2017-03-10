@@ -174,4 +174,8 @@ const char* const elTypeLabels[] = {
   "SurfaceLINETH",
   "UNDEFINED"
 };
+
+static_assert((int)ElementType::UNDEFINED == sizeof(elTypeLabels)/sizeof(elTypeLabels[0]) - 1,
+    "ElementType enumeration and elTypeLabels must have the same number of entries");
+
 } // namespace nla3d

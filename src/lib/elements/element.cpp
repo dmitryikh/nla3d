@@ -6,6 +6,7 @@
 
 namespace nla3d {
 
+
 Element::Element () {
 
 }
@@ -68,15 +69,20 @@ void Element::buildM() {
   LOG(FATAL) << "buildM is not implemented";
 }
 
-void Element::getScalar(double& scalar, query::scalarQuery code, uint16 gp, const double scale) {
-  LOG_N_TIMES(10, WARNING) << "getScalar function is not impelemted";
+bool Element::getScalar(double* scalar, scalarQuery code, uint16 gp, const double scale) {
+  // TODO: check that LOG_N_TIMES macro work correctly inside of virtual functions
+  LOG_N_TIMES(10, WARNING) << "getScalar function is not implemented";
+  return false;
 }
 
-void Element::getVector(double* vector, query::vectorQuery code, uint16 gp, const double scale) {
-  LOG_N_TIMES(10, WARNING) << "getVector function is not impelemted";
+bool Element::getVector(math::Vec<3>* vector, vectorQuery code, uint16 gp, const double scale) {
+  LOG_N_TIMES(10, WARNING) << "getVector function is not implemented";
+  return false;
 }
 
-void  Element::getTensor(math::MatSym<3>& tensor, query::tensorQuery code, uint16 gp, const double scale) {
-  LOG_N_TIMES(10, WARNING) << "getTensor function is not impelemted";
+bool  Element::getTensor(math::MatSym<3>* tensor, tensorQuery code, uint16 gp, const double scale) {
+  LOG_N_TIMES(10, WARNING) << "getTensor function is not implemented";
+  return false;
 }
+
 } // namespace nla3d

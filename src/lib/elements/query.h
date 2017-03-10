@@ -5,46 +5,69 @@
 #pragma once
 
 namespace nla3d {
-namespace query {
 
-enum scalarQuery {
-  SCALAR_UNDEF,
-  SCALAR_SP,
-  SCALAR_W,
-  SCALAR_WU,
-  SCALAR_WP,
-  SCALAR_VOL,
-  SCALAR_LAST
+enum class scalarQuery {
+  UNDEF = 0,
+  SP,
+  W,
+  WU,
+  WP,
+  VOL,
+  LAST
 };
 
 const char* const scalarQueryLabels[] = {"UNDEFINED", "S_P", "W", "WU", "WP", "VOL", "LAST"};
 
+static_assert((int)scalarQuery::LAST == sizeof(scalarQueryLabels)/sizeof(scalarQueryLabels[0]) - 1,
+    "scalarQuery enumeration and scalarQueryLabels must have the same number of entries");
 
-enum vectorQuery {
-  VECTOR_UNDEF,
-  VECTOR_IC,
-  VECTOR_LAST
+
+enum class vectorQuery {
+  UNDEF,
+  IC,
+  LAST
 };
 
 const char* const vectorQueryLabels[] = {"UNDEFINEDS", "IC", "LAST"};
 
-enum tensorQuery {
-	TENSOR_UNDEF,
+static_assert((int)vectorQuery::LAST == sizeof(vectorQueryLabels)/sizeof(vectorQueryLabels[0]) - 1,
+    "vectorQuery enumeration and vectorQueryLabels must have the same number of entries");
+
+
+enum class tensorQuery {
+	UNDEF,
   // usual stress tensor
-	TENSOR_COUCHY, 
+	COUCHY, 
   // second Piola-Kirchgoff stress tensor (symmetric 3x3)
-  TENSOR_PK2, 
+  PK2, 
   // Lagrange deformations
-  TENSOR_E,  
+  E,  
   // C = F^T F 
-  TENSOR_C,  
-  TENSOR_LAST
+  C,  
+  LAST
 };
 
-const char* const tensorQueryLabels[] = {"UNDEFINED","COUCHY", "PK2", "E", "C"};
+const char* const tensorQueryLabels[] = {"UNDEFINED","COUCHY", "PK2", "E", "C", "LAST"};
+
+static_assert((int)tensorQuery::LAST == sizeof(tensorQueryLabels)/sizeof(tensorQueryLabels[0]) - 1,
+    "tensorQuery enumeration and tensorQueryLabels must have the same number of entries");
 
 // means averaged values of the element
 const uint16 GP_MEAN = 100;
 
-} // namespace query
+inline char const* query2label(scalarQuery query) {
+  assert(query >= scalarQuery::UNDEF && query < scalarQuery::LAST);
+  return scalarQueryLabels[(int) query];
+}
+
+inline char const* query2label(vectorQuery query) {
+  assert(query >= vectorQuery::UNDEF && query < vectorQuery::LAST);
+  return vectorQueryLabels[(int) query];
+}
+
+inline char const* query2label(tensorQuery query) {
+  assert(query >= tensorQuery::UNDEF && query < tensorQuery::LAST);
+  return tensorQueryLabels[(int) query];
+}
+
 } // namespace nla3d
