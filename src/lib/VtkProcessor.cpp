@@ -304,16 +304,20 @@ void VtkProcessor::revealAllResults() {
     ElementType etype = el.getType();
     if(typesRevealed.find(etype) != typesRevealed.end()) continue;
 
+    // remember that we already revealed the elements of type `etype`
     typesRevealed.insert(etype);
     // This code doesn't work on -O2 optimized code under clang..
     // Here is a kludge - we just print out the etype number..
     LOG(INFO) << static_cast<int>(etype);
     double sdummy = 0.0;
     scalarQuery squery = scalarQuery::UNDEF;
+    // Loop over scalarQuery items
     while(true) {
       squery = static_cast<scalarQuery>(static_cast<int>(squery) + 1);
       if(squery == scalarQuery::LAST) break;
       sdummy = 0.0;
+      // try to ask the element about particular query code. If result is false, than this element
+      // know nothing about the query code, skip the code.
       ret = el.getScalar(&sdummy, squery);
       if(ret == true) {
         cellScalarQueries.insert(squery);
@@ -322,10 +326,13 @@ void VtkProcessor::revealAllResults() {
 
     Vec<3> vdummy;
     vectorQuery vquery = vectorQuery::UNDEF;
+    // Loop over vectorQuery items
     while(true) {
       vquery = static_cast<vectorQuery>(static_cast<int>(vquery) + 1);
       if(vquery == vectorQuery::LAST) break;
       vdummy.zero();
+      // try to ask the element about particular query code. If result is false, than this element
+      // know nothing about the query code, skip the code.
       ret = el.getVector(&vdummy, vquery);
       if(ret == true) {
         cellVectorQueries.insert(vquery);
@@ -334,10 +341,13 @@ void VtkProcessor::revealAllResults() {
 
     MatSym<3> mdummy;
     tensorQuery tquery = tensorQuery::UNDEF;
+    // Loop over tensorQuery items
     while(true) {
       tquery = static_cast<tensorQuery>(static_cast<int>(tquery) + 1);
       if(tquery == tensorQuery::LAST) break;
       mdummy.zero();
+      // try to ask the element about particular query code. If result is false, than this element
+      // know nothing about the query code, skip the code.
       ret = el.getTensor(&mdummy, tquery);
       if(ret == true) {
         cellTensorQueries.insert(tquery);

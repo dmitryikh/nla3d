@@ -3,13 +3,13 @@
 // https://github.com/dmitryikh/nla3d 
 
 #pragma once
+#include <set>
+#include <map>
 #include "sys.h"
 #include "PostProcessor.h"
 #include "FEStorage.h"
 #include "elements/query.h"
 
-#include <set>
-#include <map>
 
 namespace nla3d {
 
@@ -32,7 +32,7 @@ public:
 	virtual void post(uint16 curLoadstep);
 
   // One can use writeAllResults(true) in order to ask VtkProcess to determine which query codes is
-  // relevant to FEStorage's elements automatically. As results, all accesable element results will
+  // relevant to FEStorage's elements automatically. As results, all accessible element results will
   // be written into vtk files.
   void writeAllResults(bool write = true);
 
@@ -46,6 +46,8 @@ private:
 	std::string file_name;
 
 	void write_header(std::ofstream &file);
+  // write geometry(mesh) into the vtk's `file`. If `def == true` then write node coordinates in
+  // deformed state
 	void write_geometry(std::ofstream &file, bool def = false);
 	void write_point_data(std::ofstream &file);
 	void write_cell_data(std::ofstream &file);
