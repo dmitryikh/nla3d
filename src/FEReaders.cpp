@@ -3,6 +3,7 @@
 // https://github.com/dmitryikh/nla3d 
 
 #include "FEReaders.h"
+#include <unordered_map>
 #include <algorithm>
 
 using std::ifstream;
@@ -268,7 +269,11 @@ bool readCdbFile(std::string filename, MeshData& md) {
   md.cellIntData.insert(std::make_pair("SHAPE", std::vector<uint32>()));
   md.cellIntData.insert(std::make_pair("TYPE", std::vector<uint32>()));
 
-  // current element type number
+  std::unordered_map<std::string, double> apdlParameters;
+
+  // current element type number. We keep the current element type number while proceed the apld
+  // file. Currently, this info is not used, but in the past it was used to determine element type
+  // while parsing EBLOCK blocks. 
   uint32 type = 0;
 
   Tokenizer t;
@@ -429,13 +434,12 @@ bool readCdbFile(std::string filename, MeshData& md) {
           st = 11;
         } else {
           elNumber = static_cast<uint32>(std::stoi(v[0]));
-          SECT = static_cast<uint32>(std::stoi(v[1]));
+          // based on my experiments on *.apdl files this field is about etype, but not about secnum
+          ETYPE = static_cast<uint32>(std::stoi(v[1]));
           REAL = static_cast<uint32>(std::stoi(v[2]));
           MAT = static_cast<uint32>(std::stoi(v[3]));
           CS = static_cast<uint32>(std::stoi(v[4]));
-          // in this case type of element are declared as last `et`, 'type' APDL commands above the
-          // table
-          ETYPE = type;
+
           // in this case we need to determine number of nodes by ourselfs
           nNodes = v.size() - 5;
           st = 5;
@@ -584,14 +588,28 @@ bool readCdbFile(std::string filename, MeshData& md) {
       }
     } //CMBLOCK
     else if (iequals(t.tokens[0], "ET") || iequals(t.tokens[0], "ETYPE")) {
-      // keep a track on last ET command.. we need this info to know element type
-      type = t.tokenInt(1);
+      // Keep a track on last ET command.. We need this info to know element type.
+      // If we can convert ET argument into int, then we try to find the APDL parameter in
+      // apdlParameters dictionary. If it's not there - adpParameters will return new zero value.
+      // That means, that if parameter is not declared(somehow..) we just put type = 0
+      // NOTE: in current implementation type value is not used, but it could be used again in the
+      // future.
+      try {
+        type = t.tokenInt(1);
+      } catch (const std::invalid_argument& ia) {
+        type = static_cast<uint32>(apdlParameters[t.tokens[1]]);
+      }
     } // ETYPE
     else if (iequals(t.tokens[0], "TYPE")) {
-      // keep a track on last TYPE command.. we need this info to know element type
-      type = t.tokenInt(1);
+      // Keep the track on last TYPE command.. We need this info to know element type.
+      // NOTE: in current implementation type value is not used, but it could be used again in the
+      // future.
+      try {
+        type = t.tokenInt(1);
+      } catch (const std::invalid_argument& ia) {
+        type = 0;
+      }
     } // ETYPE
-    // TODO: add FX FY FZ
     else if (iequals(t.tokens[0], "F")) {
       // Dof force record
       //f,42,heat,800000.
@@ -615,6 +633,26 @@ bool readCdbFile(std::string filename, MeshData& md) {
         md.loadBcs.push_back(bnd);
       }
     }//F
+    else if (iequals(t.tokens[0], "*set")) {
+      // This is declaration of APDL parameters. We track all APDL numeric variables which is
+      // defined in APDL file.
+      // NOTE: currently this information is not used, but it could be useful later
+      bool isNumeric = false;
+      double value;
+      std::string parName;
+      // try to read parameter's name and it's value as double
+      // if fail - skip this expression
+      try {
+        parName = t.tokens[1];
+        value = t.tokenDouble(2);
+        isNumeric = true;
+      } catch (const std::invalid_argument& ia) {
+        isNumeric = false;
+      }
+      if(isNumeric) {
+        apdlParameters[parName] = value;
+      }
+    }
   }
   file.close();
   return true;
