@@ -122,7 +122,7 @@ class FESolver {
     void addFix(int32 n, Dof::dofType dof, const double value = 0.0);
     // add DoF load (force) boundary condition 
     void addLoad(int32 n, Dof::dofType dof, const double value = 0.0);
-
+    
     // for debug purpose:
     // dump matrices matK, matC, matM and vectors vecF, vecR
     void dumpMatricesAndVectors(std::string filename);

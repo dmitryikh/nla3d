@@ -161,6 +161,7 @@ enum class ElementType {
   TETRA0,
   QUADTH,
   SurfaceLINETH,
+  TRIANGLE4,
   UNDEFINED
 };
 
@@ -172,6 +173,7 @@ const char* const elTypeLabels[] = {
   "TETRA0",
   "QUADTH",
   "SurfaceLINETH",
+  "TRIANGLE4",
   "UNDEFINED"
 };
 

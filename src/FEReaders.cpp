@@ -444,9 +444,8 @@ bool readCdbFile(std::string filename, MeshData& md) {
           nNodes = v.size() - 5;
           st = 5;
         }
-
         vector<uint32> enodes;
-
+        
         if (v.size() != st + nNodes) {
           LOG(FATAL) << "Not enought fields to read element nodes";
         }
@@ -627,6 +626,12 @@ bool readCdbFile(std::string filename, MeshData& md) {
         // parameter or reference to table '%my_apdl_table%. We can't work with these complex cases.
         if (iequals(t.tokens[2], "HEAT")) {
           bnd.node_dof = Dof::TEMP;
+        } else if (iequals(t.tokens[2], "FX")) {
+          bnd.node_dof = Dof::UX;
+        } else if (iequals(t.tokens[2], "FY")) {
+          bnd.node_dof = Dof::UY;
+        } else if (iequals(t.tokens[2], "FZ")) {
+          bnd.node_dof = Dof::UZ;
         } else {
           bnd.node_dof = Dof::label2dofType(t.tokens[2]);
         }

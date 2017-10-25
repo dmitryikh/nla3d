@@ -1,0 +1,121 @@
+/PREP7 
+
+H=5
+L1=1
+L2=9
+DH=1
+T=0.5
+ES=0.5
+
+Force = 10.0
+
+E = 1.0e8
+mu = 0.3
+
+K,1,0,0,
+K,2,L1,0,
+K,3,L1+L2,H-L1,
+K,4,L1+L2,H
+K,5,0,H
+
+LSTR,1,2
+LSTR,2,3
+LSTR,3,4  
+LSTR,4,5
+LSTR,5,1
+
+AL,1,2,3,4,5
+
+VEXT,1, , ,0,0,T,,,, 
+
+ET,1,SOLID185   
+MPTEMP,,,,,,,,  
+MPTEMP,1,0  
+MPDATA,EX,1,,E
+MPDATA,PRXY,1,,mu 
+
+! *** meshing *** !
+ESIZE,ES,0,
+MSHAPE,1,3D 
+MSHKEY,0
+VMESH,1   
+
+! *** Applying BC *** !
+DA,7,ALL,
+DA,1,UZ, 
+
+ASEL,S, , ,       5 
+NSLA,S,1
+
+*GET, count, NODE, 0, COUNT
+F,ALL,FY,-Force/count
+
+ALLSEL
+
+! *** convert all surface loads to FE loads *** !
+NUMCMP,NODE
+SBCTRAN 
+CDWRITE,DB,'tetra','cdb',,'',''  
+
+! *** solve problem *** !
+FINISH
+/SOL
+SOLVE 
+FINISH
+
+
+! *** postprocess results *** !
+/POST1
+*GET, nnodes, NODE, 0, COUNT
+*DIM,node_ux, ,nnodes
+*DIM,node_uy, ,nnodes
+*DIM,node_uz, ,nnodes
+*DIM,nnode, ,nnodes
+
+*DO,i,1,nnodes
+  *GET,node_ux(i),NODE,i, U, X
+  *GET,node_uy(i),NODE,i, U, Y
+  *GET,node_uz(i),NODE,i, U, Z
+  nnode(i) = i
+*ENDDO
+
+*cfopen,'disp.res'
+*VWRITE,'node', 'UX', 'UY', 'UY'
+(A5,A5,A5,A5)
+*VWRITE,nnode(1), node_ux(1), node_uy(1), node_uz(1)
+(F8.0,e16.8,e16.8,e16.8)
+*cfclose
+
+! *** write stress tensor for every element *** !
+*GET, nelems, ELEM, 0, COUNT
+*DIM,elem_sx, ,nelems
+*DIM,elem_sy, ,nelems
+*DIM,elem_sz, ,nelems
+*DIM,elem_sxy, ,nelems
+*DIM,elem_syz, ,nelems
+*DIM,elem_sxz, ,nelems
+*DIM,n_elem, ,nelems
+
+ETABLE,SX,S,X
+ETABLE,SY,S,Y
+ETABLE,SZ,S,Z
+ETABLE,SXY,S,XY
+ETABLE,SYZ,S,YZ
+ETABLE,SXZ,S,XZ
+
+*DO,i,1,nelems
+  *GET,elem_sx(i),ELEM,i, ETAB, 'SX'
+  *GET,elem_sy(i),ELEM,i, ETAB, 'SY'
+  *GET,elem_sz(i),ELEM,i, ETAB, 'SZ'
+  *GET,elem_sxy(i),ELEM,i, ETAB, 'SXY'
+  *GET,elem_syz(i),ELEM,i, ETAB, 'SYZ'
+  *GET,elem_sxz(i),ELEM,i, ETAB, 'SXZ'
+  n_elem(i) = i
+*ENDDO
+
+*cfopen,'stress.res'
+*VWRITE,'elem', 'SX', 'SY', 'SZ', 'SXY', 'SYZ', 'SXZ'
+(A5,A5,A5,A5,A5,A5,A5)
+*VWRITE,n_elem(1), elem_sx(1), elem_sy(1), elem_sz(1), elem_sxy(1), elem_syz(1), elem_sxz(1)
+(F8.0,e16.8,e16.8,e16.8,e16.8,e16.8,e16.8)
+*cfclose

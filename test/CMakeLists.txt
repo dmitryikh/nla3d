@@ -118,6 +118,14 @@ add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME} ${CMAKE_SOURCE_DIR}/test/QUADTH/
 set_tests_properties(${TEST_NAME} PROPERTIES LABELS "FUNC")
 add_dependencies(check ${TEST_NAME})
 
+set (TEST_SOURCES "TETRA0_test.cpp;${PROJECT_SOURCE_DIR}/src/FEReaders.cpp")
+set (TEST_NAME "TETRA0_test")
+add_executable(${TEST_NAME} ${TEST_SOURCES})
+target_link_libraries(${TEST_NAME} nla3d_lib)
+add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME} ${CMAKE_SOURCE_DIR}/test/TETRA0/tetra.cdb
+    ${CMAKE_SOURCE_DIR}/test/TETRA0/disp.res ${CMAKE_SOURCE_DIR}/test/TETRA0/stress.res)
+set_tests_properties(${TEST_NAME} PROPERTIES LABELS "FUNC")
+add_dependencies(check ${TEST_NAME})
 
 # BENCH tests
 

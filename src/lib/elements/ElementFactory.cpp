@@ -8,6 +8,7 @@
 #include "elements/TRUSS3.h"
 #include "elements/TETRA0.h"
 #include "elements/QUADTH.h"
+#include "elements/TRIANGLE4.h"
 
 namespace nla3d {
 
@@ -46,6 +47,11 @@ void ElementFactory::createElements (ElementType elId, const uint32 n, std::vect
       case ElementType::TRUSS3:
         for (uint32 i = 0; i < n; i++) {
           ptr.push_back(new ElementTRUSS3());
+        }
+        break;
+      case ElementType::TRIANGLE4:
+        for (uint32 i = 0; i < n; i++) {
+          ptr.push_back(new ElementTRIANGLE4());
         }
         break;
       case ElementType::TETRA0:

@@ -7,18 +7,23 @@
 
 namespace nla3d {
 
-class ElementTETRA0 : public ElementTETRA {
+enum PlaneState{
+  Strain,
+  Stress
+};
+
+class ElementTRIANGLE4 : public ElementTRIANGLE {
 public:
-// ElementTETRA () defines number of nodes in the element, number of dimensions (2D or 3D
+// ElementTRIANGLE4 () defines number of nodes in the element, number of dimensions (2D or 3D
 // elements). It creates an array for storing global nodes numbers. And also, it registers which
 // DoFs it is going to use (Dof::UX, Dof::UY, Dof::UZ in this case).
-  ElementTETRA0 ();
+  ElementTRIANGLE4 ();
 
 // pre() - functions that is called just before the solution procedures. pre() should register
 // which element DoFs and nodal DoFs will be incorporated in the element stiffness matrix. On this
-// step element also need to initialize any variables that it is going to use in solution process
+// step element alsoo need to initialize any variables that it is going to use in solution process
 // (strains and stresses in integration points in finite deformations analysis, for example).
-// ElementTETRA::pre () registers Dof::UX, Dof::UY, Dof::UZ as DoFs in every node.
+// ElementTRIANGLE4::pre () registers Dof::UX, Dof::UY, Dof::UZ as DoFs in every node.
   void pre();
 
 // buildK() - a central point in element class. Here the element should build element stiffness
@@ -27,15 +32,16 @@ public:
 // matrix. Fro this purpose here is a special procedure in base class Element::assemble(..). Also,
 // the element should assemble right hand side (rhs) of equations related to this element
 // (especially used in non-linear analysis).
+//
   void buildK();
-
 // update() - the function updates internal state of the element based on found solution of
 // global equation system. For example, here you can calculate stresses in the element which depends
 // on found DoFs solution.
   void update();
 
-  void makeB (math::Mat<6,12> &B);
-  void makeC (math::MatSym<6> &C);
+
+  void makeB (math::Mat<3,6> &B);
+  void makeC (math::MatSym<3> &C);
 
   // Elastic module
   double E = 0.0;
@@ -44,20 +50,15 @@ public:
 
   // stresses in the element (calculated after the solving of the global equation system in
   // update() function.
-  //stress[M_XX], stress[M_YY], stress[M_ZZ], stress[M_XY], stress[M_YZ], stress[M_XZ]
-  math::Vec<6> stress; // Cauchy stresses
+  //stress[M_X], stress[M_X], stress[M_XY]
+  math::Vec<3> stress; // Cauchy stresses
 
-  //strains[M_XX], strains[M_YY], strains[M_ZZ], strains[M_XY], strains[M_YZ], strains[M_XZ]
-  math::Vec<6> strains;
+  //strains[M_X], strains[M_Y], strains[M_XY]
+  math::Vec<3> strains;
 
-  double vol;
-
-  //postproc procedures
-  bool getScalar(double* scalar, scalarQuery code, uint16 gp, const double scale);
-  bool getTensor(math::MatSym<3>* tensor, tensorQuery code, uint16 gp, const double scale);
-
+  PlaneState state;
 private:
-  int permute(int i);
+  double area;
 };
 
 } //namespace nla3d

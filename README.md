@@ -146,7 +146,7 @@ ccmake .
 Then one can just launch the compilation:
 
 ```
-cmake --build . --config Release 
+cmake --build . --config Release
 ```
 
 And after launch the functional tests:
