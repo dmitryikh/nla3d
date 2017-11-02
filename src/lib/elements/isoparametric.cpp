@@ -1,7 +1,6 @@
-
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #include "elements/element.h"
 #include "isoparametric.h"
@@ -91,7 +90,7 @@ void ElementIsoParamQUAD::makeJacob() {
     }
 
     det[np] = J.det(); // determinant of Jacob matrix
-    // check for geometry form error 
+    // check for geometry form error
     LOG_IF(det[np] < 1.0e-20, ERROR) << "Determinant is too small (" << det[np] << ") in element = " << elNum;
     // обращение матрицы Якоби
     inv_det = 1.0/det[np];
@@ -173,7 +172,7 @@ void ElementIsoParamHEXAHEDRON::makeJacob() {
     }
 
     det[np] = J.det(); // determinant of Jacob matrix
-    // check for geometry form error 
+    // check for geometry form error
     LOG_IF(det[np] < 1.0e-20, ERROR) << "Determinant is too small (" << det[np] << ") in element = " << elNum;
     // обращение матрицы Якоби
     inv_det = 1.0/det[np];

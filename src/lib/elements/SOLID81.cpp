@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #include "elements/SOLID81.h"
 
@@ -192,7 +192,7 @@ void ElementSOLID81::make_Omega (uint16 np, Mat<6,9> &B) {
 
 bool ElementSOLID81::getScalar(double* scalar, scalarQuery query, uint16 gp, const double scale) {
   //see queries in query.h
-  //gp - needed gauss point 
+  //gp - needed gauss point
   if (gp == GP_MEAN) { //need to average result over the element
     double dWtSum = volume();
     double dWt;
@@ -288,7 +288,7 @@ bool  ElementSOLID81::getTensor(math::MatSym<3>* tensor, tensorQuery query, uint
   switch (query) {
     case tensorQuery::COUCHY:
 
-      //matF^T  
+      //matF^T
       matF.data[0][0] = 1+O[gp][0];
       matF.data[1][0] = O[gp][1];
       matF.data[2][0] = O[gp][2];
@@ -303,7 +303,7 @@ bool  ElementSOLID81::getTensor(math::MatSym<3>* tensor, tensorQuery query, uint
 
       //deviatoric part of S: Sd = S[gp]
       //hydrostatic part of S: Sp = p * J * C^(-1)
-      solidmech::invC_C (C[gp].ptr(), J, cInv); 
+      solidmech::invC_C (C[gp].ptr(), J, cInv);
       pe = storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE);
       // TODO: it seems that S[gp] contains deviatoric + pressure already..
       // we dont need to sum it again
@@ -316,7 +316,7 @@ bool  ElementSOLID81::getTensor(math::MatSym<3>* tensor, tensorQuery query, uint
     case tensorQuery::PK2:
       // hydrostatic part of S: Sp = p * J * C^(-1)
       J = solidmech::J_C(C[gp].ptr());
-      solidmech::invC_C (C[gp].ptr(), J, cInv); 
+      solidmech::invC_C (C[gp].ptr(), J, cInv);
       pe = storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE);
       for (uint16 i = 0; i < 6; i++) {
         tensor->data[i] += (S[gp][i] + pe * J * cInv[i]) * scale;

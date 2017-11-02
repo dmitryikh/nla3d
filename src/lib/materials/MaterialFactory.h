@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #pragma once
 #include "materials/materials_hyperelastic.h"
@@ -19,8 +19,8 @@ class MaterialFactory {
 
   static const char* const matModelLabels[];
 
-  static matId matName2matId (std::string matName); 
-  static Material* createMaterial (std::string matName); 
+  static matId matName2matId (std::string matName);
+  static Material* createMaterial (std::string matName);
 };
 
 } // namespace nla3d

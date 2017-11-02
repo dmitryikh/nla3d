@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #include "math/Vec.h"
 
@@ -43,7 +43,7 @@ void dVec::reinit(dVec& _ref, uint32 _start, uint32 _size) {
 
 
 dVec::~dVec() {
-  clear();  
+  clear();
 }
 
 uint32 dVec::size() const {
@@ -101,7 +101,7 @@ double dVec::operator[](uint32 _n) const {
 dVec dVec::operator-() {
   assert(data);
   dVec p(size());
-	for (uint32 i = 0; i < size(); i++) {
+  for (uint32 i = 0; i < size(); i++) {
     p[i] = -data[i];
   }
   return p;
@@ -115,7 +115,7 @@ dVec dVec::operator+(const dVec& op) {
 
   dVec p(size());
 
-	for (uint32 i = 0; i < size(); i++) {
+  for (uint32 i = 0; i < size(); i++) {
     p[i] = data[i] + op.data[i];
   }
   return p;
@@ -130,7 +130,7 @@ dVec dVec::operator-(const dVec& op) {
 
   dVec p(size());
 
-	for (uint32 i = 0; i < size(); i++) {
+  for (uint32 i = 0; i < size(); i++) {
     p[i] = data[i] - op.data[i];
   }
   return p;
@@ -142,7 +142,7 @@ dVec dVec::operator*(const double op) {
 
   dVec p(size());
 
-	for (uint32 i = 0; i < size(); i++) {
+  for (uint32 i = 0; i < size(); i++) {
     p[i] = data[i] * op;
   }
   return p;
@@ -153,7 +153,7 @@ dVec operator* (const double op1, const dVec& op2) {
 
   dVec p(op2.size());
 
-	for (uint32 i = 0; i < op2.size(); i++) {
+  for (uint32 i = 0; i < op2.size(); i++) {
     p[i] = op2.data[i] * op1;
   }
   return p;
@@ -165,7 +165,7 @@ dVec dVec::operator/(const double op) {
 
   dVec p(size());
 
-	for (uint32 i = 0; i < size(); i++) {
+  for (uint32 i = 0; i < size(); i++) {
     p[i] = data[i] / op;
   }
   return p;
@@ -178,7 +178,7 @@ dVec& dVec::operator+=(const dVec& op) {
   assert(op.data);
   assert(size() == op.size());
 
-	for (uint32 i = 0; i < size(); i++) {
+  for (uint32 i = 0; i < size(); i++) {
     data[i] += op.data[i];
   }
   return *this;
@@ -190,7 +190,7 @@ dVec& dVec::operator-=(const dVec& op) {
   assert(op.data);
   assert(size() == op.size());
 
-	for (uint32 i = 0; i < size(); i++) {
+  for (uint32 i = 0; i < size(); i++) {
     data[i] -= op.data[i];
   }
   return *this;
@@ -201,7 +201,7 @@ dVec& dVec::operator=(const dVec& op) {
   assert(op.data);
   assert(size() == op.size());
 
-	for (uint32 i = 0; i < size(); i++) {
+  for (uint32 i = 0; i < size(); i++) {
     data[i] = op.data[i];
   }
   return *this;

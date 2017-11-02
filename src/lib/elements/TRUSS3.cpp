@@ -1,3 +1,7 @@
+// This file is a part of nla3d project. For information about authors and
+// licensing go to project's repository on github:
+// https://github.com/dmitryikh/nla3d
+
 #include "elements/TRUSS3.h"
 
 namespace nla3d {
@@ -28,7 +32,7 @@ void ElementTRUSS3::buildK() {
 
   // here we use pointer to FEStorage class where all FE information is stored (from node and
   // element tables to solution results). getNode(..).pos used to obtain an class instance for
-  // particular node an get its position which is Vec<3> data type. 
+  // particular node an get its position which is Vec<3> data type.
   math::Vec<3> deltaPos = storage->getNode(getNodeNumber(1)).pos - storage->getNode(getNodeNumber(0)).pos;
   // as long as we need 1.0/length instead of length itself it's useful to store this value in the
   // variable inv_length. Such kind of code optimization is quite useful in massively computational
@@ -45,7 +49,7 @@ void ElementTRUSS3::buildK() {
   T(1,4) = T(0,1);
   T(1,5) = T(0,2);
 
-  // This is just another way in Eigen to initialize {{1.0, -1.0}, {-1.0, 1.0}} matrix. 
+  // This is just another way in Eigen to initialize {{1.0, -1.0}, {-1.0, 1.0}} matrix.
   K << 1.0, -1.0,
       -1.0,  1.0;
   K *= A*E*inv_length;
@@ -54,7 +58,7 @@ void ElementTRUSS3::buildK() {
   // Ke.triangularView<Eigen::Upper> is used.
   Ke.triangularView<Eigen::Upper>() = T.transpose() * K * T;
 
-  // start assemble procedure. Here we should provide element stiffness matrix and an order of 
+  // start assemble procedure. Here we should provide element stiffness matrix and an order of
   // nodal DoFs in the matrix.
   assembleK(Ke, {Dof::UX, Dof::UY, Dof::UZ});
 }

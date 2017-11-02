@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #include "FESolver.h"
 
@@ -27,7 +27,7 @@ uint16 TimeControl::getCurrentEquilibriumStep() {
 
 
 uint16 TimeControl::getTotalNumberOfEquilibriumSteps() {
-  return totalNumberOfEquilibriumSteps; 
+  return totalNumberOfEquilibriumSteps;
 }
 
 
@@ -37,7 +37,7 @@ bool TimeControl::nextStep(double delta) {
     convergedTimeInstances.push_back(currentTime);
   }
   if (currentTime >= endTime) {
-    return false;    
+    return false;
   }
   // if delta bigger than endTime-currentTime
   if (currentTime + delta >= endTime) {
@@ -58,7 +58,7 @@ bool TimeControl::nextStep(double delta) {
 
 void TimeControl::nextEquilibriumStep() {
   currentEquilibriumStep++;
-  totalNumberOfEquilibriumSteps++; 
+  totalNumberOfEquilibriumSteps++;
   LOG(INFO) << "***** Equilibrium iteration = " << currentEquilibriumStep
       << ", Cumulutive iterations = " << totalNumberOfEquilibriumSteps;
 }
@@ -229,7 +229,7 @@ void FESolver::setConstrainedDofs() {
 void FESolver::applyBoundaryConditions(double time) {
   TIMED_SCOPE(t, "applyBoundaryConditions");
   LOG(INFO) << "Applying boundary conditions.. (" << loads.size() << " nodal loads and "
-       << fixs.size() << "nodal fixations)";  
+       << fixs.size() << "nodal fixations)";
 
   // fill nodal loads
   for (auto load : loads) {
@@ -340,7 +340,7 @@ void LinearFESolver::solve () {
   CHECK_NOTNULL(storage);
   CHECK_NOTNULL(eqSolver);
 
-  // setup matrix properties for EquationSolver 
+  // setup matrix properties for EquationSolver
   eqSolver->setSymmetric(true);
   eqSolver->setPositive(false);
 
@@ -410,7 +410,7 @@ void NonlinearFESolver::solve() {
   CHECK_NOTNULL(storage);
   CHECK_NOTNULL(eqSolver);
 
-  // setup matrix properties for EquationSolver 
+  // setup matrix properties for EquationSolver
   eqSolver->setSymmetric(true);
   eqSolver->setPositive(false);
 
@@ -474,16 +474,16 @@ void NonlinearFESolver::solve() {
       currentCriteria = calculateCriteria(deltaUs);
 
       // TODO: 1. It seems that currentCriteria is already normalized in calculateCriteria(). we
-      //          need to compare currentCriteria with 1.0 
+      //          need to compare currentCriteria with 1.0
       // TODO: 2. Current convergence criteria is not good. We need to introduce equilibrium balance
-      //          criteria too along with kinematic one. 
+      //          criteria too along with kinematic one.
       if (currentCriteria < convergenceCriteria) {
         converged = true;
         break;
       }
       LOG_IF(currentCriteria > 1.0e6 || std::isnan(currentCriteria), FATAL) << "The solution is diverged!";
 
-      if (timeControl.getCurrentEquilibriumStep() >= numberOfIterations) 
+      if (timeControl.getCurrentEquilibriumStep() >= numberOfIterations)
         break;
     }//iterations
 
@@ -535,7 +535,7 @@ void LinearTransientFESolver::solve() {
   CHECK_NOTNULL(storage);
   CHECK_NOTNULL(eqSolver);
 
-  // setup matrix properties for EquationSolver 
+  // setup matrix properties for EquationSolver
   eqSolver->setSymmetric(true);
   eqSolver->setPositive(false);
 
@@ -558,7 +558,7 @@ void LinearTransientFESolver::solve() {
   setConstrainedDofs();
   storage->assignEquationNumbers();
   initSolutionData();
-  
+
 
   vecR.zero();
 
@@ -582,7 +582,7 @@ void LinearTransientFESolver::solve() {
 
   vecDU.zero();
   vecDDU.zero();
-  
+
   for (size_t i = 0; i < getNumberOfPostProcessors(); i++) {
     postProcessors[i]->pre();
   }

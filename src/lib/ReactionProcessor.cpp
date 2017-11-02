@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #include "ReactionProcessor.h"
 #include "Node.h"
@@ -8,16 +8,16 @@
 namespace nla3d {
 
 ReactionProcessor::ReactionProcessor(FEStorage *st) : PostProcessor(st) {
-	name ="ReactionProcessor";
+  name ="ReactionProcessor";
 }
 
 ReactionProcessor::ReactionProcessor(FEStorage *st, std::string _filename) : PostProcessor(st) {
-	name ="ReactionProcessor";
+  name ="ReactionProcessor";
   filename = _filename;
 }
 
 void ReactionProcessor::pre() {
-	if (nodes.size() == 0) {
+  if (nodes.size() == 0) {
     LOG(WARNING) << "Can't work. No nodes. Processor name = " << name;
     return;
   }
@@ -31,11 +31,11 @@ void ReactionProcessor::pre() {
       Dof::dofType t = static_cast<Dof::dofType> (d);
       if (storage->isNodeDofUsed(nodes[0], t) && storage->getNodeDof(nodes[0], t)->isConstrained) {
         dofs.push_back(t);
-      } 
+      }
     }
     if (dofs.size() == 0) {
       LOG(WARNING) << "Can't select dofs for reactions (they are unconstrained)";
-    } 
+    }
     // check that others nodes have the same constrained dofs
     bool sameDofsConstrained = true;
     uint32 n = 0;
@@ -92,7 +92,7 @@ void ReactionProcessor::process (uint16 curLoadstep) {
   std::vector<double> reactions;
   reactions.assign(dofs.size(), 0.0);
 
-	for (uint32 n = 0; n < nodes.size(); n++) {
+  for (uint32 n = 0; n < nodes.size(); n++) {
     for (uint16 d = 0; d < dofs.size(); d++) {
       reactions[d] += storage->getReaction(nodes[n],dofs[d]);
     }

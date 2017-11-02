@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #pragma once
 #include "sys.h"
@@ -118,11 +118,11 @@ class FESolver {
     // this work based on `fixs` array.
     void setConstrainedDofs();
 
-    // add DoF fixation (constraint) boundary condition 
+    // add DoF fixation (constraint) boundary condition
     void addFix(int32 n, Dof::dofType dof, const double value = 0.0);
-    // add DoF load (force) boundary condition 
+    // add DoF load (force) boundary condition
     void addLoad(int32 n, Dof::dofType dof, const double value = 0.0);
-    
+
     // for debug purpose:
     // dump matrices matK, matC, matM and vectors vecF, vecR
     void dumpMatricesAndVectors(std::string filename);
@@ -141,7 +141,7 @@ class FESolver {
     std::vector<PostProcessor*> postProcessors;
 
     // the references on FEStorage FE data structures which is frequently used by FESolver. This
-    // references make it easy to operate with important FE data structures. 
+    // references make it easy to operate with important FE data structures.
     BlockSparseSymMatrix<2>* matK = nullptr;
     BlockSparseSymMatrix<2>* matC = nullptr;
     BlockSparseSymMatrix<2>* matM = nullptr;

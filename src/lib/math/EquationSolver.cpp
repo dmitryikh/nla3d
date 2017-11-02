@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #include "math/EquationSolver.h"
 
@@ -9,7 +9,6 @@
 #endif //NLA3D_USE_MKL
 
 namespace nla3d {
-
 namespace math {
 
 EquationSolver* defaultEquationSolver = new GaussDenseEquationSolver;
@@ -43,7 +42,7 @@ void GaussDenseEquationSolver::substituteEquations(math::SparseSymMatrix* matrix
   // because this is simplest solver dedicated to perform functional tests
   //
   CHECK(nrhs == 1) << "GaussDenseEquationSolver support only 1 set of rhs values";
-  
+
 
   if (matA.dM() == nEq && matA.dN() == nEq) {
     matA.zero();
@@ -149,18 +148,18 @@ void PARDISO_equationSolver::solveEquations (math::SparseSymMatrix* matrix, doub
 void PARDISO_equationSolver::substituteEquations(math::SparseSymMatrix* matrix,
                                                  double* rhs, double* unknowns) {
 
-	//Back substitution and iterative refinement
+  //Back substitution and iterative refinement
 
   // initialize error code
-	int error = 0; 
-	int phase = 33;
+  int error = 0;
+  int phase = 33;
   int n = static_cast<int> (nEq);
-	PARDISO(pt, &maxfct, &mnum, &mtype, &phase,	&n, matrix->getValuesArray(),
+  PARDISO(pt, &maxfct, &mnum, &mtype, &phase, &n, matrix->getValuesArray(),
       (int*) matrix->getIofeirArray(),
       (int*) matrix->getColumnsArray(),
-			NULL, &nrhs, iparm, &msglvl, rhs, unknowns, &error);
+      NULL, &nrhs, iparm, &msglvl, rhs, unknowns, &error);
 
-	CHECK(error == 0) << "ERROR during solution. Error code = " << error;
+  CHECK(error == 0) << "ERROR during solution. Error code = " << error;
 }
 
 
@@ -172,26 +171,26 @@ void PARDISO_equationSolver::factorizeEquations(math::SparseSymMatrix* matrix) {
   firstRun = false;
 
   CHECK(nEq == matrix->nRows());
-  
-	int phase;
+
+  int phase;
 
   // initialize error code
-	int error = 0; 
+  int error = 0;
 
-	// phase 22 is the numerical factorization
-	phase = 22;
+  // phase 22 is the numerical factorization
+  phase = 22;
   int n = static_cast<int> (nEq);
 
-	PARDISO(pt, &maxfct, &mnum, &mtype, &phase, &n, matrix->getValuesArray(), 
+  PARDISO(pt, &maxfct, &mnum, &mtype, &phase, &n, matrix->getValuesArray(),
       (int*) matrix->getIofeirArray(),
       (int*) matrix->getColumnsArray(),
-			NULL, &nrhs, iparm, &msglvl, NULL, NULL, &error);
+      NULL, &nrhs, iparm, &msglvl, NULL, NULL, &error);
   CHECK(error == 0) << "ERROR during numerical factorization. Error code = " << error;
 
 }
 
 void PARDISO_equationSolver::initializePARDISO (math::SparseSymMatrix* matrix) {
-	for (uint16 i = 0; i < 64; i++) {
+  for (uint16 i = 0; i < 64; i++) {
     iparm[i]=0;
   }
 
@@ -199,23 +198,23 @@ void PARDISO_equationSolver::initializePARDISO (math::SparseSymMatrix* matrix) {
     pt[i]=0;
   }
 
-	iparm[0] = 1; //no solver default
-	iparm[1] = 2; //fill-in reordering from meris
-	iparm[2] = MKL_Get_Max_Threads();
-	iparm[3] = 0; //no iterative-direct algorithm
-	iparm[4] = 0; //no user fill-in reducing permutation
-	iparm[5] = 0; //write solution into x
-	iparm[6] = 16; //default logical fortran unit number for output
-	iparm[7] = 2; //max numbers of iterative refinement steps
-	iparm[9] = 13; //pertrub the pivor elements with 1e-13
-	iparm[10] = 1; //use nonsymmetric permutation  and scaling MPS
-	iparm[13]=0; //output: number of perturbed pivots
-	iparm[17]=-1; //output: number of nonzeros in the factor LU
-	iparm[18]=-1; //output: MFLOPS for LU factorization
-	iparm[19] = 0; //output: number of CG Iterations
+  iparm[0] = 1; //no solver default
+  iparm[1] = 2; //fill-in reordering from meris
+  iparm[2] = MKL_Get_Max_Threads();
+  iparm[3] = 0; //no iterative-direct algorithm
+  iparm[4] = 0; //no user fill-in reducing permutation
+  iparm[5] = 0; //write solution into x
+  iparm[6] = 16; //default logical fortran unit number for output
+  iparm[7] = 2; //max numbers of iterative refinement steps
+  iparm[9] = 13; //pertrub the pivor elements with 1e-13
+  iparm[10] = 1; //use nonsymmetric permutation  and scaling MPS
+  iparm[13]=0; //output: number of perturbed pivots
+  iparm[17]=-1; //output: number of nonzeros in the factor LU
+  iparm[18]=-1; //output: MFLOPS for LU factorization
+  iparm[19] = 0; //output: number of CG Iterations
 
   LOG_IF(!isSymmetric, FATAL) << "For now PARDISO_equationSolver doesn't support non-symmetric matrices";
-	if (isPositive) {
+  if (isPositive) {
     mtype = 2;
     LOG(INFO) << "EquationSolver will use positive symmetric solver";
   } else {
@@ -227,14 +226,14 @@ void PARDISO_equationSolver::initializePARDISO (math::SparseSymMatrix* matrix) {
   int n = static_cast<int> (nEq);
 
   // initialize error code
-	int error = 0; 
+  int error = 0;
 
   int phase = 11;
 
   PARDISO(pt, &maxfct, &mnum, &mtype,&phase, &n, matrix->getValuesArray(),
-     (int*) matrix->getIofeirArray(), 
-     (int*) matrix->getColumnsArray(), 
-			NULL, &nrhs, iparm, &msglvl, NULL, NULL, &error);
+     (int*) matrix->getIofeirArray(),
+     (int*) matrix->getColumnsArray(),
+     NULL, &nrhs, iparm, &msglvl, NULL, NULL, &error);
   CHECK(error == 0) << "ERROR during symbolic factorization. Error code = " << error;
   LOG(INFO) << "Number of nonzeros in factors = " << iparm[17] << ", number of factorization MFLOPS = " << iparm[18];
 }
@@ -244,13 +243,12 @@ void PARDISO_equationSolver::releasePARDISO () {
   int n = static_cast<int> (nEq);
 
   // initialize error code
-	int error = 0; 
-	//Termination and release of memory
-	PARDISO(pt, &maxfct, &mnum, &mtype, &phase,	&n, NULL, NULL, NULL, NULL, &nrhs, iparm, &msglvl, NULL, NULL, &error);
+  int error = 0;
+  //Termination and release of memory
+  PARDISO(pt, &maxfct, &mnum, &mtype, &phase, &n, NULL, NULL, NULL, NULL, &nrhs, iparm, &msglvl, NULL, NULL, &error);
   LOG_IF (error != 0, WARNING) << "ERROR during PARDISO termination. Error code = " << error;
 }
 #endif //NLA3D_USE_MKL
 
 } //namespace math
-
 } //namespace nla3d

@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #pragma once
 #include "sys.h"
@@ -221,7 +221,7 @@ class ElementIsoParamQUAD : public ElementQUAD {
     double sideDet[4]; //Jacobian for side integration
 
     // function to calculate all staff for isoparametric FE
-    void makeJacob(); 
+    void makeJacob();
     double intWeight(uint16 np);
     double volume();
     void np2rst(uint16 np, double *xi); //by number of gauss point find local coordinates
@@ -244,7 +244,7 @@ class ElementIsoParamHEXAHEDRON : public ElementHEXAHEDRON {
     std::vector<double> det;  //Jacobian
 
     // function to calculate all staff for isoparametric FE
-    void makeJacob(); 
+    void makeJacob();
     double intWeight(uint16 np);
     double volume();
     void np2rst(uint16 np, double *xi); //by number of gauss point find local coordinates

@@ -1,4 +1,4 @@
-# Collect sources into the variable MATH_SOURCES with 
+# Collect sources into the variable MATH_SOURCES with
 # having to explicitly list each header and source file
 file (GLOB MATH_SOURCES "*.cpp")
 

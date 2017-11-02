@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #include "FEReaders.h"
 #include <unordered_map>
@@ -27,14 +27,14 @@ void MeshData::clear() {
     nodesPos.clear();
     loadBcs.clear();
     fixBcs.clear();
-    mpcs.clear(); 
+    mpcs.clear();
     feComps.clear();
 }
 
 
 void MeshData::compressNumbers() {
   // numbers should start from 1
-  if (nodesNumbers.size() == *std::max_element(nodesNumbers.begin(), nodesNumbers.end())) { 
+  if (nodesNumbers.size() == *std::max_element(nodesNumbers.begin(), nodesNumbers.end())) {
     // nothing to do
     return;
   }
@@ -77,7 +77,7 @@ void MeshData::compressNumbers() {
     if (comp.type == FEComponent::NODES) {
       for (auto n : comp.list) {
         n = old2new[n];
-      } 
+      }
     }
   }
 }
@@ -163,7 +163,7 @@ std::vector<std::string> ssplit(const std::string& line, const std::vector<int>&
   return vv;
 }
 
- 
+
 bool iequals(const string& a, const string& b) {
     unsigned int sz = a.size();
     if (b.size() != sz)
@@ -175,7 +175,7 @@ bool iequals(const string& a, const string& b) {
 }
 
 // taken from
-// http://stackoverflow.com/questions/6089231/getting-std-ifstream-to-handle-lf-cr-and-crlf/6089413#6089413 
+// http://stackoverflow.com/questions/6089231/getting-std-ifstream-to-handle-lf-cr-and-crlf/6089413#6089413
 std::istream& getLine(std::istream& is, std::string& t) {
   t.clear();
 
@@ -273,7 +273,7 @@ bool readCdbFile(std::string filename, MeshData& md) {
 
   // current element type number. We keep the current element type number while proceed the apld
   // file. Currently, this info is not used, but in the past it was used to determine element type
-  // while parsing EBLOCK blocks. 
+  // while parsing EBLOCK blocks.
   uint32 type = 0;
 
   Tokenizer t;
@@ -301,7 +301,7 @@ bool readCdbFile(std::string filename, MeshData& md) {
       //         1    2.000000000E+000    6.000000000E+000    0.000000000E+000
       //         2    0.000000000E+000    6.000000000E+000    0.000000000E+000
       //
-      // from Ansys WB APDL 17.1: 
+      // from Ansys WB APDL 17.1:
       //NBLOCK,6,SOLID,       341,       341
       //(3i9,6e21.13e3)
       //        1        0        0 0.0000000000000E+000 4.0000000000000E+000
@@ -352,7 +352,7 @@ bool readCdbFile(std::string filename, MeshData& md) {
         md.nodesPos.push_back(pos);
       }
     }//NBLOCK
-    else if (iequals(t.tokens[0], "EBLOCK")) {  
+    else if (iequals(t.tokens[0], "EBLOCK")) {
       // Example of record:
       //EBLOCK,19,SOLID,      7024,      7024
       //(19i9)
@@ -445,7 +445,7 @@ bool readCdbFile(std::string filename, MeshData& md) {
           st = 5;
         }
         vector<uint32> enodes;
-        
+
         if (v.size() != st + nNodes) {
           LOG(FATAL) << "Not enought fields to read element nodes";
         }
@@ -484,8 +484,8 @@ bool readCdbFile(std::string filename, MeshData& md) {
     else if (iequals(t.tokens[0], "CE")) {
       // CE - is a command to declare MPC equation
       // How MPC looks like this in cdb file:
-      //CE,R5.0,DEFI,       2,       1,  0.00000000    
-      //CE,R5.0,NODE,      1700,UX  ,  1.00000000    ,      1700,UZ  ,  1.00000000  
+      //CE,R5.0,DEFI,       2,       1,  0.00000000
+      //CE,R5.0,NODE,      1700,UX  ,  1.00000000    ,      1700,UZ  ,  1.00000000
       // TODO: Mpc is dynamicaly allocated, but MeshData won't free this memory (this should be done
       // in FEStorage). This is potential memory leak
       Mpc* mpc = new Mpc();

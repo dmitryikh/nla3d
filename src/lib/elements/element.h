@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #pragma once
 #include "sys.h"
@@ -81,7 +81,7 @@ static const uint16 _shape_nnodes[] = {
 // (methods getScalar(...), getVector(...), getTensor(...)), for update element state after solution
 // iteration (method update()).
 class Element {
-  public: 
+  public:
     Element ();
     virtual ~Element();
 
@@ -89,7 +89,7 @@ class Element {
     uint32 getElNum();
     // return number of nodes for the element
     uint16 getNNodes();
-    // return number of dimensions (0D, 1D, 2D, 3D) occupied by element shape. 
+    // return number of dimensions (0D, 1D, 2D, 3D) occupied by element shape.
     uint16 getDim();
     // return element shape
     ElementShape getShape();
@@ -378,7 +378,7 @@ inline uint16 Element::getIntegrationOrder() {
 
 
 inline void Element::setIntegrationOrder(uint16 _nint) {
-  intOrder = _nint; 
+  intOrder = _nint;
 }
 
 

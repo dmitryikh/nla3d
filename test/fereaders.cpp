@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #include "sys.h"
 #include "FEStorage.h"
@@ -24,10 +24,10 @@ int main (int argc, char* argv[]) {
 
 
   // Create an instance of FEStorage.
-	FEStorage storage;
+  FEStorage storage;
   // We have a deal with linear FE. Then it's ok to use linear solver (just one equilibrium iteration without
   // convergence controls)
-	LinearFESolver solver;
+  LinearFESolver solver;
   MeshData mesh;
 
   if (!readCdbFile (cdb_filename, mesh)) {
@@ -36,7 +36,7 @@ int main (int argc, char* argv[]) {
 
   LOG(INFO) << mesh.nodesNumbers.size() << " nodes were read";
   for (size_t i = 0; i < mesh.nodesNumbers.size(); i++) {
-    LOG(INFO) << "Node " << mesh.nodesNumbers[i] << ": " << mesh.nodesPos[i][0] << " " 
+    LOG(INFO) << "Node " << mesh.nodesNumbers[i] << ": " << mesh.nodesPos[i][0] << " "
                                                          << mesh.nodesPos[i][1] << " "
                                                          << mesh.nodesPos[i][2];
   }
@@ -47,8 +47,8 @@ int main (int argc, char* argv[]) {
     out << "Element " << mesh.cellNumbers[i] << ":";
     for (size_t j = 0; j < mesh.cellNodes[i].size(); j++) {
       out  << " " << mesh.cellNodes[i][j];
-    }  
-    LOG(INFO) << out.str(); 
+    }
+    LOG(INFO) << out.str();
     LOG(INFO) << "  ETYPE:" << mesh.cellIntData["TYPE"][i]
                << " MAT:" << mesh.cellIntData["MAT"][i]
                << " REAL:" << mesh.cellIntData["REAL"][i]
@@ -79,12 +79,12 @@ int main (int argc, char* argv[]) {
   //   solver.attachEquationSolver(&eqSolver);
 // #endif
   // // FESolver should know FEStorage instance. Attach it.
-	// solver.attachFEStorage(&storage);
+  // solver.attachFEStorage(&storage);
   // VtkProcessor* vtk = new VtkProcessor(&storage, "QUADTH");
   // solver.addPostProcessor(vtk);
 
-	// solver.solve();
-  // 
+  // solver.solve();
+  //
   // // Log all results about the model
   // LOG(INFO) << "DoF solution:";
   // for (uint32 i = 1; i <= storage.nNodes(); i++) {
@@ -102,7 +102,7 @@ int main (int argc, char* argv[]) {
   //   }
   // }
 
-	return 0;
+  return 0;
 }
 
 

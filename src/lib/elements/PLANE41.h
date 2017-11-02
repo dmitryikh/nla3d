@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #pragma once
 #include "elements/element.h"
@@ -96,4 +96,4 @@ void ElementPLANE41::assembleK(const math::Mat<el_dofs_num,el_dofs_num> &Ke, con
   }
 }
 
-} // namespace nla3d 
+} // namespace nla3d

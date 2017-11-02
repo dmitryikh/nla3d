@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #pragma once
 #include "sys.h"
@@ -8,7 +8,7 @@
 namespace nla3d {
 
 class DofCollection;
-// class for Degree of Freedom informations 
+// class for Degree of Freedom informations
 // (is it fixed boundary condition, what its number in equation system, ..)
 class Dof {
   public:
@@ -65,10 +65,10 @@ class DofCollection {
     uint32 numberOfUsedDofs = 0;
     uint32 numberOfEntities = 0;
 
-    // vector of Dof objects 
+    // vector of Dof objects
     std::vector<Dof> dofs;
     // array of indexes to find where dofs for particular entity is located in dofs
-    // Dof for entity n will be located from dofPos[n-1] included to dofPos[n] excluded 
+    // Dof for entity n will be located from dofPos[n-1] included to dofPos[n] excluded
     std::vector<uint32> dofPos;
     // set of unique dofs used in collection
     std::set<Dof::dofType> uniqueDofTypes;
@@ -95,4 +95,4 @@ inline std::pair<std::vector<Dof>::iterator,
 }
 
 
-} // namespace nla3d 
+} // namespace nla3d

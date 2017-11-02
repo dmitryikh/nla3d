@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #include "FEComponent.h"
 
@@ -14,7 +14,7 @@ FEComponent::FEComponent () {
 }
 FEComponent::~FEComponent () {
   list.clear();
-} 
+}
 
 FEComponent::typeOfComponent FEComponent::typeFromString(const std::string& typeName) {
   for (size_t i = 1; i < LAST; i++) {

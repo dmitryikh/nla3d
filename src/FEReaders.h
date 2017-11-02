@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #pragma once
 #include <vector>
@@ -38,7 +38,7 @@ class MeshData {
     std::vector<loadBC> loadBcs;
     std::vector<fixBC> fixBcs;
 
-    std::vector<Mpc*> mpcs; 
+    std::vector<Mpc*> mpcs;
 
     std::map<std::string, FEComponent> feComps;
 

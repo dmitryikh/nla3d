@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #include "elements/QUADTH.h"
 
@@ -59,7 +59,7 @@ void ElementQUADTH::buildC() {
     dWt = intWeight(np);
     Vec<4> ff = formFunc(np);
     for (uint16 i = 0; i < 4; i++)
-      for (uint16 j = i; j < 4; j++) 
+      for (uint16 j = i; j < 4; j++)
         Ce.comp(i, j) += ff[i] * ff[j] * rho * c * dWt;
   }// loop over integration points
 

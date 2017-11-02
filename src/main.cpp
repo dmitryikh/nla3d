@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #include "sys.h"
 #include "FEStorage.h"
@@ -13,7 +13,7 @@
 using namespace nla3d;
 
 void prepeareProcessors (FEStorage& storage);
-std::vector<double> readRefCurveData (std::string fileRefCurve); 
+std::vector<double> readRefCurveData (std::string fileRefCurve);
 double compareCurves (const std::vector<double>& refCurve, const std::vector<double>& curCurve);
 
 // Here is defaults values for command line options
@@ -26,7 +26,7 @@ namespace options {
   bool useVtk = true;
   std::string modelFilename = "";
   std::vector<double> materialConstants;
-  std::string refCurveFilename = ""; 
+  std::string refCurveFilename = "";
   double curveCompareThreshold = 0.0;
   std::string reactionComponentName = "";
   std::vector<Dof::dofType> reactionDofs;
@@ -95,7 +95,7 @@ bool parse_args (int argc, char* argv[]) {
     } else  {
       options::reactionComponentName = vtmp[0];
       for (size_t i = 1; i < vtmp.size(); i++) {
-        options::reactionDofs.push_back(Dof::label2dofType(vtmp[i])); 
+        options::reactionDofs.push_back(Dof::label2dofType(vtmp[i]));
       }
     }
   }
@@ -114,7 +114,7 @@ bool parse_args (int argc, char* argv[]) {
         options::rigidBodyDofs.push_back(Dof::UZ);
       } else {
         for (size_t i = 2; i < vtmp.size(); i++) {
-          options::rigidBodyDofs.push_back(Dof::label2dofType(vtmp[i])); 
+          options::rigidBodyDofs.push_back(Dof::label2dofType(vtmp[i]));
         }
       }
     }
@@ -284,8 +284,8 @@ int main (int argc, char* argv[]) {
       slaveDofLabels[i] = Dof::dofTypeLabels[i];
     }
 
-    LOG(INFO) << "Rigid Body MPC collection: master node = " << mpc->masterNode << ", number of slaves = " <<  
-        mpc->slaveNodes.size() << ", slaves DoFs = " << slaveDofLabels; 
+    LOG(INFO) << "Rigid Body MPC collection: master node = " << mpc->masterNode << ", number of slaves = " <<
+        mpc->slaveNodes.size() << ", slaves DoFs = " << slaveDofLabels;
   }
 
   solver.solve();
@@ -307,7 +307,7 @@ int main (int argc, char* argv[]) {
     }
     LOG(INFO) << ss.str();
     if (refCurve.size() > 0) {
-      curCurve = reactProc->getReactions(reactProc->dofs[0]); 
+      curCurve = reactProc->getReactions(reactProc->dofs[0]);
       double _error = compareCurves (refCurve, curCurve);
       LOG(INFO) << "Error between reference loading curve and current is " << _error;
       if (options::curveCompareThreshold > 0.0) {
@@ -332,7 +332,7 @@ double compareCurves (const std::vector<double>& refCurve, const std::vector<dou
     exit(1);
   }
   double _error = 0.0;
-  size_t lenCurve = curCurve.size(); 
+  size_t lenCurve = curCurve.size();
   for (size_t i = 0; i < lenCurve; i++) {
     _error += fabs(refCurve[i]-curCurve[i])/lenCurve;
   }

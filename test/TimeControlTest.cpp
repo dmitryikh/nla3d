@@ -15,8 +15,8 @@ int main () {
   // Loadstep 5: dt = 15.0, currentTime = 75.0, numberOfEquilibrium = 5
   // Loadstep 6: dt = 12.5, currentTime = 87.5, numberOfEquilibrium = 6
   // Loadstep 7: dt = 12.5, currentTime = 100 , numberOfEquilibrium = 7
-  
-  tc.setStartTime(0.0); 
+
+  tc.setStartTime(0.0);
   tc.setEndTime(100.0);
   CHECK(tc.getEndTime() == 100.0);
   CHECK(tc.getStartTime() == 0.0);

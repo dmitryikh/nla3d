@@ -1,5 +1,8 @@
-#include "elements/TRIANGLE4.h"
+// This file is a part of nla3d project. For information about authors and
+// licensing go to project's repository on github:
+// https://github.com/dmitryikh/nla3d
 
+#include "elements/TRIANGLE4.h"
 #include <iostream>
 
 using namespace std;
@@ -30,7 +33,7 @@ void ElementTRIANGLE4::buildK() {
   // matC is 3d elastic  matrix
   math::MatSym<3> matC;
   matC.zero();
-  //only for area 
+  //only for area
   Eigen::MatrixXd matS(3,3);
   matS.setZero();
   matS << 1. , storage->getNode(getNodeNumber(0)).pos[0] , storage->getNode(getNodeNumber(0)).pos[1] ,
@@ -41,9 +44,9 @@ void ElementTRIANGLE4::buildK() {
   makeC(matC);
   // fill here matB
   makeB(matB);
- 
+
   math::matBTDBprod(matB, matC, area, matKe);
-  // start assemble procedure. Here we should provide element stiffness matrix and an order of 
+  // start assemble procedure. Here we should provide element stiffness matrix and an order of
   // nodal DoFs in the matrix.
   assembleK(matKe, {Dof::UX, Dof::UY});
 }
@@ -113,9 +116,9 @@ void ElementTRIANGLE4::makeC (math::MatSym<3> &C) {
     if (state == PlaneState::Stress){
       const double A = E*(1.-my*my);
       C.comp(0,0) = 1.*A;
-      C.comp(0,1) = my*A; 
+      C.comp(0,1) = my*A;
       C.comp(1,1) = 1.*A;
-      C.comp(2,2) = (1.-my)/2.*A; 
+      C.comp(2,2) = (1.-my)/2.*A;
     }
 }
 

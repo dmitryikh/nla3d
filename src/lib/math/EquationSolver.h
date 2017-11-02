@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #pragma once
 #include "sys.h"
@@ -8,7 +8,6 @@
 #include "math/SparseMatrix.h"
 
 namespace nla3d {
-
 namespace math {
 
 class SparseSymMatrix;
@@ -27,8 +26,8 @@ public:
 protected:
   uint32 nEq = 0;
 
-  // number of rhs 
-	int nrhs = 1; 
+  // number of rhs
+  int nrhs = 1;
   bool isSymmetric = true;
   bool isPositive = true;
 };
@@ -57,26 +56,25 @@ protected:
   void releasePARDISO ();
 
   // Internal solver memory pointer pt
-	void *pt[64]; 
+  void *pt[64];
   // Paramaters for PARDISO solver (see MKL manual for clarifications)
-	int iparm[64];
+  int iparm[64];
 
   // maximum number of numerical factorizations
-	int maxfct = 1; 
+  int maxfct = 1;
 
   // which factorization to use
-	int mnum = 1; 
+  int mnum = 1;
   // don't print statistical information in file
-	int msglvl = 0; 
-  
+  int msglvl = 0;
+
   bool firstRun = true;
   // real symmetric undifinite defined matrix
-	int mtype = -2; 
+  int mtype = -2;
 };
 #endif //NLA3D_USE_MKL
 
 extern EquationSolver* defaultEquationSolver;
 
 } // namespace math
-
 } //namespace nla3d

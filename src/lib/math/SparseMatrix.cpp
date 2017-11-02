@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #include "SparseMatrix.h"
 
@@ -49,10 +49,10 @@ void SparsityInfo::reinit(uint32 _nrows, uint32 _ncols, uint32 _max_in_row) {
   nColumns = _ncols;
 
   maxInRow = _max_in_row < nColumns  ? _max_in_row : nColumns;
-	columns = new uint32[nRows * maxInRow];
+  columns = new uint32[nRows * maxInRow];
   std::fill_n(columns, nRows * maxInRow, invalid);
 
-	iofeir = new uint32[nRows+1];
+  iofeir = new uint32[nRows+1];
   iofeir[0] = 1;
   for (uint32 i = 1; i <= nRows; i++) {
     iofeir[i] = iofeir[i-1] + maxInRow;
@@ -117,39 +117,39 @@ void SparsityInfo::compress() {
 uint32 SparsityInfo::getIndex(uint32 _i, uint32 _j) {
   assert(columns);
   assert(iofeir);
-	assert(_i > 0 && _i <= nRows);
-	assert(_j > 0 && _j <= nColumns);
+  assert(_i > 0 && _i <= nRows);
+  assert(_j > 0 && _j <= nColumns);
 
   uint32 ind;
-	uint32 st = iofeir[_i-1] - 1;
-	uint32 en = iofeir[_i] - 1;
+  uint32 st = iofeir[_i-1] - 1;
+  uint32 en = iofeir[_i] - 1;
 
   if (st == en) return invalid;
 
   en--;
 
-	while(1) {
-		if (en - st == 1) {
-			if (columns[st] == _j)
+  while(1) {
+    if (en - st == 1) {
+      if (columns[st] == _j)
         return st;
-			if (columns[en] == _j)
+      if (columns[en] == _j)
         return en;
-			return invalid;
-		}
-		ind = (uint32) ((en+st)*0.5);
-		
-		if (columns[ind] == _j)
+      return invalid;
+    }
+    ind = (uint32) ((en+st)*0.5);
+
+    if (columns[ind] == _j)
       return ind;
 
-		if (en == st)
+    if (en == st)
       return invalid;
 
-		if (columns[ind] > _j) {
-			en = ind;
+    if (columns[ind] > _j) {
+      en = ind;
     } else {
-			st = ind;
+      st = ind;
     }
-	}
+  }
   LOG(FATAL) << "What i'm doing here..?";
 }
 
@@ -159,25 +159,25 @@ void BaseSparseMatrix::printInternalData(std::ostream& out) {
   assert(values);
   assert(si->compressed);
 
-	out << "values = {";
-	for (uint32 i = 0; i < si->numberOfValues; i++) {
-		out << values[i] << "\t";
+  out << "values = {";
+  for (uint32 i = 0; i < si->numberOfValues; i++) {
+    out << values[i] << "\t";
   }
-	out << "}" << std::endl;
+  out << "}" << std::endl;
 
-	out << "columns = {";
-	for (uint32 i = 0; i < si->nRows; i++) {
-		for (uint32 j = si->iofeir[i] - 1; j < si->iofeir[i + 1] - 1; j++) {
-			out << si->columns[j] << "\t";
+  out << "columns = {";
+  for (uint32 i = 0; i < si->nRows; i++) {
+    for (uint32 j = si->iofeir[i] - 1; j < si->iofeir[i + 1] - 1; j++) {
+      out << si->columns[j] << "\t";
     }
-	}
-	out << "}" << std::endl;
-
-	out << "iofeir = {";
-	for (uint32 i = 0; i <= si->nRows; i++) {
-		out << si->iofeir[i] << "\t";
   }
-	out << "}" << std::endl;
+  out << "}" << std::endl;
+
+  out << "iofeir = {";
+  for (uint32 i = 0; i <= si->nRows; i++) {
+    out << si->iofeir[i] << "\t";
+  }
+  out << "}" << std::endl;
 }
 
 
@@ -331,7 +331,7 @@ void BaseSparseMatrix::compress() {
   } else {
     si->compress();
   }
-  
+
   if (values) delete[] values;
   values = new double[si->numberOfValues];
   zero();
@@ -344,7 +344,7 @@ void BaseSparseMatrix::setSparsityInfo(std::shared_ptr<SparsityInfo> spar_info) 
   // compressed = true state
   si = spar_info;
   // if we add SparsityInfo with alreade fixed number of entries we are ready to allocate values
-  if (si->compressed == true) 
+  if (si->compressed == true)
     compress();
 }
 
@@ -381,14 +381,14 @@ void SparseMatrix::print(std::ostream& out) {
   assert(si->compressed);
   assert(values);
 
-	uint32 ind;
-	for (uint32 i = 1; i <= si->nRows; i++) {
-		out << "[";
-		for (uint32 j = 1; j <= si->nColumns; j++) {
+  uint32 ind;
+  for (uint32 i = 1; i <= si->nRows; i++) {
+    out << "[";
+    for (uint32 j = 1; j <= si->nColumns; j++) {
       out << value(i, j) << '\t';
     }
-		out << "]" << std::endl;
-	}
+    out << "]" << std::endl;
+  }
 }
 
 
@@ -396,7 +396,7 @@ double& SparseMatrix::operator()(uint32 _i, uint32 _j) {
   assert(values);
   assert(si);
 
-	uint32 index = si->getIndex(_i, _j);
+  uint32 index = si->getIndex(_i, _j);
   if (index == SparsityInfo::invalid) {
     LOG(FATAL) << "The position(" << _i << ", " << _j << ") is absent in the matrix";
   }
@@ -407,7 +407,7 @@ double SparseMatrix::value(uint32 _i, uint32 _j) const {
   assert(values);
   assert(si);
 
-	uint32 index = si->getIndex(_i, _j);
+  uint32 index = si->getIndex(_i, _j);
   if (index == SparsityInfo::invalid) {
     return 0.0;
   }
@@ -453,15 +453,15 @@ void SparseSymMatrix::print(std::ostream& out) {
   assert(si->compressed);
   assert(values);
 
-	uint32 ind;
-	for (uint32 i = 1; i <= si->nRows; i++) {
-		// out << "[";
-		for (uint32 j = 1; j <= si->nColumns; j++) {
+  uint32 ind;
+  for (uint32 i = 1; i <= si->nRows; i++) {
+    // out << "[";
+    for (uint32 j = 1; j <= si->nColumns; j++) {
       out << value(i, j) << '\t';
     }
-		// out << "]" << std::endl;
+    // out << "]" << std::endl;
     out << std::endl;
-	}
+  }
 }
 
 double& SparseSymMatrix::operator() (uint32 _i, uint32 _j) {
@@ -469,9 +469,9 @@ double& SparseSymMatrix::operator() (uint32 _i, uint32 _j) {
   assert(si);
 
   // ensure that we work in upper triangle
-	if (_i > _j) std::swap(_i, _j);
+  if (_i > _j) std::swap(_i, _j);
 
-	uint32 index = si->getIndex(_i, _j);
+  uint32 index = si->getIndex(_i, _j);
   if (index == SparsityInfo::invalid) {
     LOG(FATAL) << "The position(" << _i << ", " << _j << ") is absent in the matrix";
   }
@@ -484,9 +484,9 @@ double SparseSymMatrix::value(uint32 _i, uint32 _j) const {
   assert(si);
 
   // ensure that we work in upper triangle
-	if (_i > _j) std::swap(_i, _j);
+  if (_i > _j) std::swap(_i, _j);
 
-	uint32 index = si->getIndex(_i, _j);
+  uint32 index = si->getIndex(_i, _j);
   if (index == SparsityInfo::invalid) {
     return 0.0;
   }
@@ -502,7 +502,7 @@ void matBVprod(SparseSymMatrix &B, const dVec &V, const double coef, dVec &R) {
   assert(R.size() >= B.nRows());
   // TODO: Try to use BLAS routines and measure speedup
 
-	const double eps = 1e-20;
+  const double eps = 1e-20;
 
   for (uint32 i = 1; i <= B.nRows(); i++) {
     // walk on lower triangle
@@ -549,16 +549,16 @@ void matBTVprod(SparseMatrix &B, const dVec &V, const double coef, dVec &R) {
   assert(R.size() >= B.nColumns());
   // TODO: Try to use BLAS routines and measure speedup
 
-	for (uint32 i = 1; i <= B.si->nRows; i++) {
-		if (B.si->iofeir[i] - B.si->iofeir[i-1] == 0) {
-			continue;
+  for (uint32 i = 1; i <= B.si->nRows; i++) {
+    if (B.si->iofeir[i] - B.si->iofeir[i-1] == 0) {
+      continue;
     }
-		uint32 st = B.si->iofeir[i-1] - 1;
-		uint32 en = B.si->iofeir[i] - 2;
-		for (uint32 j = st; j <= en; j++)
+    uint32 st = B.si->iofeir[i-1] - 1;
+    uint32 en = B.si->iofeir[i] - 2;
+    for (uint32 j = st; j <= en; j++)
       R[B.si->columns[j] - 1] += B.values[j] * V[i-1] * coef;
-	}
+  }
 }
-  
+
 } // namespace math
 } // namespace nla3d

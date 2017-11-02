@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #include "FEStorage.h"
 #include "elements/element.h"
@@ -14,7 +14,7 @@ FEStorage::FEStorage()  {
 
 
 FEStorage::~FEStorage () {
-	if (material) {
+  if (material) {
     delete material;
   }
 
@@ -24,7 +24,7 @@ FEStorage::~FEStorage () {
 
 
 void FEStorage::assembleGlobalEqMatrices() {
-	assert(matK);
+  assert(matK);
   assert(matK->isCompressed());
 
   TIMED_SCOPE(t, "assembleGlobalEqMatrix");
@@ -120,26 +120,26 @@ double FEStorage::getReaction(uint32 eq) {
 }
 
 Material* FEStorage::getMaterial() {
-	assert(material);
-	return material;
+  assert(material);
+  return material;
 }
 
 
 void FEStorage::getElementNodes(uint32 el, Node** node_ptr) {
-	assert(el <= nElements());
+  assert(el <= nElements());
   Element* elp = elements[el-1];
-	for (uint16 i=0; i<elp->getNNodes(); i++)
-		node_ptr[i] = nodes[elp->getNodeNumber(i)-1];
+  for (uint16 i=0; i<elp->getNNodes(); i++)
+    node_ptr[i] = nodes[elp->getNodeNumber(i)-1];
 }
 
 
 // prt array always has 3 elements
 void FEStorage::getNodePosition(uint32 n, double* ptr, bool deformed) {
-	assert(n > 0 && n <= nNodes());
-	for (uint16 i = 0; i < 3; i++) {
-		ptr[i] = nodes[n-1]->pos[i];
+  assert(n > 0 && n <= nNodes());
+  for (uint16 i = 0; i < 3; i++) {
+    ptr[i] = nodes[n-1]->pos[i];
   }
-	if (deformed) {
+  if (deformed) {
     if (isNodeDofUsed(n, Dof::UX)) {
       ptr[0] += getNodeDofSolution(n, Dof::UX);
     }
@@ -151,7 +151,7 @@ void FEStorage::getNodePosition(uint32 n, double* ptr, bool deformed) {
     if (isNodeDofUsed(n, Dof::UZ)) {
       ptr[2] += getNodeDofSolution(n, Dof::UZ);
     }
-	}
+  }
 }
 
 
@@ -222,7 +222,7 @@ void FEStorage::addElement (Element* el) {
   el->storage = this;
   el->elNum = nElements() + 1;
   //TODO: try-catch of memory overflow
-	elements.push_back(el);
+  elements.push_back(el);
 }
 
 
@@ -231,7 +231,7 @@ std::vector<uint32> FEStorage::createElements(uint32 _en, ElementType elType) {
   std::vector<uint32> newIndexes;
   newIndexes.reserve(_en);
   uint32 nextNumber = elements.size() + 1;
-  ElementFactory::createElements(elType, _en, elements); 
+  ElementFactory::createElements(elType, _en, elements);
   for (uint32 i = nextNumber; i <= elements.size(); i++) {
     //access elNum protected values as friend
     elements[i - 1]->elNum = i;
@@ -301,9 +301,9 @@ void FEStorage::deleteDofArrays() {
 
 
 void FEStorage::deleteSolutionData() {
-	_nDofs = 0;
+  _nDofs = 0;
   _nConstrainedDofs = 0;
-	_nUnknownDofs = 0;
+  _nUnknownDofs = 0;
 
   if (matK) {
     delete matK;
@@ -317,7 +317,7 @@ void FEStorage::deleteSolutionData() {
     delete matM;
     matM = nullptr;
   }
-  
+
   deleteDofArrays();
 
   vecU.clear();
@@ -337,14 +337,14 @@ void FEStorage::listFEComponents() {
 
 void FEStorage::initDofs() {
   TIMED_SCOPE(t, "initDofs");
-	if (nNodes() < 1 && nElements() < 1) {
-		LOG(FATAL) << "No any nodes or elements";
-	}
-  
+  if (nNodes() < 1 && nElements() < 1) {
+    LOG(FATAL) << "No any nodes or elements";
+  }
+
   nodeDofs.initDofTable(nNodes());
   elementDofs.initDofTable(nElements());
 
-	for (uint32 el = 0; el < nElements(); el++) {
+  for (uint32 el = 0; el < nElements(); el++) {
     elements[el]->pre();
   }
 
@@ -354,7 +354,7 @@ void FEStorage::initDofs() {
   }
 
   // Total number of dofs (only registered by elements)
-	_nDofs = elementDofs.getNumberOfUsedDofs() + nodeDofs.getNumberOfUsedDofs();
+  _nDofs = elementDofs.getNumberOfUsedDofs() + nodeDofs.getNumberOfUsedDofs();
   CHECK(_nDofs);
 
   auto udofs = getUniqueNodeDofTypes();
@@ -381,11 +381,11 @@ void FEStorage::initDofs() {
 
 void FEStorage::assignEquationNumbers() {
   // _nUnknownDofs - number of Dof need to be found on every step
-	_nUnknownDofs = nDofs() - nConstrainedDofs();
+  _nUnknownDofs = nDofs() - nConstrainedDofs();
   CHECK(_nUnknownDofs);
 
-	uint32 next_eq_solve = nConstrainedDofs() + 1;
-	uint32 next_eq_const = 1;
+  uint32 next_eq_solve = nConstrainedDofs() + 1;
+  uint32 next_eq_const = 1;
 
   // TODO: we can try to do numbering in more efficient way if will loop over element nodes  (as it
   // does in buildK() procedure)
@@ -427,13 +427,13 @@ void FEStorage::assignEquationNumbers() {
 
   assert(next_eq_solve - 1 == nDofs() + nMpc());
 
-	LOG(INFO) << "DoFs = " << nDofs() << ", constrained DoFs = " <<  nConstrainedDofs() << ", MPC eq. = "
+  LOG(INFO) << "DoFs = " << nDofs() << ", constrained DoFs = " <<  nConstrainedDofs() << ", MPC eq. = "
       <<  nMpc() << ", TOTAL eq. = " << nUnknownDofs() + nMpc();
 }
 
 void FEStorage::initSolutionData () {
   TIMED_SCOPE(t, "initSolutionData");
-  
+
   // We need to know topology of the mesh in order to determine SparsityInfo for sparse matrices
   learnTopology();
 
@@ -449,14 +449,14 @@ void FEStorage::initSolutionData () {
   //  |       |              | * |  Us   | = | Fs | + | Rs |
   //  |KcsMPCc|    KssMPCs   |   |-------|   |    |   |    |
   //  |  ^T   |              |   |  Ul   |   | Fl |   | Rl |
-  //  
+  //
   //  1. But really only
   //
   //  |              |   |  Us   |   |    |
   //  |    KssMPCs   | * |-------| = |RHS |
   //  |              |   |  Ul   |   |    |
   //
-  //  will be be solved by eq. solver. 
+  //  will be be solved by eq. solver.
   //
   //  where:
   //
@@ -480,7 +480,7 @@ void FEStorage::initSolutionData () {
   }
 
 
-	// initialize solutions vectors
+  // initialize solutions vectors
   vecU.reinit(nDofs()+nMpc());
   if (transient) {
     vecDU.reinit(nDofs()+nMpc());
@@ -489,9 +489,9 @@ void FEStorage::initSolutionData () {
   vecR.reinit(nDofs()+nMpc());
   vecF.reinit(nDofs()+nMpc());
 
-	if (!material) {
-		LOG(WARNING) << "FEStorage::initializeSolutionData: material isn't defined";
-	}
+  if (!material) {
+    LOG(WARNING) << "FEStorage::initializeSolutionData: material isn't defined";
+  }
 
 
   // Need to restore non-zero entries in Sparse Matrices based on mesh topology and registered Dofs
@@ -554,14 +554,14 @@ void FEStorage::printDofInfo(std::ostream& out) {
   for (uint32 en = 1; en <= nElements(); en++) {
     auto en_dofs = elementDofs.getEntityDofs(en);
     for (auto d1 = en_dofs.first; d1 != en_dofs.second; d1++)
-      out << "E" << en << ":" << Dof::dofType2label(d1->type) << " eq = " << d1->eqNumber 
+      out << "E" << en << ":" << Dof::dofType2label(d1->type) << " eq = " << d1->eqNumber
            << " constrained = " << d1->isConstrained << endl;
   }
 
   for (uint32 nn = 1; nn <= nNodes(); nn++) {
     auto nn_dofs = nodeDofs.getEntityDofs(nn);
     for (auto d1 = nn_dofs.first; d1 != nn_dofs.second; d1++)
-      out << "N" << nn << ":" << Dof::dofType2label(d1->type) << " eq = " << d1->eqNumber 
+      out << "N" << nn << ":" << Dof::dofType2label(d1->type) << " eq = " << d1->eqNumber
            << " constrained = " << d1->isConstrained << endl;
   }
 
@@ -589,4 +589,4 @@ void FEStorage::learnTopology() {
 }
 
 
-} // namespace nla3d 
+} // namespace nla3d

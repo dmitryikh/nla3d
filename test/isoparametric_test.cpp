@@ -4,7 +4,7 @@
 #include "elements/isoparametric.h"
 
 //TODO: not all results are autochecked
-static const double th = 1.0e-8; 
+static const double th = 1.0e-8;
 
 using namespace std;
 using namespace nla3d;
@@ -54,12 +54,12 @@ int main() {
 // arbitrary element nodes
                           {-12.0, 1.0, 3.0},       // 5
                           {4.0, -5.0, -5.0},       // 6
-// arbitrary element nodes translated by 
+// arbitrary element nodes translated by
                           {-12.0 + 9.0, +1.0 - 5.0, 3.0 - 3.0},   // 7
                           {+4.0  + 9.0, -5.0 -5.0, -5.0 - 3.0}};  // 8
 
   // Create an instance of FEStorage.
-	FEStorage storage;
+  FEStorage storage;
   // Create and add nodes into FEStorage
   for (uint32 i = 1; i <= numberOfNodes; i++) {
     Node* no = new Node;
@@ -98,7 +98,7 @@ int main() {
 
   // switch node numbers
   el = new LINEdummy;
-  el->getNodeNumber(0) = 6;  
+  el->getNodeNumber(0) = 6;
   el->getNodeNumber(1) = 5;
   el->setIntegrationOrder(intOrder);
   storage.addElement(el);       // 5
@@ -162,14 +162,14 @@ int main() {
                           {4.0, -5.0, 0.0},        // 10
                           {7.0, 1.0, 0.0},         // 11
                           {-2.0, 3.0, 0.0},        // 12
-// arbitrary element nodes translated by 
+// arbitrary element nodes translated by
                           {-12.0 + 9.0, 1.0 - 5.0, 0.0},       // 13
                           {4.0 + 9.0, -5.0 - 5.0, 0.0},        // 14
                           {7.0 + 9.0, 1.0 - 5.0, 0.0},         // 15
                           {-2.0 + 9.0, 3.0 - 5.0, 0.0}};       // 16
 
   // Create an instance of FEStorage.
-	FEStorage storage;
+  FEStorage storage;
   // Create and add nodes into FEStorage
   for (uint32 i = 1; i <= numberOfNodes; i++) {
     Node* no = new Node;
@@ -216,7 +216,7 @@ int main() {
 
   // switch node numbers
   el = new QUADdummy;
-  el->getNodeNumber(0) = 10;  
+  el->getNodeNumber(0) = 10;
   el->getNodeNumber(1) = 11;
   el->getNodeNumber(2) = 12;
   el->getNodeNumber(3) = 9;
@@ -228,7 +228,7 @@ int main() {
 
   cout << "Checking ElementIsoParamQUAD (-1,-1),(1,-1),(1,1),(-1,1) element.." << endl;
   el = dynamic_cast<QUADdummy*>(&storage.getElement(1));
-  for (uint32 np = 0; np < el->nOfIntPoints(); np++) { 
+  for (uint32 np = 0; np < el->nOfIntPoints(); np++) {
     cout << "el->det[" << np << "] : " << el->det[np] << endl;
     CHECK_EQTH(el->det[np], 1.0, th);
   }
@@ -238,7 +238,7 @@ int main() {
 
   cout << "Checking ElementIsoParamQUAD (-2,-1),(2,-1),(2,1),(-2,1) element.." << endl;
   el = dynamic_cast<QUADdummy*>(&storage.getElement(2));
-  for (uint32 np = 0; np < el->nOfIntPoints(); np++) { 
+  for (uint32 np = 0; np < el->nOfIntPoints(); np++) {
     cout << "el->det[" << np << "] : " << el->det[np] << endl;
     CHECK_EQTH(el->det[np], 2.0, th);
   }
@@ -252,13 +252,13 @@ int main() {
   QUADdummy* el3 = dynamic_cast<QUADdummy*>(&storage.getElement(5));
   assert(el1->getIntegrationOrder() == el2->getIntegrationOrder());
   assert(el2->getIntegrationOrder() == el3->getIntegrationOrder());
-  for (uint32 np = 0; np < el1->nOfIntPoints(); np++) { 
+  for (uint32 np = 0; np < el1->nOfIntPoints(); np++) {
     cout << "el1->det[" << np << "] : " << el1->det[np] << endl;
       cout << "el2->det[" << np << "] : " << el2->det[np] << endl;
       cout << "el3->det[" << np << "] : " << el3->det[np] << endl;
       CHECK_EQTH(el1->det[np], el2->det[np], th);
 
-      for (uint16 no = 0; no < 4; no++) 
+      for (uint16 no = 0; no < 4; no++)
         for (uint16 dim = 0; dim < 2; dim++) {
           // cout << "el1->NiXj[" << np << "][" << no << "][" << dim << "] " << el1->NiXj[np][no][dim] << endl;
           // cout << "el2->NiXj[" << np << "][" << no << "][" << dim << "] " << el2->NiXj[np][no][dim] << endl;
@@ -272,7 +272,7 @@ int main() {
       CHECK_EQTH(el1->volume(), el2->volume(), th);
       CHECK_EQTH(el2->volume(), el3->volume(), th);
   }
- 
+
 
 
 
@@ -308,7 +308,7 @@ int main() {
                           {4.0, -5.0, 4.0},         // 22
                           {7.0, 1.0, 4.0},          // 23
                           {-2.0, 3.0, 4.0},         // 24
-// arbitrary element nodes translated by 
+// arbitrary element nodes translated by
                           {-12.0 + 9.0, 1.0 - 5.0, -7.0 + 2.0},       // 25
                           {4.0 + 9.0, -5.0 - 5.0, -7.0 + 2.0},        // 26
                           {7.0 + 9.0, 1.0 - 5.0, -7.0 + 2.0},         // 27
@@ -319,7 +319,7 @@ int main() {
                           {-2.0 + 9.0, 3.0 - 5.0, 4.0 + 2.0}};        // 32
 
   // Create an instance of FEStorage.
-	FEStorage storage;
+  FEStorage storage;
   // Create and add nodes into FEStorage
   for (uint32 i = 1; i <= numberOfNodes; i++) {
     Node* no = new Node;
@@ -398,7 +398,7 @@ int main() {
 
   cout << "Checking ElementIsoParamHEXAHEDRON uni element.." << endl;
   el = dynamic_cast<HEXAHEDRONdummy*>(&storage.getElement(1));
-  for (uint32 np = 0; np < el->nOfIntPoints(); np++) { 
+  for (uint32 np = 0; np < el->nOfIntPoints(); np++) {
     cout << "el->det[" << np << "] : " << el->det[np] << endl;
     CHECK_EQTH(el->det[np], 1.0, th);
   }
@@ -408,7 +408,7 @@ int main() {
 
   cout << "Checking ElementIsoParamHEXAHEDRON stretched uni element.." << endl;
   el = dynamic_cast<HEXAHEDRONdummy*>(&storage.getElement(2));
-  for (uint32 np = 0; np < el->nOfIntPoints(); np++) { 
+  for (uint32 np = 0; np < el->nOfIntPoints(); np++) {
     cout << "el->det[" << np << "] : " << el->det[np] << endl;
     CHECK_EQTH(el->det[np], 2.0, th);
   }
@@ -422,13 +422,13 @@ int main() {
   HEXAHEDRONdummy* el3 = dynamic_cast<HEXAHEDRONdummy*>(&storage.getElement(5));
   assert(el1->getIntegrationOrder() == el2->getIntegrationOrder());
   assert(el2->getIntegrationOrder() == el3->getIntegrationOrder());
-  for (uint32 np = 0; np < el1->nOfIntPoints(); np++) { 
+  for (uint32 np = 0; np < el1->nOfIntPoints(); np++) {
     cout << "el1->det[" << np << "] : " << el1->det[np] << endl;
       cout << "el2->det[" << np << "] : " << el2->det[np] << endl;
       cout << "el3->det[" << np << "] : " << el3->det[np] << endl;
       CHECK_EQTH(el1->det[np], el2->det[np], th);
 
-      for (uint16 no = 0; no < 8; no++) 
+      for (uint16 no = 0; no < 8; no++)
         for (uint16 dim = 0; dim < 3; dim++) {
           // cout << "el1->NiXj[" << np << "][" << no << "][" << dim << "] " << el1->NiXj[np][no][dim] << endl;
           // cout << "el2->NiXj[" << np << "][" << no << "][" << dim << "] " << el2->NiXj[np][no][dim] << endl;

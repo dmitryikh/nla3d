@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #pragma once
 // before any include we need to define NOMINMAX to avoid redefining `max` with macros
@@ -93,7 +93,7 @@ public:
 uint32 tick();
 
 // template class to do convert from
-// different types (mainly numerical) 
+// different types (mainly numerical)
 // to string. It should be just a wrapper
 // on C/C++ capabilities of conversation.
 // There are two options:
@@ -144,7 +144,7 @@ uint16 str2dof (std::string dof_name);
 
 char* getCmdOption (char** begin, char** end, const std::string& option);
 bool cmdOptionExists (char** begin, char** end, const std::string& option);
-std::vector<char*> getCmdManyOptions (char** begin, char** end, const std::string& option); 
+std::vector<char*> getCmdManyOptions (char** begin, char** end, const std::string& option);
 
 struct MatchPathSeparator {
     bool operator()( char ch ) const {

@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #include "elements/element.h"
 
@@ -50,7 +50,7 @@ void Element::assembleK(Eigen::Ref<Eigen::MatrixXd> Ke,
           if ((i==j) && (dj<di)) {
             continue;
           } else {
-            storage->addValueK(nodes[i], nodeDof[di], nodes[j], nodeDof[dj], 
+            storage->addValueK(nodes[i], nodeDof[di], nodes[j], nodeDof[dj],
                 Ke.selfadjointView<Eigen::Upper>()(i*dim+di, j*dim +dj));
           }
         }

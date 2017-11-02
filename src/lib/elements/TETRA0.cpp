@@ -1,3 +1,7 @@
+// This file is a part of nla3d project. For information about authors and
+// licensing go to project's repository on github:
+// https://github.com/dmitryikh/nla3d
+
 #include "elements/TETRA0.h"
 
 using namespace std;
@@ -39,10 +43,10 @@ void ElementTETRA0::buildK() {
   // fill here matC
   makeC(matC);
   // fill here matB
-  makeB(matB);  
+  makeB(matB);
 
   math::matBTDBprod(matB, matC, vol, matKe);
-  // start assemble procedure. Here we should provide element stiffness matrix and an order of 
+  // start assemble procedure. Here we should provide element stiffness matrix and an order of
   // nodal DoFs in the matrix.
   assembleK(matKe, {Dof::UX, Dof::UY, Dof::UZ});
 }
@@ -68,7 +72,7 @@ void ElementTETRA0::update () {
     U[i*3 + 1] = storage->getNodeDofSolution(getNodeNumber(i), Dof::UY);
     U[i*3 + 2] = storage->getNodeDofSolution(getNodeNumber(i), Dof::UZ);
   }
-  
+
   // restore strains
   math::matBVprod(matB, U, -1.0, strains);
   math::matBVprod(matC, strains, 1.0, stress);
@@ -168,7 +172,7 @@ void ElementTETRA0::makeC (math::MatSym<6> &C) {
 int ElementTETRA0::permute(int i){
   if (i > 3)
     return i -4;
-  else 
+  else
     return i;
 }
 
@@ -200,7 +204,7 @@ bool  ElementTETRA0::getTensor(math::MatSym<3>* tensor, tensorQuery query, uint1
     return true;
   }
 
-  
+
   return false;
 }
 } //namespace nla3d

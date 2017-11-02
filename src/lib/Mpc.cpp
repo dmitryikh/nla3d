@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #include "Mpc.h"
 #include "FEStorage.h"
@@ -76,7 +76,7 @@ void RigidBodyMpc::update () {
   //        {p} - position of the master node
   //        {q} - position of a slave node
   // where [C] in componentwise form:
-  // C_{ij} = \delta_{ij} cos\theta + \frac{sin\theta}{\theta}e_{ikj}\theta_k + \left(\frac{1-cos\theta}{\theta^2}\theta_i \theta_j\right) 
+  // C_{ij} = \delta_{ij} cos\theta + \frac{sin\theta}{\theta}e_{ikj}\theta_k + \left(\frac{1-cos\theta}{\theta^2}\theta_i \theta_j\right)
   Vec<3> theta0;
   Vec<3> w0;
   theta0[0] = storage->getNodeDofSolution(masterNode, Dof::ROTX);
@@ -109,7 +109,7 @@ void RigidBodyMpc::update () {
       double theta0Mat_ij = solidmech::LeviCivita[i][0][j] * theta0[0] +
                       solidmech::LeviCivita[i][1][j] * theta0[1] +
                       solidmech::LeviCivita[i][2][j] * theta0[2];
-      C[i][j] = cos(thetaNorm) * solidmech::I[i][j] + c1 * theta0Mat_ij + 
+      C[i][j] = cos(thetaNorm) * solidmech::I[i][j] + c1 * theta0Mat_ij +
               c2 * theta0[i] * theta0[j];
     }
   }

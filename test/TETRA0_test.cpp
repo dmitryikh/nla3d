@@ -39,19 +39,19 @@ int main (int argc, char* argv[]) {
 
     MeshData md;
     if (!readCdbFile(cdb_filename, md)) {
-      	LOG(FATAL) << "Can't read FE info from " << cdb_filename << "file. exiting..";
+        LOG(FATAL) << "Can't read FE info from " << cdb_filename << "file. exiting..";
     }
     md.compressNumbers();
 
-	FEStorage storage;
-	LinearFESolver solver;
+  FEStorage storage;
+  LinearFESolver solver;
 
-	// add nodes
-	auto sind = storage.createNodes(md.nodesNumbers.size());
-	auto ind = md.nodesNumbers;
-	for (uint32 i = 0; i < sind.size(); i++) {
-		storage.getNode(sind[i]).pos = md.nodesPos[i];
-	}
+  // add nodes
+  auto sind = storage.createNodes(md.nodesNumbers.size());
+  auto ind = md.nodesNumbers;
+  for (uint32 i = 0; i < sind.size(); i++) {
+    storage.getNode(sind[i]).pos = md.nodesPos[i];
+  }
 
     ind = md.getCellsByAttribute("TYPE", 1);
     sind = storage.createElements(ind.size(), ElementType::TETRA0);
@@ -79,7 +79,7 @@ int main (int argc, char* argv[]) {
     math::PARDISO_equationSolver eqSolver = math::PARDISO_equationSolver();
     solver.attachEquationSolver(&eqSolver);
 #endif
-	solver.attachFEStorage (&storage);
+  solver.attachFEStorage (&storage);
 
 	// VtkProcessor* vtk = new VtkProcessor (&storage, "tetra");
     // solver.addPostProcessor(vtk);

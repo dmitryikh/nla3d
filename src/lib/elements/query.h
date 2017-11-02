@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #pragma once
 
@@ -35,15 +35,15 @@ static_assert((int)vectorQuery::LAST == sizeof(vectorQueryLabels)/sizeof(vectorQ
 
 
 enum class tensorQuery {
-	UNDEF,
+  UNDEF,
   // usual stress tensor
-	COUCHY, 
+  COUCHY,
   // second Piola-Kirchgoff stress tensor (symmetric 3x3)
-  PK2, 
+  PK2,
   // Lagrange deformations
-  E,  
-  // C = F^T F 
-  C,  
+  E,
+  // C = F^T F
+  C,
   LAST
 };
 

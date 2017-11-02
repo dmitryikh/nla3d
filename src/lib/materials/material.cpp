@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #include "materials/material.h"
 
@@ -14,17 +14,17 @@ const double Material::I[6] = {1.0,0.0,0.0,1.0,0.0,1.0};
 Material::Material (uint16 num_c)
 {
   code = 0;
-	numC = num_c; 
-	MC = new double[num_c];
+  numC = num_c;
+  MC = new double[num_c];
 }
 
 std::string Material::toString() {
   std::string str;
-	str += getName();
-	for (size_t i=0; i < getNumC(); i++) {
-	  str += " " + MC_names[i] + " = " + toStr(MC[i]);
+  str += getName();
+  for (size_t i=0; i < getNumC(); i++) {
+    str += " " + MC_names[i] + " = " + toStr(MC[i]);
   }
-	return str;
+  return str;
 }
 
 double& Material::Ci (const std::string& nameConst) {
@@ -33,22 +33,22 @@ double& Material::Ci (const std::string& nameConst) {
       return MC[i];
     }
   }
-	LOG(ERROR) << "Dan't find a material constant with name " << nameConst;
-  double dummy;
+  LOG(ERROR) << "Dan't find a material constant with name " << nameConst;
+  static double dummy;
   return dummy;
 }
 
 
 void Material::register_mat_const(uint16 num, ...) {
-	numC = num;
-	va_list vlist;
-	va_start(vlist, num);
+  numC = num;
+  va_list vlist;
+  va_start(vlist, num);
   MC_names.clear();
   MC_names.reserve(numC);
-	for (uint16 i=0; i < num; i++) {
-		MC_names.push_back(va_arg(vlist,char*));
-	}
-	MC = new double[num];
+  for (uint16 i=0; i < num; i++) {
+    MC_names.push_back(va_arg(vlist,char*));
+  }
+  MC = new double[num];
 }
 
 } // namespace nla3d

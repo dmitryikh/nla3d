@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #pragma once
 
@@ -15,7 +15,7 @@ namespace math {
 // global sparse matrix is represented by different blocks (`nb` is number of blocks). Here is a
 // illustration:
 // Here is global symmetric matrix A `n` by `n`, it consists of 3 distinct sparse matrix blocks:
-//     | A1  | A12 |    
+//     | A1  | A12 |
 // A = |-----------|,
 //     |A12^T| A2  |
 //
@@ -41,8 +41,8 @@ class BlockSparseSymMatrix {
   public:
     BlockSparseSymMatrix(std::initializer_list<uint32> _rows_in_block, uint32 max_in_row = 100);
     BlockSparseSymMatrix(BlockSparseSymMatrix* ex);
-    
-    // add non-zero entry to sparse matrix. This should be called before compress(). 
+
+    // add non-zero entry to sparse matrix. This should be called before compress().
     void addEntry(uint32 _i, uint32 _j);
 
     // add value to the _i, _j entry. This should be called after compress().

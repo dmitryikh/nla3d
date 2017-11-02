@@ -101,9 +101,9 @@ int main() {
 
     spmat.printInternalData(cout);
     spmat.print(cout);
-    // values = {1	4	2	8	5	9	}
-    // columns = {2	4	1	2	3	4	}
-    // iofeir = {0	2	2	6	}
+    // values = {1  4 2 8 5 9 }
+    // columns = {2 4 1 2 3 4 }
+    // iofeir = {0  2 2 6 }
     CHECK_EQ(spmat.getValuesArray()[0], 1.0);
     CHECK_EQ(spmat.getValuesArray()[1], 4.0);
     CHECK_EQ(spmat.getValuesArray()[2], 2.0);
@@ -160,9 +160,9 @@ int main() {
 
     spmat.printInternalData(cout);
     spmat.print(cout);
-    // values = {2	3	4	8	1	9	}
-    // columns = {1	2	4	3	3	4	}
-    // iofeir = {0	3	4	5	6	}
+    // values = {2  3 4 8 1 9 }
+    // columns = {1 2 4 3 3 4 }
+    // iofeir = {0  3 4 5 6 }
     CHECK_EQ(spmat.getValuesArray()[0], 2.0);
     CHECK_EQ(spmat.getValuesArray()[1], 3.0);
     CHECK_EQ(spmat.getValuesArray()[2], 4.0);
@@ -218,7 +218,7 @@ int main() {
     {
       // share SparsityInfo
       SparseMatrix B(A.getSparsityInfo());
-      
+
       A.addEntry(2, 3);
       A.addEntry(4, 3);
 
@@ -243,9 +243,9 @@ int main() {
       cout << "B structure:" << endl;
       B.printInternalData(cout);
       B.print(cout);
-      // values = {2	0	2	0	2	2	0	}
-      // columns = {1	3	4	1	3	2	3	}
-      // iofeir = {0	3	5	6	7	}
+      // values = {2  0 2 0 2 2 0 }
+      // columns = {1 3 4 1 3 2 3 }
+      // iofeir = {0  3 5 6 7 }
       CHECK_EQ(B.getValuesArray()[0], 2.0);
       CHECK_EQ(B.getValuesArray()[1], 0.0);
       CHECK_EQ(B.getValuesArray()[2], 2.0);
@@ -273,9 +273,9 @@ int main() {
     cout << "A structure:" << endl;
     A.printInternalData(cout);
     A.print(cout);
-    // values = {0	1	0	1	1	0	1	}
-    // columns = {1	3	4	1	3	2	3	}
-    // iofeir = {0	3	5	6	7	}
+    // values = {0  1 0 1 1 0 1 }
+    // columns = {1 3 4 1 3 2 3 }
+    // iofeir = {0  3 5 6 7 }
     CHECK_EQ(A.getValuesArray()[0], 0.0);
     CHECK_EQ(A.getValuesArray()[1], 1.0);
     CHECK_EQ(A.getValuesArray()[2], 0.0);
@@ -372,58 +372,58 @@ int main() {
   cout << "    [ s    s    s    s    s    s  11.0  0.0]" << endl;
   cout << "    [ s    s    s    s    s    s    s   5.0]" << endl;
   // Expression for Python to check math by numpy
-	// A=np.array([[7.0, 0.0, 1.0, 0.0, 0.0, 2.0, 7.0, 0.0],
-	//             [0.0,-4.0, 8.0, 0.0, 2.0, 0.0, 0.0, 0.0],
-	//             [1.0, 8.0, 1.0, 0.0, 0.0, 0.0, 0.0, 5.0],
-	//             [0.0, 0.0, 0.0, 7.0, 0.0, 0.0, 9.0, 0.0],
-	//             [0.0, 2.0, 0.0, 0.0, 5.0, 1.0, 5.0, 0.0],
-	//             [2.0, 0.0, 0.0, 0.0, 1.0,-1.0, 0.0, 5.0],
-	//             [7.0, 0.0, 0.0, 9.0, 5.0, 0.0,11.0, 0.0],
-	//             [0.0, 0.0, 5.0, 0.0, 0.0, 5.0, 0.0, 5.0]])
+  // A=np.array([[7.0, 0.0, 1.0, 0.0, 0.0, 2.0, 7.0, 0.0],
+  //             [0.0,-4.0, 8.0, 0.0, 2.0, 0.0, 0.0, 0.0],
+  //             [1.0, 8.0, 1.0, 0.0, 0.0, 0.0, 0.0, 5.0],
+  //             [0.0, 0.0, 0.0, 7.0, 0.0, 0.0, 9.0, 0.0],
+  //             [0.0, 2.0, 0.0, 0.0, 5.0, 1.0, 5.0, 0.0],
+  //             [2.0, 0.0, 0.0, 0.0, 1.0,-1.0, 0.0, 5.0],
+  //             [7.0, 0.0, 0.0, 9.0, 5.0, 0.0,11.0, 0.0],
+  //             [0.0, 0.0, 5.0, 0.0, 0.0, 5.0, 0.0, 5.0]])
   {
     SparseSymMatrix A(8);
 
-	  A.addEntry(1, 1);
-	  A.addEntry(1, 3);
-	  A.addEntry(1, 6);
-	  A.addEntry(1, 7);
-	  A.addEntry(2, 5);
-	  A.addEntry(2, 3);
-	  A.addEntry(2, 2);
-	  A.addEntry(3, 3);
-	  A.addEntry(3, 8);
-	  A.addEntry(4, 7);
-	  A.addEntry(4, 4);
-	  A.addEntry(5, 5);
-	  A.addEntry(5, 6);
-	  A.addEntry(5, 7);
-	  A.addEntry(6, 8);
-	  A.addEntry(6, 6);
-	  A.addEntry(7, 7);
-	  A.addEntry(8, 8);
-    
+    A.addEntry(1, 1);
+    A.addEntry(1, 3);
+    A.addEntry(1, 6);
+    A.addEntry(1, 7);
+    A.addEntry(2, 5);
+    A.addEntry(2, 3);
+    A.addEntry(2, 2);
+    A.addEntry(3, 3);
+    A.addEntry(3, 8);
+    A.addEntry(4, 7);
+    A.addEntry(4, 4);
+    A.addEntry(5, 5);
+    A.addEntry(5, 6);
+    A.addEntry(5, 7);
+    A.addEntry(6, 8);
+    A.addEntry(6, 6);
+    A.addEntry(7, 7);
+    A.addEntry(8, 8);
+
     A.compress();
 
-	  A(1, 1) =  7.0;
-	  A(1, 3) =  1.0;
-	  A(1, 6) =  2.0;
-	  A(1, 7) =  7.0;
-	  A(2, 5) =  2.0;
-	  A(2, 3) =  8.0;
-	  A(2, 2) = -4.0;
-	  A(3, 3) =  1.0;
-	  A(3, 8) =  5.0;
-	  A(4, 7) =  9.0;
-	  A(4, 4) =  7.0;
-	  A(5, 5) =  5.0;
-	  A(5, 6) =  1.0;
-	  A(5, 7) =  5.0;
-	  A(6, 8) =  5.0;
-	  A(6, 6) = -1.0;
-	  A(7, 7) = 11.0;
-	  A(8, 8) =  5.0;
+    A(1, 1) =  7.0;
+    A(1, 3) =  1.0;
+    A(1, 6) =  2.0;
+    A(1, 7) =  7.0;
+    A(2, 5) =  2.0;
+    A(2, 3) =  8.0;
+    A(2, 2) = -4.0;
+    A(3, 3) =  1.0;
+    A(3, 8) =  5.0;
+    A(4, 7) =  9.0;
+    A(4, 4) =  7.0;
+    A(5, 5) =  5.0;
+    A(5, 6) =  1.0;
+    A(5, 7) =  5.0;
+    A(6, 8) =  5.0;
+    A(6, 6) = -1.0;
+    A(7, 7) = 11.0;
+    A(8, 8) =  5.0;
 
-	  dVec b(8);
+    dVec b(8);
     b[0] = 1.0;
     b[1] = 2.0;
     b[2] = 4.0;

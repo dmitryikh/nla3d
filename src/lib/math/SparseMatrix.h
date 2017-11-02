@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #pragma once
 
@@ -89,7 +89,7 @@ class BaseSparseMatrix {
     BaseSparseMatrix(uint32 _nrows, uint32 _ncolumns, uint32 _max_in_row = 100);
     BaseSparseMatrix(std::shared_ptr<SparsityInfo> spar_info);
     ~BaseSparseMatrix();
-    
+
     void reinit(uint32 _nrows, uint32 _ncols, const std::vector<SparseEntry>& entries);
     // perform compression procedure, after this new entries can't be added to matrix
     void compress();
@@ -136,10 +136,10 @@ class SparseMatrix : public BaseSparseMatrix {
     SparseMatrix();
     SparseMatrix(uint32 nrows, uint32 ncolumns, uint32 max_in_row = 100);
     SparseMatrix(std::shared_ptr<SparsityInfo> spar_info);
-    
+
     void reinit(uint32 _nrows, uint32 _ncols, uint32 _max_in_row = 100);
 
-    // add non-zero entry to sparse matrix. This should be called before compress(). 
+    // add non-zero entry to sparse matrix. This should be called before compress().
     void addEntry(uint32 _i, uint32 _j);
 
     // add value to the _i, _j entry. This should be called after compress().
@@ -166,8 +166,8 @@ class SparseSymMatrix : public BaseSparseMatrix {
     SparseSymMatrix(std::shared_ptr<SparsityInfo> spar_info);
 
     void reinit(uint32 _nrows, uint32 _max_in_row = 100);
-    
-    // add non-zero entry to sparse matrix. This should be called before compress(). 
+
+    // add non-zero entry to sparse matrix. This should be called before compress().
     void addEntry(uint32 _i, uint32 _j);
 
     // add value to the _i, _j entry. This should be called after compress().
@@ -260,7 +260,7 @@ inline void SparseSymMatrix::addEntry(uint32 _i, uint32 _j) {
   assert(si);
 
   // ensure that we work in upper triangle
-	if (_i > _j) std::swap(_i, _j);
+  if (_i > _j) std::swap(_i, _j);
   si->addEntry(_i, _j);
 }
 
@@ -268,6 +268,6 @@ inline void SparseSymMatrix::addValue(uint32 _i, uint32 _j, double value) {
   this->operator()(_i, _j) += value;
 }
 
- 
+
 } // namespace math
 } // namespace nla3d

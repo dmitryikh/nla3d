@@ -1,6 +1,6 @@
 // This file is a part of nla3d project. For information about authors and
 // licensing go to project's repository on github:
-// https://github.com/dmitryikh/nla3d 
+// https://github.com/dmitryikh/nla3d
 
 #include "elements/PLANE41.h"
 
@@ -65,11 +65,11 @@ void ElementPLANE41::buildK() {
 
     Mat<3,8> matB = make_B(np);
     //матрица S для матричного умножения
-    Mat<4,4> matS = Mat<4,4>(S[np][0],S[np][2], 0.0, 0.0, 
+    Mat<4,4> matS = Mat<4,4>(S[np][0],S[np][2], 0.0, 0.0,
                 S[np][2],S[np][1], 0.0, 0.0,
                 0.0, 0.0, S[np][0],S[np][2],
                 0.0, 0.0, S[np][2],S[np][1]);
-    //матрица Омега.используется для составления 
+    //матрица Омега.используется для составления
     //матр. накопленных линейных деформаций к текущему шагу
     Mat<3,4> matO = Mat<3,4>(O[np][0], 0.0, O[np][2], 0.0,
                 0.0, O[np][1], 0.0, O[np][3],
@@ -85,7 +85,7 @@ void ElementPLANE41::buildK() {
     Kpp -= 1.0/k*dWt;
 
   }// loop over intergration points
-  
+
 
   //сборка в одну матрицу
   for (uint16 i=0; i < 8; i++)
@@ -152,7 +152,7 @@ void ElementPLANE41::update() {
 
 bool ElementPLANE41::getScalar(double* scalar, scalarQuery query, uint16 gp, const double scale) {
   //see queries in query.h
-  //gp - needed gauss point 
+  //gp - needed gauss point
   assert(scalar != nullptr);
 
   if (gp == GP_MEAN) { //need to average result over the element
@@ -254,8 +254,8 @@ bool  ElementPLANE41::getTensor(math::MatSym<3>* tensor, tensorQuery query, uint
       J = matF.data[0][0]*(matF.data[1][1]*matF.data[2][2]-matF.data[1][2]*matF.data[2][1])-
           matF.data[0][1]*(matF.data[1][0]*matF.data[2][2]-matF.data[1][2]*matF.data[2][0])+
           matF.data[0][2]*(matF.data[1][0]*matF.data[2][1]-matF.data[1][1]*matF.data[2][0]);
-      //In order to complete matS (3x3 symmetric matrix, PK2 tensor) we need 
-      //to know S33 component: 
+      //In order to complete matS (3x3 symmetric matrix, PK2 tensor) we need
+      //to know S33 component:
       //1) One solution is to calculate S33 on every solution step
       //and store it in S[np] vector.
       //2) Second solution is to resotre S33 right here.
