@@ -81,9 +81,9 @@ int main (int argc, char* argv[]) {
 #endif
 	solver.attachFEStorage (&storage);
 
-	// VtkProcessor* vtk = new VtkProcessor (&storage, "tetra");
-    // solver.addPostProcessor(vtk);
-    // vtk->writeAllResults();
+  // auto vtk = std::make_shared<VtkProcessor>(&storage, "tetra");
+  // solver.addPostProcessor(vtk);
+  // vtk->writeAllResults();
 
     solver.solve();
 

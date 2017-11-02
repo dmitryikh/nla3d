@@ -92,8 +92,8 @@ int main (int argc, char* argv[]) {
     solver.attachEquationSolver(&eqSolver);
 #endif
   // FESolver should know FEStorage instance. Attach it.
-	solver.attachFEStorage(&storage);
-  VtkProcessor* vtk = new VtkProcessor(&storage, "QUADTH");
+  solver.attachFEStorage(&storage);
+  auto vtk = std::make_shared<VtkProcessor>(&storage, "QUADTH");
   solver.addPostProcessor(vtk);
 
 	solver.solve();

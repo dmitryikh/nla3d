@@ -101,8 +101,8 @@ class FESolver {
     // get an instance of PostProcessor by its number
     // _np >= 0
     PostProcessor& getPostProcessor(size_t _np);
-    // The function stores PostProcessor pointer in FESolver. FESovler will free the memory by itself.
-    uint16 addPostProcessor(PostProcessor *pp);
+    // The function stores PostProcessor pointer in FESolver.
+    uint16 addPostProcessor(std::shared_ptr<PostProcessor> pp);
     void deletePostProcessors();
 
     // run FEStorage procedures for initialization solution data structures and map matK, matC, matM,
@@ -135,10 +135,8 @@ class FESolver {
 
     // Array of PostProcessors. Here is a conception of PostProcessors that can do useful work every
     // iteration of the solution. For example here is a VtkProcessor class to write *.vtk file with
-    // model and solution data (displacements, stresses and others). An instance of PostProcessor
-    // class is created outside of FESolver. But with function addPostProcessor(..) FESolver take
-    // control on the PostProcessor instance.  The memory released in deletePostProcessors().
-    std::vector<PostProcessor*> postProcessors;
+    // model and solution data (displacements, stresses and others).
+    std::vector<std::shared_ptr<PostProcessor>> postProcessors;
 
     // the references on FEStorage FE data structures which is frequently used by FESolver. This
     // references make it easy to operate with important FE data structures. 

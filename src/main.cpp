@@ -140,7 +140,6 @@ int main (int argc, char* argv[]) {
   std::vector<double> refCurve;
   std::vector<double> curCurve;
 
-  ReactionProcessor* reactProc;
   LOG(INFO) << "---=== WELCOME TO NLA PROGRAM ===---";
   if (!parse_args(argc, argv)) {
     usage();
@@ -234,14 +233,14 @@ int main (int argc, char* argv[]) {
   if (options::useVtk) {
     //obtain job name from path of a FE model file
     std::string jobname = getFileNameFromPath(options::modelFilename);
-    VtkProcessor* vtk = new VtkProcessor (&storage, jobname);
+    auto vtk = std::make_shared<VtkProcessor>(&storage, jobname);
     solver.addPostProcessor(vtk);
     vtk->writeAllResults();
   }
 
-  reactProc = NULL;
+  std::shared_ptr<ReactionProcessor> reactProc;
   if (options::reactionComponentName.length() > 0) {
-    reactProc = new ReactionProcessor(&storage);
+    reactProc = std::make_shared<ReactionProcessor>(&storage);
     solver.addPostProcessor(reactProc);
     FEComponent* feComp = &(md.feComps[options::reactionComponentName]);
     if (feComp->type != FEComponent::NODES) {
@@ -259,7 +258,7 @@ int main (int argc, char* argv[]) {
   }
 
   if (options::rigidBodyMasterNode > 0 && options::rigidBodySlavesComponent.length() > 0) {
-    RigidBodyMpc* mpc = new RigidBodyMpc;
+    auto mpc = std::make_shared<RigidBodyMpc>();
     mpc->storage = &storage;
     mpc->masterNode = options::rigidBodyMasterNode;
     FEComponent* comp = &(md.feComps[options::rigidBodySlavesComponent]);

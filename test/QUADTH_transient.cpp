@@ -143,11 +143,11 @@ int main (int argc, char* argv[]) {
     solver.attachEquationSolver(&eqSolver);
 #endif
   // FESolver should know FEStorage instance. Attach it.
-	solver.attachFEStorage(&storage);
-  VtkProcessor* vtk = new VtkProcessor(&storage, "QUADTH_transient");
+  solver.attachFEStorage(&storage);
+  auto vtk = std::make_shared<VtkProcessor>(&storage, "QUADTH_transient");
   solver.addPostProcessor(vtk);
 
-  ProbeProcessor* probe = new ProbeProcessor(&storage);
+  auto probe = std::make_shared<ProbeProcessor>(&storage);
   probe->node = md.feComps["PROBE"].list[0];
   probe->dof = Dof::TEMP;
   solver.addPostProcessor(probe);

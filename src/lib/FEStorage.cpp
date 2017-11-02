@@ -179,9 +179,9 @@ void FEStorage::addMpc (Mpc* mpc) {
 }
 
 
-void FEStorage::addMpcCollection (MpcCollection* mpcCol) {
+void FEStorage::addMpcCollection (std::shared_ptr<MpcCollection> mpcCol) {
   assert(mpcCol);
-  mpcCollections.push_back(mpcCol);
+  mpcCollections.emplace_back(mpcCol);
 }
 
 void FEStorage::addFEComponent (FEComponent* comp) {
@@ -278,10 +278,6 @@ void FEStorage::deleteMpcs() {
 
 
 void FEStorage::deleteMpcCollections() {
-
-  for (size_t i = 0; i < mpcCollections.size(); i++) {
-    delete mpcCollections[i];
-  }
   mpcCollections.clear();
 }
 

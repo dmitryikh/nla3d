@@ -91,7 +91,7 @@ int main (int argc, char* argv[]) {
   // We would like to generate *.vtk file with deformed and undeformed models. For this purpose
   // PostProcessor with name VtkProcessor is added to FESolver. The names of vtk files will be
   // "truss2D0.vtk" for undeformed model, and "truss2D1.vtk" for deformed one.
-  VtkProcessor* vtk = new VtkProcessor(&storage, "truss2D");
+  auto vtk = std::make_shared<VtkProcessor>(&storage, "truss2D");
   solver.addPostProcessor(vtk);
   // just solve the model. Yes, so easy.
 	solver.solve();

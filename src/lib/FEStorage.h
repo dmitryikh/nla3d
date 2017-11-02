@@ -194,8 +194,8 @@ public:
   //
   // Add `mpc` to `mpcs` array. FEStorage will delete Mpc instances by itslef.
 	void addMpc(Mpc* mpc);
-  // Add `mpcCol` to `mpcCollections` array. FEStorage will delete MpcCollection instances by itslef.
-	void addMpcCollection(MpcCollection* mpcCol);
+  // Add `mpcCol` to `mpcCollections` array.
+  void addMpcCollection(std::shared_ptr<MpcCollection> mpcCol);
   // Add `comp` to `feComponents` array. FEStorage will delete FEComponent instances by itslef.
   void addFEComponent(FEComponent* comp);
   // The function add a node to the nodes table.
@@ -315,7 +315,7 @@ private:
   // Here is a rule: Mpc defined inside of MpcCollection should be added to FEStorage::mpcs by
   // addMpc(..).  That means that Mpc instances are dynamically created in MpcCollection, but then
   // FEStorage class takes control on it.
-  std::vector<MpcCollection*> mpcCollections;
+  std::vector<std::shared_ptr<MpcCollection>> mpcCollections;
 
   // Stiffness matrix. It's BlockSparseSymMatrix because of block(1) and block(1, 2) related to
   // equations for constrained (fixed) DoFs and will not be used in equation solver. Instead of this

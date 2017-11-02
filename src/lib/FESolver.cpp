@@ -125,7 +125,6 @@ FESolver::FESolver() {
 
 
 FESolver::~FESolver() {
-  deletePostProcessors();
 }
 
 
@@ -148,19 +147,16 @@ PostProcessor& FESolver::getPostProcessor(size_t _np) {
 }
 
 
-uint16 FESolver::addPostProcessor(PostProcessor *pp) {
+uint16 FESolver::addPostProcessor(std::shared_ptr<PostProcessor> pp) {
   CHECK_NOTNULL (pp);
   uint16 num = static_cast<uint16>(this->postProcessors.size()+1);
   pp->nPost_proc = num;
-  postProcessors.push_back(pp);
+  postProcessors.emplace_back(pp);
   return num;
 }
 
 
 void FESolver::deletePostProcessors() {
-  for (size_t i = 0; i < postProcessors.size(); i++) {
-    delete postProcessors[i];
-  }
   postProcessors.clear();
 }
 
