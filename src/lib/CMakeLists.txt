@@ -3,9 +3,9 @@ add_subdirectory (math)
 file (GLOB NLA3D_LIB_SOURCES "*.cpp" "materials/*.cpp" "elements/*.cpp")
 
 if (UNIX)
-    add_library(nla3d_lib SHARED ${NLA3D_LIB_SOURCES})
+    add_library(nla3d_lib SHARED ${NLA3D_LIB_SOURCES} ${EASYLOGGINGPP_SOURCE})
 else()
-    add_library(nla3d_lib STATIC ${NLA3D_LIB_SOURCES})
+    add_library(nla3d_lib STATIC ${NLA3D_LIB_SOURCES} ${EASYLOGGINGPP_SOURCE})
 endif()
 
 target_link_libraries(nla3d_lib math ${MKL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})

@@ -10,7 +10,6 @@
 #include <string>
 #include <iostream>
 #include <fstream>
-#include <strstream>
 #include <stdarg.h>
 #include <assert.h>
 #include <time.h>
@@ -21,7 +20,6 @@
 #include <algorithm>
 #include <stdlib.h>
 
-#define ELPP_STL_LOGGING
 #include "easylogging++.h"
 
 #define _USE_MATH_DEFINES

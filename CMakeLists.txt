@@ -78,6 +78,7 @@ endif() # NLA3D_USE_MKL
 find_package(EASYLOGGINGPP)
 if (EASYLOGGINGPP_FOUND)
   include_directories(${EASYLOGGINGPP_INCLUDE_DIR})
+  add_definitions(-DELPP_STL_LOGGING -DELPP_FEATURE_PERFORMANCE_TRACKING)
 else()
   message(WARNING "Can't find Easylogging++")
 endif()
