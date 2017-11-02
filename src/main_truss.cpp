@@ -42,11 +42,11 @@ int main (int argc, char* argv[]) {
                               {4, 5}};
 
   // Create an instance of FEStorage.
-	FEStorage storage;
+  FEStorage storage;
 
   // We have a deal with linear FE. Then it's ok to use linear solver (just one equilibrium iteration without
   // convergence controls)
-	LinearFESolver solver;
+  LinearFESolver solver;
 
   // Create and add nodes into FEStorage
   for (uint32 i = 1; i <= numberOfNodes; i++) {
@@ -87,15 +87,15 @@ int main (int argc, char* argv[]) {
     solver.attachEquationSolver(&eqSolver);
 #endif
   // FESolver should know FEStorage instance. Attach it.
-	solver.attachFEStorage(&storage);
+  solver.attachFEStorage(&storage);
   // We would like to generate *.vtk file with deformed and undeformed models. For this purpose
   // PostProcessor with name VtkProcessor is added to FESolver. The names of vtk files will be
   // "truss2D0.vtk" for undeformed model, and "truss2D1.vtk" for deformed one.
   VtkProcessor* vtk = new VtkProcessor(&storage, "truss2D");
   solver.addPostProcessor(vtk);
   // just solve the model. Yes, so easy.
-	solver.solve();
-  
+  solver.solve();
+
   // Log all results about the model
   LOG(INFO) << "DoF solution:";
   for (uint32 i = 1; i <= numberOfNodes; i++) {
@@ -123,5 +123,5 @@ int main (int argc, char* argv[]) {
 
   CHECK(storage.getNodeDofSolution(5, Dof::UX) - 0.0055080 < 1.0e-7);
   CHECK(storage.getNodeDofSolution(5, Dof::UY) - (-0.0164325) < 1.0e-7);
-	return 0;
+  return 0;
 }

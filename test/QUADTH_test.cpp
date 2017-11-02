@@ -41,10 +41,10 @@ int main (int argc, char* argv[]) {
   }
 
   // Create an instance of FEStorage.
-	FEStorage storage;
+  FEStorage storage;
   // We have a deal with linear FE. Then it's ok to use linear solver (just one equilibrium iteration without
   // convergence controls)
-	LinearFESolver solver;
+  LinearFESolver solver;
 
   auto sind = storage.createNodes(md.nodesNumbers.size());
   auto ind = md.nodesNumbers;
@@ -96,8 +96,8 @@ int main (int argc, char* argv[]) {
   VtkProcessor* vtk = new VtkProcessor(&storage, "QUADTH");
   solver.addPostProcessor(vtk);
 
-	solver.solve();
-  
+  solver.solve();
+
   // Log all results about the model
   LOG(INFO) << "DoF solution:";
   for (uint32 i = 1; i <= storage.nNodes(); i++) {
@@ -115,7 +115,7 @@ int main (int argc, char* argv[]) {
     }
   }
 
-	return 0;
+  return 0;
 }
 
 

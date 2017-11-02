@@ -13,29 +13,29 @@ using namespace nla3d;
 
 class ProbeProcessor : public PostProcessor {
 public:
-	ProbeProcessor(FEStorage *st);
-	virtual ~ProbeProcessor() { };
+  ProbeProcessor(FEStorage *st);
+  virtual ~ProbeProcessor() { };
 
-	virtual void pre ();
-	virtual void process(uint16 curLoadstep);
-	virtual void post(uint16 curLoadstep);
+  virtual void pre ();
+  virtual void process(uint16 curLoadstep);
+  virtual void post(uint16 curLoadstep);
 
   std::vector<double> getMeasurments();
-	
-	uint32 node = 0;
-	Dof::dofType dof = Dof::UNDEFINED;
+
+  uint32 node = 0;
+  Dof::dofType dof = Dof::UNDEFINED;
 protected:
-	std::vector<double> measurments;
+  std::vector<double> measurments;
 };
 
 
 ProbeProcessor::ProbeProcessor(FEStorage *st) : PostProcessor(st) {
-	name ="ProbeProcessor";
+  name ="ProbeProcessor";
 }
 
 
 void ProbeProcessor::pre() {
-	if (node == 0 || dof == Dof::UNDEFINED) {
+  if (node == 0 || dof == Dof::UNDEFINED) {
     LOG(FATAL) << "Can't work. No node number and/or Dof id. Processor name = " << name;
     return;
   }
@@ -84,8 +84,8 @@ int main (int argc, char* argv[]) {
   }
 
   // Create an instance of FEStorage.
-	FEStorage storage;
-	LinearTransientFESolver solver;
+  FEStorage storage;
+  LinearTransientFESolver solver;
 
   auto sind = storage.createNodes(md.nodesNumbers.size());
   auto ind = md.nodesNumbers;
@@ -152,8 +152,8 @@ int main (int argc, char* argv[]) {
   probe->dof = Dof::TEMP;
   solver.addPostProcessor(probe);
 
-	solver.solve();
-  
+  solver.solve();
+
   // Log all results about the model
   LOG(INFO) << " Probe Temperature:";
   auto meas = probe->getMeasurments();
@@ -176,7 +176,7 @@ int main (int argc, char* argv[]) {
     CHECK(ave_fabs < 5.0e-2);
   }
 
-	return 0;
+  return 0;
 }
 
 

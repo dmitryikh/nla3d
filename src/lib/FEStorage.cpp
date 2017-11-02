@@ -175,7 +175,7 @@ FEComponent* FEStorage::getFEComponent(const std::string& name) {
 void FEStorage::addMpc (Mpc* mpc) {
   assert (mpc);
   assert (mpc->eq.size() > 0);
-	mpcs.push_back(mpc);
+  mpcs.push_back(mpc);
 }
 
 
@@ -185,15 +185,15 @@ void FEStorage::addMpcCollection (MpcCollection* mpcCol) {
 }
 
 void FEStorage::addFEComponent (FEComponent* comp) {
-	assert(comp);
-	feComponents.push_back(comp);
+  assert(comp);
+  feComponents.push_back(comp);
 }
 
 
 void FEStorage::addNode (Node* node) {
   //Node() fires Vec<3> constructor, thus Node coordinates are (0,0,0) by default
   //TODO: try-catch of memory overflow
-	nodes.push_back(node);
+  nodes.push_back(node);
 }
 
 
@@ -243,8 +243,8 @@ std::vector<uint32> FEStorage::createElements(uint32 _en, ElementType elType) {
 
 
 void FEStorage::deleteMesh() {
-	deleteElements();
-	deleteNodes();
+  deleteElements();
+  deleteNodes();
   deleteMpcs();
   deleteMpcCollections();
   deleteFeComponents();
