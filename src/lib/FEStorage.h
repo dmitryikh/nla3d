@@ -37,7 +37,6 @@ class ElementFactory;
 // should start from 1 and up to nElements()/nNodes().
 class FEStorage {
 public:
-	FEStorage();
 	~FEStorage();
 
   // A pointer to Material instance. nla3d supports only one material for FE model.  External code

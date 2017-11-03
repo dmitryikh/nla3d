@@ -11,9 +11,6 @@ namespace nla3d {
 
 
 void ElementIsoParamLINE::makeJacob() {
-  const uint16 dim = 2;
-  const uint16 nodes_num = 4;
-
   // bound user-provided intOrder
   intOrder = (intOrder < 1) ? 1 : intOrder;
   intOrder = (intOrder > 3) ? 3 : intOrder;
@@ -71,8 +68,6 @@ void ElementIsoParamQUAD::makeJacob() {
   NiXj.clear();
   NiXj.resize(_np_quad[i_int]);
 
-  double inv_det;
-
   math::Mat<nodes_num, dim> dN; // form function derivatives
   math::Mat<dim, dim> J;
 
@@ -94,7 +89,6 @@ void ElementIsoParamQUAD::makeJacob() {
     // check for geometry form error 
     LOG_IF(det[np] < 1.0e-20, ERROR) << "Determinant is too small (" << det[np] << ") in element = " << elNum;
     // обращение матрицы Якоби
-    inv_det = 1.0/det[np];
     Jacob = J.inv(det[np]);
 
     // производные функций формы по глоб. координатам
@@ -154,8 +148,6 @@ void ElementIsoParamHEXAHEDRON::makeJacob() {
   NiXj.clear();
   NiXj.resize(_np_hexahedron[i_int]);
 
-  double inv_det;
-
   math::Mat<nodes_num, dim> dN; // form function derivatives
   math::Mat<dim, dim> J;
 
@@ -176,7 +168,6 @@ void ElementIsoParamHEXAHEDRON::makeJacob() {
     // check for geometry form error 
     LOG_IF(det[np] < 1.0e-20, ERROR) << "Determinant is too small (" << det[np] << ") in element = " << elNum;
     // обращение матрицы Якоби
-    inv_det = 1.0/det[np];
     Jacob = J.inv(det[np]);
 
     // производные функций формы по глоб. координатам

@@ -1,4 +1,5 @@
-cmake_minimum_required (VERSION 2.6)
+CMAKE_MINIMUM_REQUIRED (VERSION 2.6)
+CMAKE_POLICY (SET CMP0011 NEW)
 
 project (NLA3D)
 
@@ -25,6 +26,7 @@ set (NLA3D_BLAS OFF
 # CMAKE_BUILD_TYPE empty or Release means the same for us
 set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -msse2")
 
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wno-switch")
 # TODO: this should depend on compiler
 if(UNIX) 
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11 -fPIC")
@@ -58,7 +60,7 @@ if (NLA3D_USE_MKL)
 
     find_package(MKL)
     if (MKL_FOUND)
-      include_directories(${MKL_INCLUDE_DIR})
+        include_directories(SYSTEM ${MKL_INCLUDE_DIR})
 
       # below code works fine only on UNIX systems..
       if (MKL_MULTI_THREADED)
@@ -77,14 +79,15 @@ endif() # NLA3D_USE_MKL
 
 find_package(EASYLOGGINGPP)
 if (EASYLOGGINGPP_FOUND)
-  include_directories(${EASYLOGGINGPP_INCLUDE_DIR})
+    include_directories(SYSTEM ${EASYLOGGINGPP_INCLUDE_DIR})
 else()
   message(WARNING "Can't find Easylogging++")
 endif()
 
 find_package(EIGEN)
 if (EIGEN_FOUND)
-  include_directories(${EIGEN_INCLUDE_DIR})
+    # SYSTEM for avoid warnings from the external library
+    include_directories(SYSTEM ${EIGEN_INCLUDE_DIR})
 else()
   message(WARNING "Can't find Eigen")
 endif()

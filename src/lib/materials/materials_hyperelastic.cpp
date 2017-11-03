@@ -38,7 +38,6 @@ void Mat_Hyper_Isotrop_General::getS_UP (uint16 ncomp, const  solidmech::tensorC
 	
 	double J = IC[2];
 	
-	double oo = 1.0/(J*J);
 	double pp = pow(J,-2.0/3.0);
 	double pppp = pp*pp;
 	

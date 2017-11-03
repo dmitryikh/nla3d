@@ -39,6 +39,7 @@ class Mpc {
 
 class MpcCollection {
   public:
+    virtual ~MpcCollection() { }
     virtual void update() = 0;
     virtual void pre() = 0;
     void printEquations(std::ostream& out);
@@ -50,9 +51,8 @@ class MpcCollection {
 
 class RigidBodyMpc : public MpcCollection {
   public:
-    RigidBodyMpc();
     ~RigidBodyMpc();
-    uint32 masterNode;
+    uint32 masterNode = 0;
 
     void pre ();
     void update ();
@@ -74,8 +74,7 @@ public:
 
 class loadBC {
 public:
-  loadBC () : node(0), node_dof(Dof::UNDEFINED), value(0.0)
-  { }
+  loadBC () { }
   loadBC (int32 n, Dof::dofType dof, double val = 0.0) : node(n), node_dof(dof), value(val)
   { }
   int32 node = 0;

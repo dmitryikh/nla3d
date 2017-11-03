@@ -141,7 +141,7 @@ stress_vec_t readStressData (std::string filename) {
     if (!file.is_open()) {
         return stress_vec;
     }
-    double tmp, sx, sy, sz, sxy, syz, sxz;
+    double tmp;
     // file format:
     //    elem SX   SY   SZ   SXY  SYZ  SXZ
     //          1.  0.28688422E+02  0.90668364E+01  0.11326577E+02  0.65410609E-01 -0.36082213E+01 -0.19945953E+01

@@ -74,6 +74,7 @@ bool GaussDenseEquationSolver::_solve(double* X, double* A,
         // We are trying eliminate the term in column i, for rows i+1 and
         // greater. First, find a pivot (between rows i and N-1).
         max = 0;
+        imax = i;
         for(ip = i; ip < n; ip++) {
           //if(ffabs(A[ip][i]) > max) {
             if(fabs(A[ip*n+i]) > max) {

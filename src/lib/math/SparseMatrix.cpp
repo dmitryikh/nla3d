@@ -381,7 +381,6 @@ void SparseMatrix::print(std::ostream& out) {
   assert(si->compressed);
   assert(values);
 
-	uint32 ind;
 	for (uint32 i = 1; i <= si->nRows; i++) {
 		out << "[";
 		for (uint32 j = 1; j <= si->nColumns; j++) {
@@ -453,7 +452,6 @@ void SparseSymMatrix::print(std::ostream& out) {
   assert(si->compressed);
   assert(values);
 
-	uint32 ind;
 	for (uint32 i = 1; i <= si->nRows; i++) {
 		// out << "[";
 		for (uint32 j = 1; j <= si->nColumns; j++) {

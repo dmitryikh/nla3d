@@ -186,7 +186,6 @@ std::vector<double> readTempData (std::string fileRefCurve) {
   if (!file.is_open()) {
     return res;
   }
-  double tmp;
   std::string line;
   // skip first line
   getLine(file, line);

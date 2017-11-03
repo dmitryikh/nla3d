@@ -14,10 +14,9 @@ class MaterialFactory;
 // Material must have named material constants
 class Material {
 public:
-	Material () : MC(NULL), numC(0), code(0) { 
-	}
+    Material() { }
 	Material (uint16 num_c);
-	~Material()   // TODO: discover the virtual destructor
+	virtual ~Material()
 	{
 		if (MC) delete[] MC; 
 		MC = NULL;
@@ -37,10 +36,10 @@ public:
   friend class MaterialFactory;
 protected:
 	void register_mat_const(uint16 num, ...);
-	double* MC;
+	double* MC = nullptr;
 	std::vector<std::string> MC_names;
-	uint16 numC;
-	uint16 code;
+	uint16 numC = 0;
+	uint16 code = 0;
 	std::string name;
 };
 

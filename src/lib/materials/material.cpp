@@ -28,14 +28,15 @@ std::string Material::toString() {
 }
 
 double& Material::Ci (const std::string& nameConst) {
-  for (size_t i = 0; i < getNumC(); i++) {
+  size_t i = 0;
+  for (; i < getNumC(); i++) {
     if (nameConst.compare(MC_names[i]) == 0) {
-      return MC[i];
+      break;
     }
   }
-	LOG(ERROR) << "Dan't find a material constant with name " << nameConst;
-  double dummy;
-  return dummy;
+  if (i == getNumC())
+    LOG(ERROR) << "Can't find a material constant with name " << nameConst;
+  return MC[i];
 }
 
 

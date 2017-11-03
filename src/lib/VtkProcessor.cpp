@@ -75,10 +75,12 @@ void VtkProcessor::writeAllResults(bool write) {
 
 
 bool VtkProcessor::registerResults(std::initializer_list<scalarQuery> queries) {
+#if not defined (NDEBUG)
   // check that each query is valid
-  for(auto v : queries) {
+  for(auto const& v : queries) {
     assert(v > scalarQuery::UNDEF && v < scalarQuery::LAST);
   }
+#endif
 
   cellScalarQueries.insert(queries);
   return true;
@@ -86,10 +88,12 @@ bool VtkProcessor::registerResults(std::initializer_list<scalarQuery> queries) {
 
 
 bool VtkProcessor::registerResults(std::initializer_list<vectorQuery> queries) {
+#if not defined (NDEBUG)
   // check that each query is valid
-  for(auto v : queries) {
+  for(auto const& v : queries) {
     assert(v > vectorQuery::UNDEF && v < vectorQuery::LAST);
   }
+#endif
 
   cellVectorQueries.insert(queries);
   return true;
@@ -97,10 +101,12 @@ bool VtkProcessor::registerResults(std::initializer_list<vectorQuery> queries) {
 
 
 bool VtkProcessor::registerResults(std::initializer_list<tensorQuery> queries) {
+#if not defined (NDEBUG)
   // check that each query is valid
-  for(auto v : queries) {
+  for(auto const& v : queries) {
     assert(v > tensorQuery::UNDEF && v < tensorQuery::LAST);
   }
+#endif
 
   cellTensorQueries.insert(queries);
   return true;

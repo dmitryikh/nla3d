@@ -130,10 +130,11 @@ FESolver::~FESolver() {
 
 
 void FESolver::attachFEStorage(FEStorage *st) {
+  CHECK_NOTNULL(st);
   if (storage) {
     LOG(WARNING) << "FEStorage already is attached. The old one will be dropped.";
   }
-  storage = CHECK_NOTNULL(st);
+  storage = st;
 }
 
 
@@ -166,10 +167,11 @@ void FESolver::deletePostProcessors() {
 
 
 void FESolver::attachEquationSolver(math::EquationSolver *eq) {
+  CHECK_NOTNULL(eq);
   if (eqSolver) {
     LOG(WARNING) << "EquationSolver already is attached. The old one will be dropped.";
   }
-  eqSolver = CHECK_NOTNULL(eq);
+  eqSolver = eq;
 }
 
 void FESolver::initSolutionData() {

@@ -15,7 +15,7 @@ class FESolver;
 class PostProcessor {
 public:
 	PostProcessor(FEStorage *st);
-	~PostProcessor() { };
+	virtual ~PostProcessor() { };
 	virtual void pre ()=0;
 	virtual void process (uint16 curLoadstep)=0;
 	virtual void post (uint16 curLoadstep)=0;

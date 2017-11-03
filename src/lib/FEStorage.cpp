@@ -9,10 +9,6 @@ namespace nla3d {
 using namespace math;
 
 
-FEStorage::FEStorage()  {
-};
-
-
 FEStorage::~FEStorage () {
 	if (material) {
     delete material;
@@ -533,7 +529,6 @@ void FEStorage::initSolutionData () {
   // register MPC coefficients
   for (auto mpc : mpcs) {
     assert(mpc->eq.size());
-    uint32 eq_num = mpc->eqNum;
     for (auto term : mpc->eq) {
     uint32 eq_j = getNodeDofEqNumber(term.node, term.node_dof);
       addEntryMPC(mpc->eqNum, eq_j);

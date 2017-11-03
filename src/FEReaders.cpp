@@ -141,28 +141,6 @@ char sfirstNotBlank(const string& str) {
   return str[st];
 }
 
-
-std::vector<std::string> ssplit(const std::string& line, const std::vector<int>& widths, bool strict) {
-  int ind = 0;
-  vector<string> vv;
-  for (int w : widths) {
-    if (line.length() - ind < w) {
-      // no room for another field
-      if (strict) {
-        LOG(FATAL) << "ssplit: incomplete line: \"" << line << "\"";
-      } else {
-        if (line.length() - ind != 0) {
-          LOG(FATAL) << "ssplit: incomplete field: \"" << line << "\"";
-        }
-        return std::move(vv);
-      }
-    }
-    vv.push_back(line.substr(ind, w));
-    ind += w;
-  }
-  return vv;
-}
-
  
 bool iequals(const string& a, const string& b) {
     unsigned int sz = a.size();
@@ -235,9 +213,8 @@ int Tokenizer::tokenize(const string& line) {
   }
 
   if (tolower) {
-    for (int i = 0; i < tokens.size(); i++) {
-      stolower(tokens[i]);
-    }
+    for (auto& token : tokens)
+      stolower(token);
   }
   return found;
 }
@@ -254,7 +231,6 @@ double Tokenizer::tokenDouble(size_t ind) {
 
 
 bool readCdbFile(std::string filename, MeshData& md) {
-  uint32 n_number, en;
   ifstream file(filename);
   if (!file) {
     LOG(WARNING) << "Can't open cdb file " << filename;
@@ -270,11 +246,6 @@ bool readCdbFile(std::string filename, MeshData& md) {
   md.cellIntData.insert(std::make_pair("TYPE", std::vector<uint32>()));
 
   std::unordered_map<std::string, double> apdlParameters;
-
-  // current element type number. We keep the current element type number while proceed the apld
-  // file. Currently, this info is not used, but in the past it was used to determine element type
-  // while parsing EBLOCK blocks. 
-  uint32 type = 0;
 
   Tokenizer t;
   // do not convert tokens to lower symbols
@@ -311,27 +282,17 @@ bool readCdbFile(std::string filename, MeshData& md) {
       stolower(strim(line));
       std::regex re(R"(\((\d+)i(\d+),(\d+)e(\d+)\.[0-9e]+\))");
       std::smatch match;
-      int int_num;
-      int int_field;
-      int float_num;
-      int float_field;
-      if (std::regex_match(line, match, re)) {
-        int_num = std::stoi(match[1]);
-        int_field = std::stoi(match[2]);
-        float_num = std::stoi(match[3]);
-        float_field = std::stoi(match[4]);
-      } else {
+      if (not std::regex_match(line, match, re)) {
         LOG(FATAL) << "Don't understand nblock format string \"" << line << "\"";
       }
+      size_t const int_num = std::stoi(match[1]);
+      size_t const int_field = std::stoi(match[2]);
+      size_t const float_num = std::stoi(match[3]);
+      size_t const float_field = std::stoi(match[4]);
 
       // prepare array of field widths
-      std::vector<int> widths;
-      for (int i = 0; i < int_num; i++) {
-        widths.push_back(int_field);
-      }
-      for (int i = 0; i < float_num; i++) {
-        widths.push_back(float_field);
-      }
+      std::vector<size_t> widths(int_num, int_field);;
+      widths.insert(widths.end(), float_num, float_field);
 
       // read nodes info line by line
       while(!getLine(file, line).eof()) {
@@ -390,20 +351,14 @@ bool readCdbFile(std::string filename, MeshData& md) {
       stolower(strim(line));
       std::regex re(R"(\((\d+)i(\d+)\))");
       std::smatch match;
-      int int_num;
-      int int_field;
-      if (std::regex_match(line, match, re)) {
-        int_num = std::stoi(match[1]);
-        int_field = std::stoi(match[2]);
-      } else {
+      if (not std::regex_match(line, match, re)) {
         LOG(FATAL) << "Don't understand eblock format string \"" << line << "\"";
       }
+      size_t const int_num = std::stoi(match[1]);
+      size_t const int_field = std::stoi(match[2]);
 
       // prepare array of field widths
-      std::vector<int> widths;
-      for (int i = 0; i < int_num; i++) {
-        widths.push_back(int_field);
-      }
+      std::vector<size_t> widths(int_num, int_field);
       // read element data line by line
       while(!getLine(file, line).eof()) {
         // check for the end of element table
@@ -450,7 +405,7 @@ bool readCdbFile(std::string filename, MeshData& md) {
           LOG(FATAL) << "Not enought fields to read element nodes";
         }
         // parse element nodes
-        for (int i = 0; i < nNodes; i++) {
+        for (uint32 i = 0; i < nNodes; i++) {
           enodes.push_back(static_cast<uint32>(std::stoi(v[st + i])));
         }
 
@@ -495,7 +450,6 @@ bool readCdbFile(std::string filename, MeshData& md) {
       while (n_terms > 0) {
         getLine(file, line);
         t.tokenize(line);
-        uint16 place = 6;
         for (int i = 0; i < std::max(n_terms, 2); i++) {
           uint32 node = t.tokenInt(3 + 3 * i + 0);
           Dof::dofType dof = Dof::label2dofType(t.tokens[3 + 3 * i + 1]);
@@ -527,19 +481,13 @@ bool readCdbFile(std::string filename, MeshData& md) {
         stolower(strim(line));
         std::regex re(R"(\((\d+)i(\d+)\))");
         std::smatch match;
-        int int_num;
-        int int_field;
-        if (std::regex_match(line, match, re)) {
-          int_num = std::stoi(match[1]);
-          int_field = std::stoi(match[2]);
-        } else {
+        if (not std::regex_match(line, match, re)) {
           LOG(FATAL) << "Don't understand CMBLOCK format string \"" << line << "\"";
         }
+        size_t const int_num = std::stoi(match[1]);
+        size_t const int_field = std::stoi(match[2]);
         // prepare array of field widths
-        std::vector<int> widths;
-        for (int i = 0; i < int_num; i++) {
-          widths.push_back(int_field);
-        }
+        std::vector<size_t> widths(int_num, int_field);;
 
         uint16 in_row = 0;
         uint16 all = 0;
@@ -586,29 +534,6 @@ bool readCdbFile(std::string filename, MeshData& md) {
         md.feComps.insert(std::make_pair(comp.name, comp));
       }
     } //CMBLOCK
-    else if (iequals(t.tokens[0], "ET") || iequals(t.tokens[0], "ETYPE")) {
-      // Keep a track on last ET command.. We need this info to know element type.
-      // If we can convert ET argument into int, then we try to find the APDL parameter in
-      // apdlParameters dictionary. If it's not there - adpParameters will return new zero value.
-      // That means, that if parameter is not declared(somehow..) we just put type = 0
-      // NOTE: in current implementation type value is not used, but it could be used again in the
-      // future.
-      try {
-        type = t.tokenInt(1);
-      } catch (const std::invalid_argument& ia) {
-        type = static_cast<uint32>(apdlParameters[t.tokens[1]]);
-      }
-    } // ETYPE
-    else if (iequals(t.tokens[0], "TYPE")) {
-      // Keep the track on last TYPE command.. We need this info to know element type.
-      // NOTE: in current implementation type value is not used, but it could be used again in the
-      // future.
-      try {
-        type = t.tokenInt(1);
-      } catch (const std::invalid_argument& ia) {
-        type = 0;
-      }
-    } // ETYPE
     else if (iequals(t.tokens[0], "F")) {
       // Dof force record
       //f,42,heat,800000.

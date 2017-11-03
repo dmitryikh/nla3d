@@ -10,7 +10,6 @@
 #include <string>
 #include <iostream>
 #include <fstream>
-#include <strstream>
 #include <stdarg.h>
 #include <assert.h>
 #include <time.h>
@@ -39,11 +38,6 @@
 #ifdef __APPLE__
   #define sprintf_s snprintf
 #endif
-
-// TODO:
-// for some reasons CHECK_NOTNULL from easylogging++ doesn't work on Apple's clang and g++
-#undef CHECK_NOTNULL
-#define CHECK_NOTNULL(x) x
 
 // usefull macros to check floats with threshold
 #define CHECK_EQTH(a, b, th) CHECK(fabs(a-b) < th)

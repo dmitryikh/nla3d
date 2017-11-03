@@ -34,7 +34,8 @@ void ElementSOLID81::buildK() {
   Vec<24> Kup;
   Vec<24> Fu; //вектор узловых сил элемента
   Vec<24> F_ext; //вектор внешних сил (пока не подсчитывается)
-  Mat_Hyper_Isotrop_General* mat = CHECK_NOTNULL( dynamic_cast<Mat_Hyper_Isotrop_General*> (storage->getMaterial()));
+  Mat_Hyper_Isotrop_General* mat = dynamic_cast<Mat_Hyper_Isotrop_General*> (storage->getMaterial());
+  CHECK_NOTNULL(mat);
   double k = mat->getK();
   MatSym<6> matD_d;
   Vec<6> vecD_p;
@@ -95,7 +96,8 @@ void ElementSOLID81::update()
   Vec<6> vecC;
   double p_e = storage->getElementDofSolution(getElNum(), Dof::HYDRO_PRESSURE);
 
-  Mat_Hyper_Isotrop_General* mat = CHECK_NOTNULL(dynamic_cast<Mat_Hyper_Isotrop_General*> (storage->getMaterial()));
+  Mat_Hyper_Isotrop_General* mat = dynamic_cast<Mat_Hyper_Isotrop_General*> (storage->getMaterial());
+  CHECK_NOTNULL(mat);
   for (uint16 np = 0; np < nOfIntPoints(); np++) {
     B_NL.zero();
     make_B_NL(np, B_NL);
@@ -217,13 +219,15 @@ bool ElementSOLID81::getScalar(double* scalar, scalarQuery query, uint16 gp, con
 
     case scalarQuery::WU:
       getVector(&tmp, vectorQuery::IC, gp, 1.0);
-      mat = CHECK_NOTNULL(dynamic_cast<Mat_Hyper_Isotrop_General*>(storage->getMaterial()));
+      mat = dynamic_cast<Mat_Hyper_Isotrop_General*>(storage->getMaterial());
+      CHECK_NOTNULL(mat);
       *scalar += mat->W(tmp[0], tmp[1], tmp[2]) * scale;
       return true;
 
     case scalarQuery::WP:
       J = solidmech::J_C(C[gp].ptr());
-      mat = CHECK_NOTNULL(dynamic_cast<Mat_Hyper_Isotrop_General*>(storage->getMaterial()));
+      mat = dynamic_cast<Mat_Hyper_Isotrop_General*>(storage->getMaterial());
+      CHECK_NOTNULL(mat);
       *scalar += 0.5 * mat->getK() * (J - 1.0) * (J - 1.0) * scale;
       return true;
 

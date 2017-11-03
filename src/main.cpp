@@ -34,7 +34,7 @@ namespace options {
   uint32 rigidBodyMasterNode = 0;
   std::string rigidBodySlavesComponent = "";
   std::vector<Dof::dofType> rigidBodyDofs;
-};
+}
 
 bool parse_args (int argc, char* argv[]) {
   if (argc < 2) {
@@ -170,7 +170,8 @@ int main (int argc, char* argv[]) {
   }
   md.compressNumbers();
 
-  Material* mat = CHECK_NOTNULL (MaterialFactory::createMaterial(options::materialName));
+  Material* mat = MaterialFactory::createMaterial(options::materialName);
+  CHECK_NOTNULL(mat);
   if (mat->getNumC() != options::materialConstants.size())
     LOG(ERROR) << "Material " << options::materialName << " needs exactly " << mat->getNumC()
       << " constants (" << options::materialConstants.size() << " were provided)";
@@ -298,7 +299,7 @@ int main (int argc, char* argv[]) {
       ss << '\t' << Dof::dofTypeLabels[reactProc->dofs[d]];
     }
     ss << std::endl;
-    for (size_t ls = 0; ls < options::numberOfLoadsteps+1; ls++) {
+    for (uint16 ls = 0; ls < options::numberOfLoadsteps+1; ls++) {
       ss << ls;
       for (size_t d = 0; d < reactProc->dofs.size(); d++) {
         ss << '\t' << reactProc->getReactions(reactProc->dofs[d])[ls];

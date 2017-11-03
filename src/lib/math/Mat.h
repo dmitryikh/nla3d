@@ -401,9 +401,14 @@ class dMat;
 class dMat_interface
 {
 public:
-	dMat_interface ():ptr(NULL),M(0),N(0),row(0) 
-	{	}
 	double& operator[] (uint16 col)
+	{
+		assert(ptr);
+		assert (col < N);
+		assert (row < M);
+		return ptr[row*N + col];
+	}
+	double operator[] (uint16 col) const
 	{
 		assert(ptr);
 		assert (col < N);
@@ -412,16 +417,17 @@ public:
 	}
 	friend class dMat;
 private:
-	uint16 M, N;
-	uint32 row;
-	double *ptr;
+	uint16 M = 0;
+	uint16 N = 0;
+	uint32 row = 0;
+	double *ptr = nullptr;
 };
 
 //dynamic matrix to pass arbitrary matrix to functions as arguments
 class dMat
 {
 public:
-	dMat(uint16 dim_m, uint16 dim_n) : dimM(0),dimN(0),data(NULL)
+	dMat(uint16 dim_m, uint16 dim_n)
 	{
 		if (dim_m && dim_n)
 			resize(dim_m, dim_n);
@@ -470,7 +476,7 @@ public:
 	~dMat()
 	{
 		if (data) delete[] data;
-		data = NULL;
+		data = nullptr;
 	}
 
 	void zero ()
@@ -504,9 +510,9 @@ public:
 
 	friend std::ostream& operator<< (std::ostream& stream, dMat &obj);
 private:
-	uint16 dimM;
-	uint16 dimN;
-	double *data;
+	uint16 dimM = 0;
+	uint16 dimN = 0;
+	double *data = nullptr;
 	dMat_interface dmat_int;
 };
 

@@ -67,8 +67,28 @@ std::string& stoupper(std::string& str);
 
 // split `line` to substrings with `widths` lengths, if `strict` is false then last substrings could
 // be missed
-std::vector<std::string> ssplit(const std::string& line, const std::vector<int>& widths,
-                                  bool strict = true);
+template<typename CONT>
+std::vector<std::string> ssplit(std::string const& line, CONT const& widths, bool strict = true) {
+  size_t ind = 0;
+  std::vector<std::string> vv;
+  for (auto const& w : widths) {
+    if (line.length() < w + ind) {
+      // no room for another field
+      if (strict) {
+        LOG(FATAL) << "ssplit: incomplete line: \"" << line << "\"";
+      } else {
+        if (line.length() - ind != 0) {
+          LOG(FATAL) << "ssplit: incomplete field: \"" << line << "\"";
+        }
+        return vv;
+      }
+    }
+    vv.push_back(line.substr(ind, w));
+    ind += w;
+  }
+  return vv;
+}
+
 
 // case insensitive string comparison
 bool iequals(const string& a, const string& b);

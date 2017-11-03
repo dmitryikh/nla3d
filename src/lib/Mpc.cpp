@@ -41,10 +41,6 @@ void MpcCollection::printEquations (std::ostream& out) {
   }
 }
 
-RigidBodyMpc::RigidBodyMpc () {
-
-}
-
 RigidBodyMpc::~RigidBodyMpc () {
   collection.clear();
 }
@@ -120,7 +116,7 @@ void RigidBodyMpc::update () {
     // drivatives for C matrix for i row (with respect to j and l)
     Mat<3,3> cDeriv;
     for (size_t d = 0; d < dofs.size(); d++) {
-      uint16 i;
+      uint16 i = 0;
       switch (dofs[d]) {
         case Dof::UX:
           i = 0;
