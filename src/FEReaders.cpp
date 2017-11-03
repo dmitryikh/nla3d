@@ -282,7 +282,7 @@ bool readCdbFile(std::string filename, MeshData& md) {
       stolower(strim(line));
       std::regex re(R"(\((\d+)i(\d+),(\d+)e(\d+)\.[0-9e]+\))");
       std::smatch match;
-      if (not std::regex_match(line, match, re)) {
+      if (!std::regex_match(line, match, re)) {
         LOG(FATAL) << "Don't understand nblock format string \"" << line << "\"";
       }
       size_t const int_num = std::stoi(match[1]);
@@ -351,7 +351,7 @@ bool readCdbFile(std::string filename, MeshData& md) {
       stolower(strim(line));
       std::regex re(R"(\((\d+)i(\d+)\))");
       std::smatch match;
-      if (not std::regex_match(line, match, re)) {
+      if (!std::regex_match(line, match, re)) {
         LOG(FATAL) << "Don't understand eblock format string \"" << line << "\"";
       }
       size_t const int_num = std::stoi(match[1]);
@@ -481,7 +481,7 @@ bool readCdbFile(std::string filename, MeshData& md) {
         stolower(strim(line));
         std::regex re(R"(\((\d+)i(\d+)\))");
         std::smatch match;
-        if (not std::regex_match(line, match, re)) {
+        if (!std::regex_match(line, match, re)) {
           LOG(FATAL) << "Don't understand CMBLOCK format string \"" << line << "\"";
         }
         size_t const int_num = std::stoi(match[1]);
