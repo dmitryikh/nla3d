@@ -26,11 +26,14 @@ set (NLA3D_BLAS OFF
 # CMAKE_BUILD_TYPE empty or Release means the same for us
 set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -msse2")
 
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wno-switch")
-# TODO: this should depend on compiler
-if(UNIX) 
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11 -fPIC")
-endif()
+IF (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wno-switch")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+ENDIF()
+
+SET (CMAKE_CXX_STANDARD 11)
+SET (CMAKE_CXX_STANDARD_REQUIRED TRUE)
+SET (CMAKE_CXX_EXTENSION TRUE)
 
 # Linking on Mac Os was not working without this, see `cmake  --help-policy CMP0042`
 if (APPLE)
