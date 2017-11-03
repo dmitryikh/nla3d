@@ -33,7 +33,7 @@ ENDIF()
 
 SET (CMAKE_CXX_STANDARD 11)
 SET (CMAKE_CXX_STANDARD_REQUIRED TRUE)
-SET (CMAKE_CXX_EXTENSION TRUE)
+SET (CMAKE_CXX_EXTENSION FALSE)
 
 # Linking on Mac Os was not working without this, see `cmake  --help-policy CMP0042`
 if (APPLE)
