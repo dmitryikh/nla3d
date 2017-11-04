@@ -6,10 +6,9 @@
 #include <list>
 #include "sys.h"
 #include "Dof.h"
+#include "FEStorage.h"
 
 namespace nla3d {
-
-class FEStorage;
 
 
 class MpcTerm {
@@ -31,7 +30,7 @@ public:
 class Mpc {
   public:
     void print (std::ostream& out);
-    std::list<MpcTerm> eq;
+    std::vector<MpcTerm> eq;
     double b; // rhs of MPC eq.
     uint32 eqNum; // number of equation in global assembly
 };
@@ -39,25 +38,25 @@ class Mpc {
 
 class MpcCollection {
   public:
+    MpcCollection(FEStoragePtr const& storage_ptr)
+    : storage(storage_ptr) { }
     virtual void update() = 0;
     virtual void pre() = 0;
     void printEquations(std::ostream& out);
-    void registerMpcsInStorage();
-    std::vector<Mpc*> collection;
-    FEStorage* storage;
+    std::vector<uint32> collection;
+    FEStoragePtr storage;
 };
 
 
 class RigidBodyMpc : public MpcCollection {
   public:
-    RigidBodyMpc();
-    ~RigidBodyMpc();
-    uint32 masterNode;
-
-    void pre ();
-    void update ();
+    RigidBodyMpc(FEStoragePtr const& storage_ptr)
+    : MpcCollection(storage_ptr) { }
+    void pre () override;
+    void update () override;
     std::vector<uint32> slaveNodes;
     std::vector<Dof::dofType> dofs;
+    uint32 masterNode;
 };
 
 

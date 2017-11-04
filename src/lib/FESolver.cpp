@@ -3,6 +3,7 @@
 // https://github.com/dmitryikh/nla3d 
 
 #include "FESolver.h"
+#include "Mpc.h"
 
 namespace nla3d {
 

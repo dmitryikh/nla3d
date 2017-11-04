@@ -3,20 +3,20 @@
 // https://github.com/dmitryikh/nla3d 
 
 #pragma once
-#include <list>
 #include "sys.h"
 #include "materials/MaterialFactory.h"
-#include "elements/ElementFactory.h"
 #include "math/BlockSparseMatrix.h"
 #include "FEComponent.h"
-#include "Mpc.h"
+#include "Dof.h"
  
 namespace nla3d {
 
 class Element;
 class Node;
-class Dof;
-class ElementFactory;
+class Mpc;
+class MpcCollection;
+class loadBC;
+class fixBC;
 
 
 // FEStorage - heart of the nla3d program, it contains all FE data: 
@@ -189,11 +189,13 @@ public:
   FEComponent* getFEComponent(size_t i);
   // get a FEComponent instance by component name
   FEComponent* getFEComponent(const std::string& name);
+  // mpc_n > 0
+  Mpc& getMpc(uint32 mpc_n);
 
   // storing operations
   //
-  // Add `mpc` to `mpcs` array. FEStorage will delete Mpc instances by itslef.
-	void addMpc(Mpc* mpc);
+  // Add `mpc` to `mpcs` array. Return the id of inserted `mpc`. `id` > 0
+  uint32 addMpc(Mpc&& mpc);
   // Add `mpcCol` to `mpcCollections` array.
   void addMpcCollection(std::shared_ptr<MpcCollection> mpcCol);
   // Add `comp` to `feComponents` array. FEStorage will delete FEComponent instances by itslef.
@@ -235,8 +237,6 @@ public:
   // delete elements table: delete all dynamically allocated Element instances,
   // and clear vector of pointers `elements`.
   void deleteElements();
-  // delete MPC list: delete all dynamically allocated Mpc instances,
-  // and clear vector of pointers `mpcs`.
   void deleteMpcs();
   void deleteMpcCollections();
   void deleteFeComponents();
@@ -299,7 +299,7 @@ private:
   // created outside of FEStorage class. But after addMpc(..) function FEStorage takes control on
   // the instance of Mpc. MPCs can be deleted by FEStorage::deleteMpcs(). Of course, they are
   // deleted in ~FEStorage() destructor. 
-	std::list<Mpc*> mpcs;
+	std::vector<Mpc> mpcs;
 
   // FE components - lists consist of numbers of entities. Here is the support of nodal components
   // and element components. This components can be used to apply BCs and/or MPCs. FE component is
@@ -374,6 +374,8 @@ private:
   // matrices too
   bool transient = false;
 };
+
+typedef std::shared_ptr<FEStorage> FEStoragePtr;
 
 
 inline void FEStorage::addValueK(uint32 nodei, Dof::dofType dofi, uint32 nodej, Dof::dofType dofj, double value) {
@@ -541,11 +543,6 @@ inline uint32 FEStorage::nUnknownDofs() {
 }
 
 
-inline uint32 FEStorage::nMpc() {
-  return static_cast<uint32> (mpcs.size());
-}
-
-
 inline uint32 FEStorage::nNodes () {
   return static_cast<uint32> (nodes.size());
 }
@@ -686,7 +683,6 @@ std::vector<uint32> FEStorage::createElements(uint32 _en, T example) {
   }
   return newIndexes;
 }
-
 
 
 } // namespace nla3d 

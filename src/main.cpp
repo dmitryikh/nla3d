@@ -8,7 +8,9 @@
 #include "VtkProcessor.h"
 #include "ReactionProcessor.h"
 #include "materials/MaterialFactory.h"
+#include "elements/ElementFactory.h"
 #include "FEReaders.h"
+#include "Mpc.h"
 
 using namespace nla3d;
 
@@ -161,7 +163,7 @@ int main (int argc, char* argv[]) {
   }
 
   Timer pre_solve(true);
-  FEStorage storage;
+  auto storage = std::make_shared<FEStorage>();
   NonlinearFESolver solver;
   MeshData md;
   if (!readCdbFile (options::modelFilename, md)) {
@@ -176,7 +178,7 @@ int main (int argc, char* argv[]) {
   for (uint16 i = 0; i < mat->getNumC(); i++) {
     mat->Ci(i) = options::materialConstants[i];
   }
-  storage.material = mat;
+  storage->material = mat;
   LOG(INFO) << "Material: " << mat->toString();
 
   LOG(INFO) << "Loaded components:";
@@ -185,18 +187,18 @@ int main (int argc, char* argv[]) {
   }
 
   // add nodes
-  auto sind = storage.createNodes(md.nodesNumbers.size());
+  auto sind = storage->createNodes(md.nodesNumbers.size());
   auto ind = md.nodesNumbers;
   for (uint32 i = 0; i < sind.size(); i++) {
-    storage.getNode(sind[i]).pos = md.nodesPos[i];
+    storage->getNode(sind[i]).pos = md.nodesPos[i];
   }
 
 
   // add elements
   ind = md.getCellsByAttribute("TYPE", 1);
-  sind = storage.createElements(ind.size(), options::elementType);
+  sind = storage->createElements(ind.size(), options::elementType);
   for (uint32 i = 0; i < sind.size(); i++) {
-    Element& el = storage.getElement(sind[i]);
+    Element& el = storage->getElement(sind[i]);
     assert(el.getNNodes() == md.cellNodes[ind[i]].size());
     for (uint16 j = 0; j < el.getNNodes(); j++) {
       el.getNodeNumber(j) = md.cellNodes[ind[i]][j];
@@ -204,10 +206,9 @@ int main (int argc, char* argv[]) {
   }
 
   // add Mpcs
-  for (auto mpc : md.mpcs) {
-    // TODO: here the allocated Mpc instance is kept in MeshData,
-    // but storage will only have a pointer on it
-    storage.addMpc(mpc);
+  for (auto& mpc : md.mpcs) {
+    // NOTE: md.mpcs after std::move will contain invalid mpcs
+    storage->addMpc(std::move(mpc));
   }
 
   // add loadBc
@@ -220,7 +221,7 @@ int main (int argc, char* argv[]) {
     solver.addFix(v.node, v.node_dof, v.value);
   }
 
-  solver.attachFEStorage (&storage);
+  solver.attachFEStorage (storage.get());
   solver.numberOfIterations = options::numberOfIterations;
   solver.numberOfLoadsteps = options::numberOfLoadsteps;
     // NOTE: use PARDISO eq. solver by default (if accessible..)
@@ -233,14 +234,14 @@ int main (int argc, char* argv[]) {
   if (options::useVtk) {
     //obtain job name from path of a FE model file
     std::string jobname = getFileNameFromPath(options::modelFilename);
-    auto vtk = std::make_shared<VtkProcessor>(&storage, jobname);
+    auto vtk = std::make_shared<VtkProcessor>(storage.get(), jobname);
     solver.addPostProcessor(vtk);
     vtk->writeAllResults();
   }
 
   std::shared_ptr<ReactionProcessor> reactProc;
   if (options::reactionComponentName.length() > 0) {
-    reactProc = std::make_shared<ReactionProcessor>(&storage);
+    reactProc = std::make_shared<ReactionProcessor>(storage.get());
     solver.addPostProcessor(reactProc);
     FEComponent* feComp = &(md.feComps[options::reactionComponentName]);
     if (feComp->type != FEComponent::NODES) {
@@ -258,8 +259,7 @@ int main (int argc, char* argv[]) {
   }
 
   if (options::rigidBodyMasterNode > 0 && options::rigidBodySlavesComponent.length() > 0) {
-    auto mpc = std::make_shared<RigidBodyMpc>();
-    mpc->storage = &storage;
+    auto mpc = std::make_shared<RigidBodyMpc>(storage);
     mpc->masterNode = options::rigidBodyMasterNode;
     FEComponent* comp = &(md.feComps[options::rigidBodySlavesComponent]);
     if (comp->type != FEComponent::NODES) {
@@ -275,7 +275,7 @@ int main (int argc, char* argv[]) {
       mpc->dofs.push_back(options::rigidBodyDofs[i]);
     }
 
-    storage.addMpcCollection(mpc);
+    storage->addMpcCollection(mpc);
 
     std::vector<std::string> slaveDofLabels;
     slaveDofLabels.assign(mpc->dofs.size(), "");

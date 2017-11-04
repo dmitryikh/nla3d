@@ -4,6 +4,7 @@
 
 #include "VtkProcessor.h"
 #include "elements/element.h"
+#include "solidmech.h"
 
 namespace nla3d {
 using namespace math;

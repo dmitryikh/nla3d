@@ -5,6 +5,7 @@
 #include "Mpc.h"
 #include "FEStorage.h"
 #include "Node.h"
+#include "solidmech.h"
 
 namespace nla3d {
 
@@ -12,56 +13,39 @@ using namespace math;
 
 
 void Mpc::print (std::ostream& out) {
-  list<MpcTerm>::iterator token = eq.begin();
   bool first = true;
-  while (token != eq.end()) {
-    //Cij_add(eq_num, token->node, token->node_dof, token->coef);
+  for (auto const& token: eq) {
     if (!first) {
       out << " + ";
     } else {
       first = false;
     }
-    out << toStr(token->coef) << " * " << toStr(token->node) << ":" << Dof::dofTypeLabels[token->node_dof];
-    token++;
+    out << toStr(token.coef) << " * " << toStr(token.node) << ":" << Dof::dofTypeLabels[token.node_dof];
   }
   out << " = " << toStr(b);
 }
 
-void MpcCollection::registerMpcsInStorage () {
-  for (size_t i = 0; i < collection.size(); i++) {
-    storage->addMpc(collection[i]);
-  }
-}
-
 
 void MpcCollection::printEquations (std::ostream& out) {
-  for (size_t i = 0; i < collection.size(); i++) {
-    collection[i]->print(out);
-    out << std::endl;
+  for (auto const& mpc_n: collection) {
+      storage->getMpc(mpc_n).print(out);
+      out << '\n';
   }
-}
-
-RigidBodyMpc::RigidBodyMpc () {
-
-}
-
-RigidBodyMpc::~RigidBodyMpc () {
-  collection.clear();
 }
 
 void RigidBodyMpc::pre () {
   // create Mpc for all nodes and all dofs..
-  collection.assign(slaveNodes.size() * dofs.size(), NULL);
+  collection.assign(slaveNodes.size() * dofs.size(), 0);
   for (size_t i = 0; i < slaveNodes.size(); i++) {
     for (size_t j = 0; j < dofs.size(); j++) {
-      Mpc* mpc = new Mpc;
-      mpc->b = 0.0;
-      mpc->eq.push_back(MpcTerm(slaveNodes[i], dofs[j], 1.0));
-      mpc->eq.push_back(MpcTerm(masterNode, dofs[j], -1.0));
-      mpc->eq.push_back(MpcTerm(masterNode, Dof::ROTX, 0.0));
-      mpc->eq.push_back(MpcTerm(masterNode, Dof::ROTY, 0.0));
-      mpc->eq.push_back(MpcTerm(masterNode, Dof::ROTZ, 0.0));
-      collection[i*dofs.size() + j] = mpc;
+      Mpc mpc;
+      mpc.b = 0.0;
+      mpc.eq.push_back(MpcTerm(slaveNodes[i], dofs[j], 1.0));
+      mpc.eq.push_back(MpcTerm(masterNode, dofs[j], -1.0));
+      mpc.eq.push_back(MpcTerm(masterNode, Dof::ROTX, 0.0));
+      mpc.eq.push_back(MpcTerm(masterNode, Dof::ROTY, 0.0));
+      mpc.eq.push_back(MpcTerm(masterNode, Dof::ROTZ, 0.0));
+      collection[i * dofs.size() + j] = storage->addMpc(std::move(mpc));
     }
   }
   storage->addNodeDof(masterNode, {Dof::UX, Dof::UY, Dof::UZ, Dof::ROTX, Dof::ROTY, Dof::ROTZ});
@@ -145,20 +129,16 @@ void RigidBodyMpc::update () {
                 c2*(solidmech::I[i][l]*theta0[j] + theta0[i]*solidmech::I[j][l]);
           }
         }
-        collection[n*static_cast<uint16> (dofs.size()) + d]->b = w0[i] + (C[i][0] - solidmech::I[i][0])*pqVec[0] +
+        Mpc& mpc = storage->getMpc(collection[n * dofs.size() + d]);
+        mpc.b = w0[i] + (C[i][0] - solidmech::I[i][0])*pqVec[0] +
               (C[i][1] - solidmech::I[i][1])*pqVec[1] + (C[i][2] - solidmech::I[i][2])*pqVec[2] -
               storage->getNodeDofSolution(slaveNodes[n], dofs[d]);
-        list<MpcTerm>::iterator token = collection[n*dofs.size() + d]->eq.begin();
-        token++;
-        token++;
         // masterNode::ROTX coef
-        token->coef = - (cDeriv[0][0]*pqVec[0] + cDeriv[1][0]*pqVec[1] + cDeriv[2][0]*pqVec[2]);
-        token++;
+        mpc.eq[2].coef = - (cDeriv[0][0]*pqVec[0] + cDeriv[1][0]*pqVec[1] + cDeriv[2][0]*pqVec[2]);
         // masterNode::ROTY coef
-        token->coef = - (cDeriv[0][1]*pqVec[0] + cDeriv[1][1]*pqVec[1] + cDeriv[2][1]*pqVec[2]);
-        token++;
+        mpc.eq[3].coef = - (cDeriv[0][1]*pqVec[0] + cDeriv[1][1]*pqVec[1] + cDeriv[2][1]*pqVec[2]);
         // masterNode::ROTZ coef
-        token->coef = - (cDeriv[0][2]*pqVec[0] + cDeriv[1][2]*pqVec[1] + cDeriv[2][2]*pqVec[2]);
+        mpc.eq[4].coef = - (cDeriv[0][2]*pqVec[0] + cDeriv[1][2]*pqVec[1] + cDeriv[2][2]*pqVec[2]);
     }
   }
 }

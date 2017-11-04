@@ -65,8 +65,8 @@ void MeshData::compressNumbers() {
   }
 
   // go through Mpcs
-  for (auto mpc : mpcs) {
-    for (auto term : mpc->eq) {
+  for (auto& mpc : mpcs) {
+    for (auto& term : mpc.eq) {
       term.node = old2new[term.node];
     }
   }
@@ -486,10 +486,8 @@ bool readCdbFile(std::string filename, MeshData& md) {
       // How MPC looks like this in cdb file:
       //CE,R5.0,DEFI,       2,       1,  0.00000000    
       //CE,R5.0,NODE,      1700,UX  ,  1.00000000    ,      1700,UZ  ,  1.00000000  
-      // TODO: Mpc is dynamicaly allocated, but MeshData won't free this memory (this should be done
-      // in FEStorage). This is potential memory leak
-      Mpc* mpc = new Mpc();
-      mpc->b = t.tokenDouble(5);
+      Mpc mpc;
+      mpc.b = t.tokenDouble(5);
       int n_terms = t.tokenInt(3);
       // read MPC terms. They are stored by 2 in a row
       while (n_terms > 0) {
@@ -500,11 +498,11 @@ bool readCdbFile(std::string filename, MeshData& md) {
           uint32 node = t.tokenInt(3 + 3 * i + 0);
           Dof::dofType dof = Dof::label2dofType(t.tokens[3 + 3 * i + 1]);
           double coef = t.tokenDouble(3 + 3 * i + 2);
-          mpc->eq.push_back(MpcTerm(node,dof,coef));
+          mpc.eq.emplace_back(node, dof, coef);
           n_terms--;
         }
       }
-      md.mpcs.push_back(mpc);
+      md.mpcs.emplace_back(std::move(mpc));
     }//CE (MPC)
     else if (iequals(t.tokens[0], "CMBLOCK")) {
       // Example of CMBLOCK command:

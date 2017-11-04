@@ -15,6 +15,7 @@
 #include "elements/element.h"
 #include "FEStorage.h"
 #include "FESolver.h"
+#include "Mpc.h"
 
 
 using namespace nla3d;
@@ -38,7 +39,7 @@ class MeshData {
     std::vector<loadBC> loadBcs;
     std::vector<fixBC> fixBcs;
 
-    std::vector<Mpc*> mpcs; 
+    std::vector<Mpc> mpcs;
 
     std::map<std::string, FEComponent> feComps;
 

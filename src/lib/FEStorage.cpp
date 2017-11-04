@@ -3,7 +3,8 @@
 // https://github.com/dmitryikh/nla3d 
 
 #include "FEStorage.h"
-#include "elements/element.h"
+#include "Mpc.h"
+#include "elements/ElementFactory.h"
 
 namespace nla3d {
 using namespace math;
@@ -48,15 +49,15 @@ void FEStorage::assembleGlobalEqMatrices() {
   //t.checkpoint("MpcCollection::update()");
 
   // loop over mpc equations and add corresponding terms into global eq. system
-  for (auto mpc : mpcs) {
-    uint32 eq_num = mpc->eqNum;
+  for (auto const& mpc : mpcs) {
+    uint32 const eq_num = mpc.eqNum;
     assert(eq_num > 0);
     assert(eq_num <= vecF.size());
     assert(eq_num <= nDofs() + nMpc());
-    vecF[eq_num - 1] = mpc->b;
+    vecF[eq_num - 1] = mpc.b;
 
-    for (auto term : mpc->eq) {
-      addValueMPC(mpc->eqNum, term.node, term.node_dof, term.coef);
+    for (auto const& term : mpc.eq) {
+      addValueMPC(eq_num, term.node, term.node_dof, term.coef);
     }
   }
 
@@ -75,6 +76,11 @@ void FEStorage::assembleGlobalEqMatrices() {
     }
   }
 
+}
+
+
+uint32 FEStorage::nMpc() {
+  return static_cast<uint32>(mpcs.size());
 }
 
 
@@ -172,10 +178,16 @@ FEComponent* FEStorage::getFEComponent(const std::string& name) {
 }
 
 
-void FEStorage::addMpc (Mpc* mpc) {
-  assert (mpc);
-  assert (mpc->eq.size() > 0);
-	mpcs.push_back(mpc);
+Mpc& FEStorage::getMpc(uint32 mpc_n) {
+    assert(mpc_n <= nMpc());
+    return mpcs[mpc_n - 1];
+}
+
+
+uint32 FEStorage::addMpc(Mpc&& mpc) {
+  assert (mpc.eq.size() > 0);
+  mpcs.emplace_back(std::move(mpc));
+  return mpcs.size();
 }
 
 
@@ -269,11 +281,7 @@ void FEStorage::deleteElements() {
 
 
 void FEStorage::deleteMpcs() {
-  list<Mpc*>::iterator mpc = mpcs.begin();
-  while (mpc != mpcs.end()) {
-    delete *mpc;
-    mpc++;
-  }
+  mpcs.clear();
 }
 
 
@@ -344,10 +352,8 @@ void FEStorage::initDofs() {
     elements[el]->pre();
   }
 
-  for (size_t i = 0; i < mpcCollections.size(); i++) {
-    mpcCollections[i]->pre();
-    mpcCollections[i]->registerMpcsInStorage();
-  }
+  for (auto& mpc_col: mpcCollections)
+    mpc_col->pre();
 
   // Total number of dofs (only registered by elements)
 	_nDofs = elementDofs.getNumberOfUsedDofs() + nodeDofs.getNumberOfUsedDofs();
@@ -416,9 +422,9 @@ void FEStorage::assignEquationNumbers() {
   assert(next_eq_const - 1 == nConstrainedDofs());
   assert(next_eq_solve - 1 == nDofs());
 
-  for (auto mpc : mpcs) {
-    assert(mpc->eq.size());
-    mpc->eqNum = next_eq_solve++;
+  for (auto& mpc : mpcs) {
+    assert(mpc.eq.size());
+    mpc.eqNum = next_eq_solve++;
   }
 
   assert(next_eq_solve - 1 == nDofs() + nMpc());
@@ -527,12 +533,11 @@ void FEStorage::initSolutionData () {
   }
 
   // register MPC coefficients
-  for (auto mpc : mpcs) {
-    assert(mpc->eq.size());
-    uint32 eq_num = mpc->eqNum;
-    for (auto term : mpc->eq) {
-    uint32 eq_j = getNodeDofEqNumber(term.node, term.node_dof);
-      addEntryMPC(mpc->eqNum, eq_j);
+  for (auto const& mpc : mpcs) {
+    assert(mpc.eq.size());
+    for (auto const& term : mpc.eq) {
+      uint32 const eq_j = getNodeDofEqNumber(term.node, term.node_dof);
+      addEntryMPC(mpc.eqNum, eq_j);
     }
   }
 
