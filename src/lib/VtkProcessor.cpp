@@ -24,7 +24,7 @@ void VtkProcessor::pre(){
   // find which nodal Dofs used in FEStorage and add to list nodalDofTypes for printing out into VTK
   // file
   auto u_dofs = storage->getUniqueNodeDofTypes();
-  for (auto type : u_dofs) {
+  for (auto& type : u_dofs) {
     // take care of displacement dofs: if one of them exist in storage we need to write 3x1 vector
     // into VTK (for wrapping)
     if (type == Dof::UX || type == Dof::UY || type == Dof::UZ) {
@@ -36,7 +36,7 @@ void VtkProcessor::pre(){
 
   // the same for Element dofs
   u_dofs = storage->getUniqueElementDofTypes();
-  for (auto type : u_dofs) {
+  for (auto& type : u_dofs) {
     elementDofTypes.insert(type);
   }
 
@@ -194,7 +194,7 @@ void VtkProcessor::write_point_data(std::ofstream &file) {
     dataVector.clear();
   }
 
-  for (auto v : nodalDofTypes) {
+  for (auto& v : nodalDofTypes) {
     dataScalar.assign(nn, 0.0);
     for (uint32 j = 1; j <= nn; j++) {
       if (storage->isNodeDofUsed(j, v)) {
@@ -224,7 +224,7 @@ void VtkProcessor::write_cell_data(std::ofstream &file) {
 	file << "CELL_DATA " << en << std::endl;
   
   // write element DoFs
-  for (auto v : elementDofTypes) {
+  for (auto& v : elementDofTypes) {
     dataScalar.assign(en, 0.0);
     for (uint32 j = 1; j <= en; j++) {
       if (storage->isElementDofUsed(j, v)) {

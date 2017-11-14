@@ -48,34 +48,34 @@ void MeshData::compressNumbers() {
   assert(nextNumber - 1 == nodesNumbers.size());
 
   // go through elements and change element's node numbers
-  for (auto e : cellNodes) {
+  for (auto& e : cellNodes) {
     for (uint16 i = 0; i < e.size(); i++) {
       e[i] = old2new[e[i]];
     }
   }
 
   // go through loadBCs
-  for (auto bc : loadBcs) {
+  for (auto& bc : loadBcs) {
     bc.node = old2new[bc.node];
   }
 
   // go through fixBCs
-  for (auto bc : fixBcs) {
+  for (auto& bc : fixBcs) {
     bc.node = old2new[bc.node];
   }
 
   // go through Mpcs
-  for (auto mpc : mpcs) {
-    for (auto term : mpc->eq) {
+  for (auto& mpc : mpcs) {
+    for (auto& term : mpc->eq) {
       term.node = old2new[term.node];
     }
   }
 
   // go through FE components
-  for (auto pair : feComps) {
-    auto comp = pair.second;
+  for (auto& pair : feComps) {
+    auto& comp = pair.second;
     if (comp.type == FEComponent::NODES) {
-      for (auto n : comp.list) {
+      for (auto& n : comp.list) {
         n = old2new[n];
       } 
     }

@@ -219,7 +219,7 @@ void FESolver::initSolutionData() {
 
 
 void FESolver::setConstrainedDofs() {
-  for (auto fix : fixs) {
+  for (auto& fix : fixs) {
     // TODO: now support only nodal dofs..
     storage->setConstrainedNodeDof(fix.node, fix.node_dof);
   }
@@ -232,12 +232,12 @@ void FESolver::applyBoundaryConditions(double time) {
        << fixs.size() << "nodal fixations)";  
 
   // fill nodal loads
-  for (auto load : loads) {
+  for (auto& load : loads) {
     storage->addValueR(load.node, load.node_dof, load.value * time);
   }
 
   // fill nodal displacements (kinematic fixs)
-  for (auto fix : fixs) {
+  for (auto& fix : fixs) {
     //TODO: now support only nodal dofs..
     uint32 eq_num = storage->getNodeDofEqNumber(fix.node, fix.node_dof);
     // To be sure that constrained DoF lays in numberOfConstrainedDofs part

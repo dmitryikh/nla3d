@@ -296,7 +296,7 @@ void BaseSparseMatrix::reinit(uint32 _nrows, uint32 _ncols, const std::vector<Sp
   }
   // calculate number of entries in every row
   std::vector<uint32> entriesInRow(_nrows, 0);
-  for (auto v : entries) {
+  for (auto& v : entries) {
     entriesInRow[v.i - 1] += 1;
   }
   uint32 _max_in_row = *std::max_element(entriesInRow.begin(), entriesInRow.end());
@@ -304,7 +304,7 @@ void BaseSparseMatrix::reinit(uint32 _nrows, uint32 _ncols, const std::vector<Sp
   si = std::shared_ptr<SparsityInfo>(new SparsityInfo(_nrows, _ncols, _max_in_row));
 
   // add non-zero entries into SparsityInfo
-  for (auto v : entries) {
+  for (auto& v : entries) {
     si->addEntry(v.i, v.j);
   }
 
@@ -312,7 +312,7 @@ void BaseSparseMatrix::reinit(uint32 _nrows, uint32 _ncols, const std::vector<Sp
   compress();
 
   // write non-zero values into matrix
-  for (auto v : entries) {
+  for (auto& v : entries) {
     //addValue(v.i, v.j, v.v);
     uint32 index = si->getIndex(v.i, v.j);
     if (index == SparsityInfo::invalid) {

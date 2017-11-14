@@ -78,12 +78,12 @@ int main (int argc, char* argv[]) {
   }
 
   // add loadBc
-  for (auto v : md.loadBcs) {
+  for (auto& v : md.loadBcs) {
     solver.addLoad(v.node, v.node_dof, v.value);
   }
 
   // add fixBc
-  for (auto v : md.fixBcs) {
+  for (auto& v : md.fixBcs) {
     solver.addFix(v.node, v.node_dof, v.value);
   }
 

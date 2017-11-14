@@ -37,10 +37,10 @@ void DofCollection::addDof(uint32 n, std::initializer_list<Dof::dofType> __dofs)
   std::vector<Dof> newDofs;
   // if already registered - just return
   if (dofPos[n-1] == dofPos[n]) {
-    for (auto v : _dofs)
+    for (auto& v : _dofs)
       newDofs.push_back(Dof(v));
   } else {
-    for (auto v : _dofs) {
+    for (auto& v : _dofs) {
       bool isFound = false;
       for (auto it = dofs.begin() + dofPos[n-1]; it < dofs.begin() + dofPos[n]; it++) {
         if (it->type == v) {

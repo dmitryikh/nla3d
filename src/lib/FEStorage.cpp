@@ -48,14 +48,14 @@ void FEStorage::assembleGlobalEqMatrices() {
   //t.checkpoint("MpcCollection::update()");
 
   // loop over mpc equations and add corresponding terms into global eq. system
-  for (auto mpc : mpcs) {
+  for (auto& mpc : mpcs) {
     uint32 eq_num = mpc->eqNum;
     assert(eq_num > 0);
     assert(eq_num <= vecF.size());
     assert(eq_num <= nDofs() + nMpc());
     vecF[eq_num - 1] = mpc->b;
 
-    for (auto term : mpc->eq) {
+    for (auto& term : mpc->eq) {
       addValueMPC(mpc->eqNum, term.node, term.node_dof, term.coef);
     }
   }
@@ -361,7 +361,7 @@ void FEStorage::initDofs() {
   if (udofs.size()) {
     std::stringstream ss;
     ss << "Types of nodal DoFs:";
-    for (auto type : udofs)
+    for (auto& type : udofs)
       ss << " " << Dof::dofType2label(type);
     LOG(INFO) << ss.str();
   }
@@ -371,7 +371,7 @@ void FEStorage::initDofs() {
   if (udofs.size()) {
     std::stringstream ss;
     ss << "Types of element DoFs:";
-    for (auto type : udofs)
+    for (auto& type : udofs)
       ss << " " << Dof::dofType2label(type);
     LOG(INFO) << ss.str();
   }
@@ -420,7 +420,7 @@ void FEStorage::assignEquationNumbers() {
   assert(next_eq_const - 1 == nConstrainedDofs());
   assert(next_eq_solve - 1 == nDofs());
 
-  for (auto mpc : mpcs) {
+  for (auto& mpc : mpcs) {
     assert(mpc->eq.size());
     mpc->eqNum = next_eq_solve++;
   }
@@ -502,7 +502,7 @@ void FEStorage::initSolutionData () {
   for (uint32 nn = 1; nn <= nNodes(); nn++) {
     auto nn_dofs = nodeDofs.getEntityDofs(nn);
 
-    for (auto en : topology[nn-1]) {
+    for (auto& en : topology[nn-1]) {
       // register element dofs to node nn
       auto en_dofs = elementDofs.getEntityDofs(en);
       for (auto d1 = en_dofs.first; d1 != en_dofs.second; d1++)
@@ -531,10 +531,10 @@ void FEStorage::initSolutionData () {
   }
 
   // register MPC coefficients
-  for (auto mpc : mpcs) {
+  for (auto& mpc : mpcs) {
     assert(mpc->eq.size());
     uint32 eq_num = mpc->eqNum;
-    for (auto term : mpc->eq) {
+    for (auto& term : mpc->eq) {
     uint32 eq_j = getNodeDofEqNumber(term.node, term.node_dof);
       addEntryMPC(mpc->eqNum, eq_j);
     }

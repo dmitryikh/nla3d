@@ -128,7 +128,7 @@ inline void BlockSparseSymMatrix<nb>::getBlockAndPosition(uint32 _i, uint16* blo
   assert(_i > 0 && _i <= total_rows);
   *block = 1;
   *pos = _i;
-  for (auto blocknum : rows_in_block) {
+  for (auto& blocknum : rows_in_block) {
     if (*pos <= blocknum) break;
     *pos -= blocknum;
     *block += 1;

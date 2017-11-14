@@ -181,7 +181,7 @@ int main (int argc, char* argv[]) {
   LOG(INFO) << "Material: " << mat->toString();
 
   LOG(INFO) << "Loaded components:";
-  for (auto v : md.feComps) {
+  for (auto& v : md.feComps) {
     LOG(INFO) << v.second;
   }
 
@@ -205,19 +205,19 @@ int main (int argc, char* argv[]) {
   }
 
   // add Mpcs
-  for (auto mpc : md.mpcs) {
+  for (auto& mpc : md.mpcs) {
     // TODO: here the allocated Mpc instance is kept in MeshData,
     // but storage will only have a pointer on it
     storage.addMpc(mpc);
   }
 
   // add loadBc
-  for (auto v : md.loadBcs) {
+  for (auto& v : md.loadBcs) {
     solver.addLoad(v.node, v.node_dof, v.value);
   }
 
   // add fixBc
-  for (auto v : md.fixBcs) {
+  for (auto& v : md.fixBcs) {
     solver.addFix(v.node, v.node_dof, v.value);
   }
 
