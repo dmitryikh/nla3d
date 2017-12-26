@@ -7,6 +7,7 @@
 #include "elements/SOLID81.h"
 #include "elements/TRUSS3.h"
 #include "elements/TETRA0.h"
+#include "elements/TETRA1.h"
 #include "elements/QUADTH.h"
 #include "elements/TRIANGLE4.h"
 
@@ -57,6 +58,11 @@ void ElementFactory::createElements (ElementType elId, const uint32 n, std::vect
       case ElementType::TETRA0:
         for (uint32 i = 0; i < n; i++) {
           ptr.push_back(new ElementTETRA0());
+        }
+        break;
+      case ElementType::TETRA1:
+        for (uint32 i = 0; i < n; i++) {
+          ptr.push_back(new ElementTETRA1());
         }
         break;
       case ElementType::QUADTH:

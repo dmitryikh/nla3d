@@ -25,10 +25,12 @@ static_assert((int)scalarQuery::LAST == sizeof(scalarQueryLabels)/sizeof(scalarQ
 enum class vectorQuery {
   UNDEF,
   IC,
+  FLUX,
+  GRADT,
   LAST
 };
 
-const char* const vectorQueryLabels[] = {"UNDEFINEDS", "IC", "LAST"};
+const char* const vectorQueryLabels[] = {"UNDEFINEDS", "IC", "FLUX", "GRADT", "LAST"};
 
 static_assert((int)vectorQuery::LAST == sizeof(vectorQueryLabels)/sizeof(vectorQueryLabels[0]) - 1,
     "vectorQuery enumeration and vectorQueryLabels must have the same number of entries");
