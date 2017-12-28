@@ -42,9 +42,30 @@ void ElementTETRA0::buildK() {
   makeB(matB);  
 
   math::matBTDBprod(matB, matC, vol, matKe);
-  // start assemble procedure. Here we should provide element stiffness matrix and an order of 
-  // nodal DoFs in the matrix.
-  assembleK(matKe, {Dof::UX, Dof::UY, Dof::UZ});
+
+  if ((alpha != 0. && T != 0.) || strains.qlength() != 0.){
+    //node forces calculations
+    math::Vec<12> Fe;
+    Fe.zero();
+
+    math::Mat<12,6> matBTC;
+    matBTC = matB.transpose()*matC.toMat();
+    
+    //termal initial strains
+    if (alpha != 0. && T != 0.){
+      //temp node forces
+      math::Vec<6> tStrains = {alpha*T,alpha*T,alpha*T,0.,0.,0.};
+      strains = strains + tStrains;
+    }
+
+    //mechanical initial strains
+    math::matBVprod(matBTC, strains, -vol, Fe);
+
+    assembleK(matKe, Fe, {Dof::UX, Dof::UY, Dof::UZ});
+  }
+  else{
+    assembleK(matKe, {Dof::UX, Dof::UY, Dof::UZ});
+  }
 }
 
 // after solution it's handy to calculate stresses, strains and other stuff in elements.
@@ -69,8 +90,11 @@ void ElementTETRA0::update () {
     U[i*3 + 2] = storage->getNodeDofSolution(getNodeNumber(i), Dof::UZ);
   }
   
-  // restore strains
+  //restore strains
+  strains.zero();
   math::matBVprod(matB, U, -1.0, strains);
+  
+  stress.zero();
   math::matBVprod(matC, strains, 1.0, stress);
 }
 
@@ -165,13 +189,6 @@ void ElementTETRA0::makeC (math::MatSym<6> &C) {
   C.comp(5,5) = (1./2.-my)*A;
 }
 
-int ElementTETRA0::permute(int i){
-  if (i > 3)
-    return i -4;
-  else 
-    return i;
-}
-
 bool ElementTETRA0::getScalar(double* scalar, scalarQuery query, uint16 gp, const double scale) {
   if (query == scalarQuery::VOL){
      *scalar += vol;
@@ -199,7 +216,15 @@ bool  ElementTETRA0::getTensor(math::MatSym<3>* tensor, tensorQuery query, uint1
     tensor->comp(0,2) += stress[5];
     return true;
   }
-
+  if (query == tensorQuery::TSTRAIN){
+    tensor->comp(0,0) += alpha*T;
+    tensor->comp(1,1) += alpha*T;
+    tensor->comp(2,2) += alpha*T;
+    tensor->comp(0,1) += 0.;
+    tensor->comp(1,2) += 0.;
+    tensor->comp(0,2) += 0.;
+    return true;
+  }
   
   return false;
 }

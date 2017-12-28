@@ -45,11 +45,12 @@ enum class tensorQuery {
   // Lagrange deformations
   E,  
   // C = F^T F 
-  C,  
+  C,
+  TSTRAIN, 
   LAST
 };
 
-const char* const tensorQueryLabels[] = {"UNDEFINED","COUCHY", "PK2", "E", "C", "LAST"};
+const char* const tensorQueryLabels[] = {"UNDEFINED","COUCHY", "PK2", "E", "C", "TSTRAIN", "LAST"};
 
 static_assert((int)tensorQuery::LAST == sizeof(tensorQueryLabels)/sizeof(tensorQueryLabels[0]) - 1,
     "tensorQuery enumeration and tensorQueryLabels must have the same number of entries");
