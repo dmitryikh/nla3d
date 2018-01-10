@@ -127,7 +127,7 @@ install(DIRECTORY "src/" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/nla3d"
 
 # generate python wrapper by SWIG. `swig` rule to generate wrapper sources, `nla3d_py` - to build library
 IF (NLA3D_PYTHON)
-    set(Python_ADDITIONAL_VERSIONS 2.7)
+    set(Python_ADDITIONAL_VERSIONS 3)
     FIND_PACKAGE(PythonInterp)
     FIND_PACKAGE(PythonLibs)
     FIND_PROGRAM(SWIG_EXECUTABLE NAMES swig3.0 swig)

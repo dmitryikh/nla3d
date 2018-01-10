@@ -331,6 +331,7 @@ MATSYM_EXTEND(3)
 %rename("%s") MeshData::clear;
 %rename("%s") MeshData::compressNumbers;
 %rename("%s") readCdbFile;
+%rename("%s") readNeuFile;
 %include "FEReaders.h"
 %rename("%s", %$isfunction) "";
 %rename("%s", %$isclass) "";

@@ -1,4 +1,5 @@
-#encoding: utf-8
+#/bin/env python3
+
 import nla3d as nla
 import sys
 
@@ -9,7 +10,7 @@ def readDispData(filename):
     fin.readline()
     for line in fin:
       v = nla.Vec3()
-      v[0], v[1], v[2] = map(float, line.strip().split())[1:]
+      v[0], v[1], v[2] = list(map(float, line.strip().split()))[1:]
       disps.append(v)
   return disps
 
@@ -20,7 +21,7 @@ def readStressData(filename):
     fin.readline()
     for line in fin:
       m = nla.MatSym3()
-      m[0, 0], m[1, 1], m[2, 2], m[0, 1], m[1, 2], m[0, 2] = map(float, line.strip().split())[1:]
+      m[0, 0], m[1, 1], m[2, 2], m[0, 1], m[1, 2], m[0, 2] = list(map(float, line.strip().split()))[1:]
       stresses.append(m)
   return stresses
 
@@ -80,7 +81,7 @@ def main():
   if res_disp_filename:
     print('Checking displacements..')
     ans_disps = readDispData(res_disp_filename)
-    for i, v in zip(range(1, storage.nNodes() + 1), ans_disps):
+    for i, v in zip(list(range(1, storage.nNodes() + 1)), ans_disps):
       for j, d in enumerate([nla.Dof.UX, nla.Dof.UY, nla.Dof.UZ]):
         check(storage.getNodeDofSolution(i, d), v[j], 1.0e-10)
     print('OK!')
@@ -90,7 +91,7 @@ def main():
     print('Checking stresses..')
     ans_stresses = readStressData(res_stress_filename)
     mat = nla.MatSym3()
-    for i, v in zip(range(1, storage.nElements() + 1), ans_stresses):
+    for i, v in zip(list(range(1, storage.nElements() + 1)), ans_stresses):
       mat.zero()
       storage.getElement(i).getTensor(mat, nla.tensorQuery_E)
       assert(mat.compare(v, 1e-6))

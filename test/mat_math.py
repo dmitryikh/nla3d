@@ -1,5 +1,4 @@
-#/bin/env python2.7
-#encoding: utf-8
+#/bin/env python3
 
 import nla3d as nla
 
@@ -9,7 +8,7 @@ mat.from_list([ [1.0, 2.0, 3.0]
               , [4.0, 5.0, 6.0]
               , [7.0, 8.0, 9.0]
               ])
-print mat
+print(mat)
 mat2 = mat.copy()
 assert(mat2.compare(mat))
 
@@ -46,5 +45,5 @@ sym3[1, 1] = 15.0
 sym3[1, 2] = -3.0
 sym3[2, 2] = 14.0
 
-print sym3
-print sym3.toMat()
+print(sym3)
+print(sym3.toMat())

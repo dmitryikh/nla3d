@@ -304,7 +304,7 @@ bool readNeuFile(std::string filename, MeshData& md)
       FEComponent comp;
       comp.name = compname;
       comp.type = FEComponent::ELEMENTS;
-      md.feComps.insert(std::make_pair(comp.name, comp));
+      it = md.feComps.insert(std::make_pair(comp.name, comp)).first;
     }    
     for (int node_num(0); node_num < 3; ++node_num) { 
       int node;

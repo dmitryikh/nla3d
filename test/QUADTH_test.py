@@ -1,4 +1,5 @@
-#encoding: utf-8
+#/bin/env python3
+
 import nla3d as nla
 import sys
 
@@ -73,7 +74,7 @@ def main():
   if res_filename:
     print('Checking temperatures..')
     ans_temps = readTempData(res_filename)
-    for i, v in zip(range(1, storage.nNodes() + 1), ans_temps):
+    for i, v in zip(list(range(1, storage.nNodes() + 1)), ans_temps):
       check(storage.getNodeDofSolution(i, nla.Dof.TEMP), v, 1.0e-3)
     print('OK!')
 

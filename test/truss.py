@@ -1,4 +1,5 @@
-#encoding: utf-8
+#/bin/env python3
+
 import nla3d as nla
 
 nodeTable = [ [0.0,  0.0,  0.0]
@@ -52,7 +53,7 @@ solver.attachFEStorage(storage);
 
 solver.solve()
 
-print "DoF solution:"
+print("DoF solution:")
 for i in range(1, nnodes + 1):
     print("%d: UX = %f" % (i, storage.getNodeDofSolution(i, nla.Dof.UX)))
     print("%d: UY = %f" % (i, storage.getNodeDofSolution(i, nla.Dof.UY)))
