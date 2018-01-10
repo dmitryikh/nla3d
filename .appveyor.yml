@@ -11,6 +11,7 @@ configuration: Release
 
 install:
   # by default, all script lines are interpreted as batch
+  - ps: choco install -y -r swig --version 3.0.9
 
 build_script:
   - git submodule update --init
@@ -18,6 +19,7 @@ build_script:
   - cd build
   - cmake -DCMAKE_BUILD_TYPE=Release ..
   - cmake --build . --config Release --target check
+  - cmake --build . --config Release --target checkpy
   - ctest -E "a2000|damper" -C Release --output-on-failure
 
 # scripts to run before build

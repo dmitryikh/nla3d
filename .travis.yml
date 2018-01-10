@@ -23,8 +23,12 @@ matrix:
       env: COMPILER=clang++-3.6
       dist: trusty
 
-install: true
+install:
+ - wget http://prdownloads.sourceforge.net/swig/swig-3.0.12.tar.gz -O /tmp/swig.tar.gz
+ - tar -xf /tmp/swig.tar.gz
+ - cd swig-3.0.12 && ./configure --prefix=/usr && make && sudo make install && cd ..
 
 script:
  - mkdir build && cd build && cmake -DCMAKE_CXX_COMPILER=$COMPILER -DCMAKE_BUILD_TYPE=Release ..
  - MALLOC_CHECK_=0 make -j 2 && make check -j 2
+ - MALLOC_CHECK_=0 make checkpy -j 2

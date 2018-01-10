@@ -269,7 +269,7 @@ void FEStorage::deleteElements() {
 
 
 void FEStorage::deleteMpcs() {
-  list<Mpc*>::iterator mpc = mpcs.begin();
+  auto mpc = mpcs.begin();
   while (mpc != mpcs.end()) {
     delete *mpc;
     mpc++;
@@ -555,14 +555,14 @@ void FEStorage::printDofInfo(std::ostream& out) {
     auto en_dofs = elementDofs.getEntityDofs(en);
     for (auto d1 = en_dofs.first; d1 != en_dofs.second; d1++)
       out << "E" << en << ":" << Dof::dofType2label(d1->type) << " eq = " << d1->eqNumber 
-           << " constrained = " << d1->isConstrained << endl;
+           << " constrained = " << d1->isConstrained << std::endl;
   }
 
   for (uint32 nn = 1; nn <= nNodes(); nn++) {
     auto nn_dofs = nodeDofs.getEntityDofs(nn);
     for (auto d1 = nn_dofs.first; d1 != nn_dofs.second; d1++)
       out << "N" << nn << ":" << Dof::dofType2label(d1->type) << " eq = " << d1->eqNumber 
-           << " constrained = " << d1->isConstrained << endl;
+           << " constrained = " << d1->isConstrained << std::endl;
   }
 
 }

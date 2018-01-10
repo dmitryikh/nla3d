@@ -49,20 +49,17 @@
 #define CHECK_EQTH(a, b, th) CHECK(fabs(a-b) < th)
 
 
-#define int8 char //-127 to +127
-#define uint8 unsigned char //0 to +255
-#define int16 short //-32 767 to +32 767
-#define uint16 unsigned short //0 to +65 535
-#define int32 int //-2 147 483 647 to +2 147 483 647
-#define uint32 unsigned int // 0 to +4 294 967 295
-#define int64 long long //-9 223 372 036 854 775 807 to +9 223 372 036 854 775 807
-#define uint64 unsigned long long //0 to +18 446 744 073 709 551 615
+typedef char int8; //-127 to +127
+typedef unsigned char uint8; //0 to +255
+typedef short int16; //-32 767 to +32 767
+typedef unsigned short uint16; //0 to +65 535
+typedef int int32; //-2 147 483 647 to +2 147 483 647
+typedef unsigned int uint32; // 0 to +4 294 967 295
+typedef long long int64; //-9 223 372 036 854 775 807 to +9 223 372 036 854 775 807
+typedef unsigned long long uint64; //0 to +18 446 744 073 709 551 615
 
 
 namespace nla3d {
-
-const char SYS_VERSION[] = "1.3";
-const char SYS_DATA[] = "16.03.15";
 
 // singleton for configuring the logger
 class LogInitializer {
@@ -139,9 +136,6 @@ private:
   clock_t end_time;
 };
 
-// this function is used by FEStorage::read_ans_data funciton
-uint16 str2dof (std::string dof_name);
-
 char* getCmdOption (char** begin, char** end, const std::string& option);
 bool cmdOptionExists (char** begin, char** end, const std::string& option);
 std::vector<char*> getCmdManyOptions (char** begin, char** end, const std::string& option); 
@@ -179,7 +173,9 @@ const char* const elTypeLabels[] = {
   "UNDEFINED"
 };
 
+#ifndef SWIG // got swig 3.0.12 sytax error
 static_assert((int)ElementType::UNDEFINED == sizeof(elTypeLabels)/sizeof(elTypeLabels[0]) - 1,
     "ElementType enumeration and elTypeLabels must have the same number of entries");
+#endif
 
 } // namespace nla3d

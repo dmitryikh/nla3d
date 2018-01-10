@@ -12,7 +12,7 @@ using namespace math;
 
 
 void Mpc::print (std::ostream& out) {
-  list<MpcTerm>::iterator token = eq.begin();
+  auto token = eq.begin();
   bool first = true;
   while (token != eq.end()) {
     //Cij_add(eq_num, token->node, token->node_dof, token->coef);
@@ -148,7 +148,7 @@ void RigidBodyMpc::update () {
         collection[n*static_cast<uint16> (dofs.size()) + d]->b = w0[i] + (C[i][0] - solidmech::I[i][0])*pqVec[0] +
               (C[i][1] - solidmech::I[i][1])*pqVec[1] + (C[i][2] - solidmech::I[i][2])*pqVec[2] -
               storage->getNodeDofSolution(slaveNodes[n], dofs[d]);
-        list<MpcTerm>::iterator token = collection[n*dofs.size() + d]->eq.begin();
+        auto token = collection[n*dofs.size() + d]->eq.begin();
         token++;
         token++;
         // masterNode::ROTX coef

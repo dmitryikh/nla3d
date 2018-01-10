@@ -102,6 +102,7 @@ _nla3d_ uses several external libraries:
   * Eigen matrix library to provide rich and good optimized matrix operations.
   * Easylogging++ as powerfull and lightweight logging engine with the useful performance measurments
     feature.
+  * SWIG tool for building python bindings.
 
 ## Compiling
 
@@ -162,19 +163,16 @@ If all test pass ok, in this case here is fully worked _nla3d_ binaries!
 Here are some _nla3d_ specific options that can affect on result binaries. This options are defined
 in ```nla3d/CMakeLists.txt```:
 
-```
-set (nla3d_use_MKL OFF)
-```
-
 _nla3d_ by default use ```math::GaussDenseEquationSolver``` to solve a system of linear equations. This is
 very simple method named _Gaussian Elimination with partial pivoting_. It works fine for small
 systems but when you need to solve some large FE system your should use other ```math::EquationSolver```.
 The best candidate for now is ```math::PARDISO_equationSolver```. It uses _MKL_'s ```PARDISO(...)```
 subroutines to solve large scale sparce linear equations systems. Hence, if you have _MKL_ dev
-libraries installed on your side you can ```set (nla3d_use_MKL ON)``` to build with _MKL_ support.
+libraries installed on your side you can `-DNLA3d_USE_MKL=ON` to build with _MKL_ support.
 Once you did this nla3d.exe will use ```math::PARDISO_equationSolver```.
 
- 
+Use `-DNLA3D_PYTHON=ON` with `cmake` to make python bindings, there will be `nla3d_py` and `checkpy` for building bindings and run tests.
+
 ## Writing new finite element
 
 Here is a try to help someone to get familiar with _nla3d_. In this chapter a pretty easy 3D
@@ -189,6 +187,10 @@ Then ElementTRUSS3 is used to solve a very simple 2D problem described in ```src
 
 All this sources are massively commented to make it clear how to use it and how to implement new FE
 into nla3d.
+
+## Python bindings
+
+_nla3d_ can be built with python bindings. Most of features are already available from python. See `Compiling options` above for details of compilation. You can found examples of _nla3d_ usage with python in `test/*.py` scripts.
 
 ## Contacts
 

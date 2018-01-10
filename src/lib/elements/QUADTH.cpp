@@ -66,7 +66,7 @@ void ElementQUADTH::buildC() {
   assembleC(Ce, {Dof::TEMP});
 }
 
-inline Mat<2,4> ElementQUADTH::make_B(uint16 np) {
+Mat<2,4> ElementQUADTH::make_B(uint16 np) {
   return Mat<2,4>(NiXj[np][0][0], NiXj[np][1][0], NiXj[np][2][0], NiXj[np][3][0],
                   NiXj[np][0][1], NiXj[np][1][1], NiXj[np][2][1], NiXj[np][3][1]);
 }

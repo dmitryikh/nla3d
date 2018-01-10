@@ -30,7 +30,7 @@ class MeshData {
     // NOTE: every element in MeshData should have the same set of custom data
     std::map<std::string, std::vector<double>> cellDoubleData;
     std::map<std::string, std::vector<uint32>> cellIntData;
-    std::map<std::string, std::vector<string>> cellStringData;
+    std::map<std::string, std::vector<std::string>> cellStringData;
 
     std::vector<uint32> nodesNumbers;
     std::vector<Vec<3>> nodesPos;
@@ -60,7 +60,7 @@ std::string& strim(std::string& str);
 // std::move semantic to use with rvalues
 std::string&& strim(std::string&& str);
 // return first non-space char
-char sfirstNotBlank(const string& str);
+char sfirstNotBlank(const std::string& str);
 
 std::string& stolower(std::string& str);
 std::string& stoupper(std::string& str);
@@ -71,7 +71,7 @@ std::vector<std::string> ssplit(const std::string& line, const std::vector<int>&
                                   bool strict = true);
 
 // case insensitive string comparison
-bool iequals(const string& a, const string& b);
+bool iequals(const std::string& a, const std::string& b);
 
 // get line from the `is`, supported all types of line endings
 std::istream& getLine(std::istream& is, std::string& t);

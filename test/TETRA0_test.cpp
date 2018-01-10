@@ -48,12 +48,11 @@ int main (int argc, char* argv[]) {
 
 	// add nodes
 	auto sind = storage.createNodes(md.nodesNumbers.size());
-	auto ind = md.nodesNumbers;
 	for (uint32 i = 0; i < sind.size(); i++) {
 		storage.getNode(sind[i]).pos = md.nodesPos[i];
 	}
 
-    ind = md.getCellsByAttribute("TYPE", 1);
+    auto ind = md.getCellsByAttribute("TYPE", 1);
     sind = storage.createElements(ind.size(), ElementType::TETRA0);
     for (uint32 i = 0; i < sind.size(); i++) {
       ElementTETRA0& el = dynamic_cast<ElementTETRA0&>(storage.getElement(sind[i]));
@@ -105,7 +104,7 @@ int main (int argc, char* argv[]) {
     if (res_stress_filename != "") {
         auto ans_stresses = readStressData(res_stress_filename);
         math::MatSym<3> mat;
-        for (uint32 i = 1; i <= storage.nNodes(); i++) {
+        for (uint32 i = 1; i <= storage.nElements(); i++) {
             mat.zero();
             storage.getElement(i).getTensor(&mat, tensorQuery::E);
             CHECK(mat.compare(ans_stresses[i - 1], 1.0e-3));

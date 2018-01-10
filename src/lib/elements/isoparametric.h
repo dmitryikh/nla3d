@@ -39,31 +39,31 @@ struct QuadPt3D {
 
 // gauss quadrature for 1D line from (-1) to (1)
 // 1st order
-const static QuadPt1D _quad_line_o1[] = {
+static const QuadPt1D _quad_line_o1[] = {
   {+0.0000000000000000, +2.0000000000000000}
 };
 
 // 2nd order
-const static QuadPt1D _quad_line_o2[] = {
+static const QuadPt1D _quad_line_o2[] = {
   {-0.5773502691896258, +1.0000000000000000},
   {+0.5773502691896258, +1.0000000000000000}
 };
 
 // 3rd order
-const static QuadPt1D _quad_line_o3[] = {
+static const QuadPt1D _quad_line_o3[] = {
   {-0.7745966692414834, +0.5555555555555556},
   {+0.0000000000000000, +0.8888888888888888},
   {+0.7745966692414834, +0.5555555555555556}
 };
 
 // array of number of quadrature points in integration scheme
-const static uint16 _np_line[] = {
+static const uint16 _np_line[] = {
   sizeof(_quad_line_o1) / sizeof(QuadPt1D),
   sizeof(_quad_line_o2) / sizeof(QuadPt1D),
   sizeof(_quad_line_o3) / sizeof(QuadPt1D)
 };
 
-const static QuadPt1D* _table_line[] = {
+static const QuadPt1D* _table_line[] = {
   _quad_line_o1,
   _quad_line_o2,
   _quad_line_o3
@@ -72,12 +72,12 @@ const static QuadPt1D* _table_line[] = {
 
 // gauss quadrature for 2D rect from (-1,-1) to (1,1)
 // 1st order
-const static QuadPt2D _quad_quad_o1[] = {
+static const QuadPt2D _quad_quad_o1[] = {
   {+0.0000000000000000, +0.0000000000000000, +4.0000000000000000}
 };
 
 // 2nd order
-const static QuadPt2D _quad_quad_o2[] = {
+static const QuadPt2D _quad_quad_o2[] = {
   {-0.5773502691896258, -0.5773502691896258, +1.0000000000000000},
   {+0.5773502691896258, -0.5773502691896258, +1.0000000000000000},
   {-0.5773502691896258, +0.5773502691896258, +1.0000000000000000},
@@ -85,7 +85,7 @@ const static QuadPt2D _quad_quad_o2[] = {
 };
 
 // 3rd order
-const static QuadPt2D _quad_quad_o3[] = {
+static const QuadPt2D _quad_quad_o3[] = {
   {-0.7745966692414834, -0.7745966692414834, +0.3086419753086420},
   {+0.0000000000000000, -0.7745966692414834, +0.4938271604938271},
   {+0.7745966692414834, -0.7745966692414834, +0.3086419753086420},
@@ -101,14 +101,14 @@ const static QuadPt2D _quad_quad_o3[] = {
 
 
 // array of number of quadrature points in integration scheme
-const static uint16 _np_quad[] = {
+static const uint16 _np_quad[] = {
   sizeof(_quad_quad_o1) / sizeof(QuadPt2D),
   sizeof(_quad_quad_o2) / sizeof(QuadPt2D),
   sizeof(_quad_quad_o3) / sizeof(QuadPt2D)
 };
 
 
-const static QuadPt2D* _table_quad[] = {
+static const QuadPt2D* _table_quad[] = {
   _quad_quad_o1,
   _quad_quad_o2,
   _quad_quad_o3
@@ -117,13 +117,13 @@ const static QuadPt2D* _table_quad[] = {
 
 // gauss quadrature for 3D brick from (-1,-1,-1) to (1,1,1)
 // 1st order
-const static QuadPt3D _quad_hexahedron_o1[] = {
+static const QuadPt3D _quad_hexahedron_o1[] = {
   {+0.0000000000000000, +0.0000000000000000, +0.0000000000000000, +8.0000000000000000}
 };
 
 
 // 2nd order
-const static QuadPt3D _quad_hexahedron_o2[] = {
+static const QuadPt3D _quad_hexahedron_o2[] = {
   {-0.5773502691896258, -0.5773502691896258, -0.5773502691896258, +1.0000000000000000},
   {+0.5773502691896258, -0.5773502691896258, -0.5773502691896258, +1.0000000000000000},
   {-0.5773502691896258, +0.5773502691896258, -0.5773502691896258, +1.0000000000000000},
@@ -137,7 +137,7 @@ const static QuadPt3D _quad_hexahedron_o2[] = {
 
 
 // 3rd order
-const static QuadPt3D _quad_hexahedron_o3[] = {
+static const QuadPt3D _quad_hexahedron_o3[] = {
   {-0.7745966692414834, -0.7745966692414834, -0.7745966692414834, +0.1714677640603567},
   {+0.0000000000000000, -0.7745966692414834, -0.7745966692414834, +0.2743484224965707},
   {+0.7745966692414834, -0.7745966692414834, -0.7745966692414834, +0.1714677640603567},
@@ -178,14 +178,14 @@ const static QuadPt3D _quad_hexahedron_o3[] = {
 };
 
 
-const static uint16 _np_hexahedron[] = {
+static const uint16 _np_hexahedron[] = {
   sizeof(_quad_hexahedron_o1) / sizeof(QuadPt3D),
   sizeof(_quad_hexahedron_o2) / sizeof(QuadPt3D),
   sizeof(_quad_hexahedron_o3) / sizeof(QuadPt3D)
 };
 
 
-const static QuadPt3D* _table_hexahedron[] = {
+static const QuadPt3D* _table_hexahedron[] = {
   _quad_hexahedron_o1,
   _quad_hexahedron_o2,
   _quad_hexahedron_o3

@@ -18,9 +18,10 @@ enum class scalarQuery {
 
 const char* const scalarQueryLabels[] = {"UNDEFINED", "S_P", "W", "WU", "WP", "VOL", "LAST"};
 
+#ifndef SWIG // got swig 3.0.12 sytax error
 static_assert((int)scalarQuery::LAST == sizeof(scalarQueryLabels)/sizeof(scalarQueryLabels[0]) - 1,
     "scalarQuery enumeration and scalarQueryLabels must have the same number of entries");
-
+#endif
 
 enum class vectorQuery {
   UNDEF,
@@ -32,9 +33,10 @@ enum class vectorQuery {
 
 const char* const vectorQueryLabels[] = {"UNDEFINEDS", "IC", "FLUX", "GRADT", "LAST"};
 
+#ifndef SWIG // got swig 3.0.12 sytax error
 static_assert((int)vectorQuery::LAST == sizeof(vectorQueryLabels)/sizeof(vectorQueryLabels[0]) - 1,
     "vectorQuery enumeration and vectorQueryLabels must have the same number of entries");
-
+#endif
 
 enum class tensorQuery {
 	UNDEF,
@@ -52,8 +54,10 @@ enum class tensorQuery {
 
 const char* const tensorQueryLabels[] = {"UNDEFINED","COUCHY", "PK2", "E", "C", "TSTRAIN", "LAST"};
 
+#ifndef SWIG // got swig 3.0.12 sytax error
 static_assert((int)tensorQuery::LAST == sizeof(tensorQueryLabels)/sizeof(tensorQueryLabels[0]) - 1,
     "tensorQuery enumeration and tensorQueryLabels must have the same number of entries");
+#endif
 
 // means averaged values of the element
 const uint16 GP_MEAN = 100;

@@ -10,7 +10,6 @@
 namespace nla3d {
 namespace math {
 
-using namespace std;
 
 template<uint16 dim> 
 class Vec
@@ -44,10 +43,13 @@ public:
 	Vec& operator= (const Vec<dim> &op);
 	Vec operator- (const Vec<dim> &op);
 	Vec operator* (const double op);
-	string toString ();
+    std::string toString ();
 	bool compare (Vec<dim>& V, double eps = 0.00005);
 	void simple_read(std::istream& st);
 	double operator* (const Vec<dim> &op);
+    uint16 size() const {
+      return dim;
+    }
   template <uint16 dim1>
     friend std::ostream& operator<< (std::ostream& stream,const Vec<dim1>& obj);
   template <uint16 dim1>
@@ -150,9 +152,9 @@ template<uint16 dim1> std::ostream &operator<<(std::ostream &stream, const Vec<d
 	return stream;
 }
 //-------------------------------------------------------------
-template<uint16 dim> string Vec<dim>::toString ()
+template<uint16 dim> std::string Vec<dim>::toString ()
 {
-	string p;
+    std::string p;
 	char buff[100];
 	for (uint16 i = 0; i < dim; i++) {
 		sprintf_s(buff,100,"%8.5e",this->data[i]);
@@ -200,6 +202,8 @@ template<uint16 dim> void Vec<dim>::simple_read(std::istream& st)
 class dVec {
   public:
     dVec();
+    dVec(dVec const& rhs);
+    dVec(dVec&& rhs);
     dVec(uint32 _n, double _val = 0.0);
     dVec(dVec& _ref, uint32 _start, uint32 _size);
     void reinit(uint32 _n, double _val = 0.0);
@@ -212,7 +216,7 @@ class dVec {
     void clear();
     void fill(double val);
 
-    bool isInit();
+    bool isInit() const;
 
     double& operator[](uint32 _n);
     double operator[](uint32 _n) const;

@@ -184,6 +184,8 @@ public:
 	void getNodePosition(uint32 n, double* ptr, bool deformed = false);
   // NOTE: `_en` > 0
 	Element& getElement(uint32 _en);
+  template<typename ET>
+  ET& getElement(uint32 _en);
   // get a FEComponent instance by registration number
   // NOTE: `i` > -1
   FEComponent* getFEComponent(size_t i);
@@ -639,6 +641,12 @@ inline Node& FEStorage::getNode(uint32 _nn) {
 inline Element& FEStorage::getElement(uint32 _en) {
 	assert(_en <= nElements());
 	return *(elements[_en-1]);
+}
+
+
+template<typename ET>
+inline ET& FEStorage::getElement(uint32 _en) {
+  return dynamic_cast<ET&>(getElement(_en));
 }
 
 

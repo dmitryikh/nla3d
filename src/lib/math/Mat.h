@@ -41,10 +41,10 @@ public:
 	void display ();
 	Mat operator+ (const Mat &op);
 	Mat& operator+= (const Mat &op);
-	Mat operator- ();
+	Mat operator- () const;
 	Mat& operator= (const Mat &op);
 	Mat<dimM,1>& operator= (const Vec<dimM> &op); //TODO: CHECK this operation
-	Mat operator- (const Mat &op);
+	Mat operator- (const Mat &op) const;
 	Mat operator* (const double op);
 	void Identity ();
 	void zero ();
@@ -52,9 +52,9 @@ public:
 	Vec<dimM> eigenvalues();
 	Mat<dimM,dimN> inv(double det);
 	Mat<dimM-1,dimN-1> cross_cut (uint16 cuti, uint16 cutj);
-	string toString ();
+    std::string toString ();
 	double* ptr ();
-	bool compare (const Mat<dimM,dimN> &B, double eps = 0.00001);
+	bool compare (const Mat<dimM,dimN> &B, double eps = 1.0e-5);
 	void simple_read (std::istream &st);
 	//friend функции
 	template <uint16 dimM1, uint16 dimN1> 
@@ -65,6 +65,14 @@ public:
     friend Vec<dimM1> operator* (const Mat<dimM1,dimN1> &op1, const Vec<dimM2> &op2);
     // template<uint16 dimM1, uint16 dimN1>
     // friend bool matCompare (const Mat<dimM1, dimN>& mat1, const Mat<dimM1, dimN1>& mat2, const double eps);
+
+    uint16 dM() const {
+      return dimM;
+    }
+
+    uint16 dN() const {
+      return dimN;
+    }
 
 	Vec<dimN> data[dimM];
 private:
@@ -133,15 +141,24 @@ Mat<dimM,dimN> Mat<dimM,dimN>::operator+ (const Mat<dimM,dimN> &op) {
 			p[i][j]=this->data[i][j]+op.data[i][j];
 	return p;
 }
+//----------operator-()---------------------------------------------------------
+template<uint16 dimM, uint16 dimN>
+Mat<dimM,dimN> Mat<dimM,dimN>::operator- () const {
+	Mat<dimM,dimN> p;
+	for (uint16 i=0; i < dimM; i++)
+		for (uint16 j=0; j < dimN; j++)
+			p[i][j] = -this->data[i][j];
+	return p;
+}
 //----------operator-(Mat)---------------------------------------------------------
-//template<uint16 dimM, uint16 dimN>
-//Mat<dimM,dimN> Mat<dimM,dimN>::operator- (const Mat<dimM,dimN> &op) {
-//	Mat<dimM,dimN> p;
-//	for (uint16 i=0; i < dimM; i++)
-//		for (uint16 j=0; j < dimN; j++)
-//			p[i][j]=this->data[i][j]-op.data[i][j];
-//	return p;
-//}
+template<uint16 dimM, uint16 dimN>
+Mat<dimM,dimN> Mat<dimM,dimN>::operator- (const Mat<dimM,dimN> &op) const {
+	Mat<dimM,dimN> p;
+	for (uint16 i=0; i < dimM; i++)
+		for (uint16 j=0; j < dimN; j++)
+			p[i][j]=this->data[i][j]-op.data[i][j];
+	return p;
+}
 //-----------operator*(double)----------------------------------------------------------
 template<uint16 dimM, uint16 dimN>
 Mat<dimM,dimN> Mat<dimM,dimN>::operator*(const double op)
@@ -223,9 +240,9 @@ template <uint16 dimM1, uint16 dimN1, uint16 dimM2> Vec<dimM1> operator* (const 
 }
 //--------------------------------------------------------------------------------
 template<uint16 dimM, uint16 dimN>
-string Mat<dimM,dimN>::toString()
+std::string Mat<dimM,dimN>::toString()
 {
-	string p;
+    std::string p;
 	for (unsigned int i = 0; i < dimM; i++) {
 		p+= "[";
 		p+=data[i].toString();
@@ -592,8 +609,14 @@ public:
 	}
   Mat<dimM, dimM> toMat();
 	void simple_read (std::istream &st);
-	bool compare (MatSym<dimM> &B, double eps = 0.00001);
+	bool compare (MatSym<dimM> &B, double eps = 1.0e-5);
 	MatSym& operator+= (const MatSym &op);
+    uint16 dM() const {
+      return dimM;
+    }
+    uint16 dN() const {
+      return dimM;
+    }
 
 	double data[dimM*(dimM+1)/2];
 };

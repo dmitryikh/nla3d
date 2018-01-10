@@ -53,7 +53,7 @@ std::ostream &operator<<(std::ostream &stream, dMat &obj) {
 		std::cout << "[";
 		for (uint16 j = 0; j < obj.dimN; j++)
 			std::cout << obj[i][j] << " ";
-		std::cout << "]" << endl;
+		std::cout << "]" << std::endl;
 	}
 	return stream;
 }

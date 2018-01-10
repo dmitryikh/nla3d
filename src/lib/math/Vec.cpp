@@ -13,6 +13,28 @@ dVec::dVec() {
 }
 
 
+dVec::dVec(dVec const& rhs) {
+  if(rhs.isInit()) {
+    double* ptr = new double[rhs.size()];
+	memcpy(ptr, rhs.data, sizeof(double) * rhs.size());
+    data = ptr;
+    memory_owner = true;
+    _size = rhs.size();
+  }
+}
+
+
+dVec::dVec(dVec&& rhs)
+: data(rhs.data)
+, memory_owner(rhs.memory_owner)
+, _size(rhs.size())
+{
+  rhs._size = 0;
+  rhs.data = nullptr;
+  rhs.memory_owner = false;
+}
+
+
 dVec::dVec(uint32 _n, double _val) {
   reinit(_n, _val);
 }
@@ -79,7 +101,7 @@ void dVec::fill(double val) {
 }
 
 
-bool dVec::isInit() {
+bool dVec::isInit() const {
   return (data != nullptr);
 }
 
@@ -197,12 +219,14 @@ dVec& dVec::operator-=(const dVec& op) {
 }
 
 dVec& dVec::operator=(const dVec& op) {
-  assert(data);
-  assert(op.data);
-  assert(size() == op.size());
-
-	for (uint32 i = 0; i < size(); i++) {
-    data[i] = op.data[i];
+  if (this == &op) {
+    return *this;
+  } else if (!op.isInit()) {
+    clear();
+  } else {
+      if (_size != op.size())
+        reinit(op.size());
+      memcpy(data, op.data, sizeof(double) * op.size());
   }
   return *this;
 }
@@ -231,7 +255,7 @@ bool dVec::compare(const dVec& op2, double th) {
 void dVec::writeTextFormat(std::ostream& out) {
   out << size() << std::endl;
   for (uint32 i = 0; i < size(); i++) {
-    out << data[i] << endl;
+    out << data[i] << std::endl;
   }
 }
 
