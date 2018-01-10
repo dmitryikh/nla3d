@@ -29,6 +29,6 @@ install:
  - cd swig-3.0.12 && ./configure --prefix=/usr && make && sudo make install && cd ..
 
 script:
- - mkdir build && cd build && cmake -DCMAKE_CXX_COMPILER=$COMPILER -DCMAKE_BUILD_TYPE=Release ..
+ - mkdir build && cd build && cmake -DCMAKE_CXX_COMPILER=$COMPILER -DCMAKE_BUILD_TYPE=Release -DNLA3D_PYTHON=ON ..
  - MALLOC_CHECK_=0 make -j 2 && make check -j 2
  - MALLOC_CHECK_=0 make checkpy -j 2

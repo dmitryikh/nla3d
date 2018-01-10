@@ -95,3 +95,6 @@ class Tokenizer {
 // read Ansys Mechanical APDL *.cdb file. Nodes, Elements, Displacement BC, Force BC and MPC
 // (Constraint equations) is supported
 bool readCdbFile(std::string filename, MeshData& md);
+
+// read netgen neutral volume mesh format *.neu file. 
+bool readNeuFile(std::string filename, MeshData& md);

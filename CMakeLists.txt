@@ -104,7 +104,7 @@ add_subdirectory (src/lib)
 
 
 # here is a main target - nla3d.exe
-set (NLA3D_APP_SOURCES "src/main.cpp;src/FEReaders.cpp")
+set (NLA3D_APP_SOURCES "src/main.cpp")
 
 # an executable to use TRUSS3 element
 set (NLA3D_TRUSS_APP_SOURCES "src/main_truss.cpp")
@@ -149,7 +149,7 @@ IF (NLA3D_PYTHON)
         INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_DIRS})
         LINK_DIRECTORIES(${PYTHON_LIBRARIES})
 
-        ADD_LIBRARY(nla3d_py SHARED EXCLUDE_FROM_ALL "${CMAKE_BINARY_DIR}/python/nla3d_wrapper.cxx" "src/FEReaders.cpp")
+        ADD_LIBRARY(nla3d_py SHARED EXCLUDE_FROM_ALL "${CMAKE_BINARY_DIR}/python/nla3d_wrapper.cxx")
         TARGET_LINK_LIBRARIES(nla3d_py ${PYTHON_LIBRARIES} nla3d_static_lib math)
         SET_TARGET_PROPERTIES(nla3d_py PROPERTIES OUTPUT_NAME "_nla3d"
                                                   PREFIX ""
