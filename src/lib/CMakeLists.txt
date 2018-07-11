@@ -1,6 +1,7 @@
 add_subdirectory (math)
 
 file (GLOB NLA3D_LIB_SOURCES "*.cpp" "materials/*.cpp" "elements/*.cpp")
+LIST(APPEND NLA3D_LIB_SOURCES "${EASYLOGGINGPP_INCLUDE_DIR}/easylogging++.cc")
 
 if (UNIX)
     add_library(nla3d_lib SHARED ${NLA3D_LIB_SOURCES})

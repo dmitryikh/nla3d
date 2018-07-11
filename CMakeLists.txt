@@ -79,6 +79,8 @@ endif() # NLA3D_USE_MKL
 
 find_package(EASYLOGGINGPP)
 if (EASYLOGGINGPP_FOUND)
+  # Need this definition to use TIMED_SCOPE macro
+  add_definitions( -DELPP_FEATURE_PERFORMANCE_TRACKING)
   include_directories(${EASYLOGGINGPP_INCLUDE_DIR})
 else()
   message(WARNING "Can't find Easylogging++")
