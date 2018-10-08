@@ -64,9 +64,9 @@ if (NLA3D_USE_MKL)
 
       # below code works fine only on UNIX systems..
       if (MKL_MULTI_THREADED)
-          SET(MKL_LINKER_ARGS "${MKL_LINKER_FLAGS} -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ldl")
+          SET(MKL_LINKER_ARGS "${MKL_LINKER_FLAGS} -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -lmkl_rt -lmkl_def -liomp5 -lpthread -lm -ldl")
       else()
-        SET(MKL_LINKER_ARGS "${MKL_LINKER_FLAGS} -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl")
+        SET(MKL_LINKER_ARGS "${MKL_LINKER_FLAGS} -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lmkl_rt -lmkl_def -lpthread -lm -ldl")
       endif()
       SET( CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} ${MKL_LINKER_ARGS}" )
       SET( CMAKE_SHARED_LINKER_FLAGS  "${CMAKE_SHARED_LINKER_FLAGS} ${MKL_LINKER_ARGS}" )

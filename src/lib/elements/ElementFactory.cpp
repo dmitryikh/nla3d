@@ -10,6 +10,8 @@
 #include "elements/TETRA1.h"
 #include "elements/QUADTH.h"
 #include "elements/TRIANGLE4.h"
+#include "elements/INTER0.h"
+#include "elements/INTER3.h"
 
 namespace nla3d {
 
@@ -73,6 +75,16 @@ void ElementFactory::createElements (ElementType elId, const uint32 n, std::vect
       case ElementType::SurfaceLINETH:
         for (uint32 i = 0; i < n; i++) {
           ptr.push_back(new SurfaceLINETH());
+        }
+        break;
+      case ElementType::INTER0:
+        for (uint32 i = 0; i < n; i++) {
+          ptr.push_back(new ElementINTER0());
+        }
+        break;
+      case ElementType::INTER3:
+        for (uint32 i = 0; i < n; i++) {
+          ptr.push_back(new ElementINTER3());
         }
         break;
       default:

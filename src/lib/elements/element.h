@@ -24,6 +24,7 @@ class FEStorage;
 // Element shapes are taken from vtk-file-formats.pdf
 enum ElementShape {
   VERTEX = 0,
+  TWIN_VERTEX,
   LINE,
   TRIANGLE,
   QUAD,
@@ -42,6 +43,7 @@ enum ElementShape {
 // number of dimensions in shape
 static const uint16 _shape_dim[] = {
   0,  // VERTEX
+  0,  // TWIN_VERTEX
   1,  // LINE
   2,  // TRIANGLE
   2,  // QUAD
@@ -59,7 +61,8 @@ static const uint16 _shape_dim[] = {
 
 // number of nodes in shape
 static const uint16 _shape_nnodes[] = {
-  1,  // VERTEX
+  1,  // VERTEX,
+  2,  // TWIN_VERTEX
   2,  // LINE
   3,  // TRIANGLE
   4,  // QUAD
@@ -160,6 +163,32 @@ class Element {
 
 
 //Element geometry class
+class ElementVERTEX : public Element {
+  public:
+    ElementVERTEX() {
+      shape = ElementShape::VERTEX;
+      nodes = new uint32[getNNodes()];
+    }
+
+    ElementVERTEX& operator= (const ElementVERTEX& from) {
+      Element::operator= (from);
+      return *this;
+    }
+};
+
+class ElementTWIN_VERTEX : public Element {
+  public:
+    ElementTWIN_VERTEX() {
+      shape = ElementShape::TWIN_VERTEX;
+      nodes = new uint32[getNNodes()];
+    }
+
+    ElementTWIN_VERTEX& operator= (const ElementTWIN_VERTEX& from) {
+      Element::operator= (from);
+      return *this;
+    }
+};
+
 class ElementLINE : public Element {
   public:
     ElementLINE() {
@@ -223,6 +252,20 @@ class ElementHEXAHEDRON : public Element {
     }
 
     ElementHEXAHEDRON& operator= (const ElementHEXAHEDRON& from) {
+      Element::operator= (from);
+      return *this;
+    }
+};
+
+
+class ElementWEDGE : public Element {
+  public:
+    ElementWEDGE() {
+      shape = ElementShape::WEDGE;
+      nodes = new uint32[getNNodes()];
+    }
+
+    ElementWEDGE& operator= (const ElementWEDGE& from) {
       Element::operator= (from);
       return *this;
     }
